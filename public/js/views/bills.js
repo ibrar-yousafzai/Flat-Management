@@ -146,7 +146,8 @@ const BillsView = {
               </div>
             </div>
 
-            <div class="overflow-x-auto">
+            <!-- Desktop Matrix Table (Wide screen high productivity) -->
+            <div class="hidden md:block overflow-x-auto">
               <table class="w-full text-left text-xs border-collapse">
                 <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                   <tr>
@@ -237,6 +238,81 @@ const BillsView = {
                   `}
                 </tbody>
               </table>
+            </div>
+
+            <!-- Mobile Member Split Cards (Small screen optimized) -->
+            <div class="md:hidden divide-y divide-slate-100">
+              ${matrix && matrix.length > 0 ? matrix.map(row => `
+                <div class="p-4 space-y-3">
+                  <!-- Header -->
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <div class="font-bold text-slate-800 text-sm">${row.member.name}</div>
+                      <div class="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
+                        <span class="font-mono text-indigo-600 font-bold">${row.member.unique_id}</span> &bull; 
+                        <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">${row.member.room_name || 'Outside'}</span>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-[10px] text-slate-400 uppercase font-semibold">Net Payable</div>
+                      <div class="text-base font-black ${row.net_month_payable > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                        ${currency} ${row.net_month_payable.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Key Amounts Bar -->
+                  <div class="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl text-center text-xs border border-slate-100">
+                    <div>
+                      <span class="text-[10px] text-slate-400 block">Prior Arrears</span>
+                      <span class="font-bold ${row.prior_arrears !== 0 ? (row.prior_arrears > 0 ? 'text-amber-800' : 'text-emerald-700') : 'text-slate-400'}">
+                        ${row.prior_arrears !== 0 ? `${currency} ${row.prior_arrears.toLocaleString()}` : '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <span class="text-[10px] text-slate-400 block">Month Bills</span>
+                      <span class="font-bold text-indigo-900">${currency} ${row.bills_total.toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span class="text-[10px] text-slate-400 block">Bills Paid</span>
+                      <span class="font-bold text-emerald-700">${row.paid_amount > 0 ? `${currency} ${row.paid_amount.toLocaleString()}` : '-'}</span>
+                    </div>
+                  </div>
+
+                  <!-- Itemized Bills Breakdown (Collapsible) -->
+                  <details class="text-xs group">
+                    <summary class="cursor-pointer text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center justify-between py-1 select-none">
+                      <span>View Breakdown (${bills.length} bills)</span>
+                      <i class="fa-solid fa-chevron-down text-[10px] transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="pt-2 space-y-1.5 border-t border-slate-100 mt-1">
+                      ${bills.map(b => {
+                        const val = row.bills[b.id] || 0;
+                        return `
+                          <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-600 truncate max-w-[200px]">${b.title}</span>
+                            <span class="font-medium ${val > 0 ? 'text-slate-800' : 'text-slate-400'}">${val > 0 ? `${currency} ${val.toLocaleString()}` : '-'}</span>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  </details>
+
+                  <!-- Mobile Actions -->
+                  <div class="flex items-center gap-2 pt-1 border-t border-slate-100">
+                    <button onclick="BillsView.openWhatsApp(${row.member.id})" class="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+                      <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i> WhatsApp
+                    </button>
+                    <button onclick="BillsView.openInvoice(${row.member.id})" class="flex-1 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+                      <i class="fa-solid fa-file-invoice text-indigo-600"></i> PDF Bill
+                    </button>
+                  </div>
+                </div>
+              `).join('') : `
+                <div class="p-6 text-center text-xs text-slate-400">
+                  No member records found for ${this.selectedMonth}.
+                </div>
+              `}
             </div>
           </div>
 

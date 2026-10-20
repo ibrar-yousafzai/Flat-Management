@@ -66,17 +66,20 @@ const App = {
         <!-- Main Top Navbar -->
         ${this.renderNavbar()}
 
-        <!-- Main Body Content -->
-        <main class="flex-1 w-full max-w-[1750px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Main Body Content (With safe bottom padding on mobile screens) -->
+        <main class="flex-1 w-full max-w-[1750px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 md:pb-6">
           <div id="view-content" class="fade-in">
             <!-- Dynamic View Rendered Here -->
             <div class="p-8 text-center"><i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-600"></i></div>
           </div>
         </main>
 
-        <!-- Footer -->
-        <footer class="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400 no-print">
-          Flat Management System &bull; Secure Multi-Admin & Member Portal
+        <!-- Mobile Bottom App Bar (Native iOS / Android experience) -->
+        ${this.renderMobileBottomNav()}
+
+        <!-- Desktop Footer -->
+        <footer class="hidden md:block border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400 no-print">
+          Flat Management System &bull; Supabase Cloud Database &bull; PWA Offline Mode
         </footer>
       </div>
     `;
@@ -108,6 +111,11 @@ const App = {
     }
 
     contentEl.innerHTML = viewHtml;
+
+    // Render Network status indicator after view renders
+    if (typeof OfflineStore !== 'undefined') {
+      OfflineStore.renderNetworkIndicator();
+    }
   },
 
   renderNavbar() {
@@ -118,32 +126,41 @@ const App = {
     let roleTitle = 'Admin Panel';
     if (isMember) roleTitle = 'Member Portal';
     else if (isSuperAdmin) roleTitle = 'Super Admin';
-    else if (isFoodManagerOnly) roleTitle = 'Weekly Food Manager';
+    else if (isFoodManagerOnly) roleTitle = 'Food Manager';
 
     return `
       <header class="bg-white border-b border-slate-200 sticky top-0 z-30 card-shadow no-print">
-        <div class="w-full max-w-[1750px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex items-center justify-between h-16">
-            <!-- Logo / Brand -->
-            <div class="flex items-center gap-3 cursor-pointer" onclick="App.navigate(App.userType === 'member' ? 'portal' : (isFoodManagerOnly ? 'food' : 'dashboard'))">
-              <div class="w-10 h-10 rounded-xl ${isFoodManagerOnly ? 'bg-amber-600' : 'bg-indigo-600'} text-white flex items-center justify-center font-black text-lg shadow-md">
+        <div class="w-full max-w-[1750px] mx-auto px-3 sm:px-6 lg:px-8">
+          <div class="flex items-center justify-between h-14 sm:h-16">
+            <!-- Brand & Network Pill -->
+            <div class="flex items-center gap-2 sm:gap-3 cursor-pointer" onclick="App.navigate(App.userType === 'member' ? 'portal' : (isFoodManagerOnly ? 'food' : 'dashboard'))">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${isFoodManagerOnly ? 'bg-amber-600' : 'bg-indigo-600'} text-white flex items-center justify-center font-black text-sm sm:text-lg shadow-sm">
                 <i class="fa-solid ${isFoodManagerOnly ? 'fa-utensils' : 'fa-building'}"></i>
               </div>
               <div>
-                <span class="font-extrabold text-slate-900 text-base leading-none block">Flat Manager</span>
-                <span class="text-[10px] ${isFoodManagerOnly ? 'text-amber-700' : 'text-indigo-600'} font-bold uppercase tracking-wider block mt-0.5">
+                <span class="font-black text-slate-900 text-sm sm:text-base leading-none block">Flat Manager</span>
+                <span class="text-[9px] sm:text-[10px] ${isFoodManagerOnly ? 'text-amber-700' : 'text-indigo-600'} font-bold uppercase tracking-wider block mt-0.5">
                   ${roleTitle}
                 </span>
               </div>
             </div>
 
+            <!-- Network Status Pill (Visible on both Mobile & Desktop) -->
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <div id="network-status-pill" class="cursor-pointer"></div>
+              <button onclick="OfflineStore.installApp()" title="Install App (PWA)" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 border border-slate-200 transition-all">
+                <i class="fa-solid fa-download text-indigo-600"></i>
+                <span class="hidden sm:inline">Install App</span>
+              </button>
+            </div>
+
             <!-- Desktop Navigation Links -->
             <nav class="hidden md:flex items-center space-x-1 text-xs font-semibold">
               ${isMember ? `
-                <button onclick="App.navigate('portal')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'portal' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
-                  <i class="fa-solid fa-gauge-high mr-1"></i> My Dashboard
+                <button onclick="App.navigate('portal')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'portal' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
+                  <i class="fa-solid fa-gauge-high mr-1"></i> Dashboard
                 </button>
-                <button onclick="App.navigate('reports')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'reports' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
+                <button onclick="App.navigate('reports')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'reports' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                   <i class="fa-solid fa-file-invoice mr-1"></i> My Statement
                 </button>
               ` : (isFoodManagerOnly ? `
@@ -154,45 +171,45 @@ const App = {
                   <i class="fa-solid fa-money-bill-transfer mr-1.5 text-emerald-600"></i> Food Payments & Approvals
                 </button>
               ` : `
-                <button onclick="App.navigate('dashboard')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
+                <button onclick="App.navigate('dashboard')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                   Dashboard
                 </button>
                 ${this.currentUser?.can_manage_rooms ? `
-                  <button onclick="App.navigate('rooms')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'rooms' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
+                  <button onclick="App.navigate('rooms')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'rooms' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                     Rooms
                   </button>
                 ` : ''}
                 ${this.currentUser?.can_manage_members ? `
-                  <button onclick="App.navigate('members')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'members' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
+                  <button onclick="App.navigate('members')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'members' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                     Members
                   </button>
                 ` : ''}
                 ${this.currentUser?.can_manage_bills ? `
-                  <button onclick="App.navigate('bills')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'bills' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
+                  <button onclick="App.navigate('bills')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'bills' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                     Bills & Splits
                   </button>
                 ` : ''}
                 ${this.currentUser?.can_manage_food ? `
-                  <button onclick="App.navigate('food')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'food' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
+                  <button onclick="App.navigate('food')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'food' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                     Weekly Food
                   </button>
                 ` : ''}
                 ${this.currentUser?.can_manage_payments ? `
-                  <button onclick="App.navigate('payments')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'payments' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
+                  <button onclick="App.navigate('payments')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'payments' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                     Payments
                   </button>
                 ` : ''}
-                <button onclick="App.navigate('reports')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'reports' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
+                <button onclick="App.navigate('reports')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'reports' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                   Reports & PDF
                 </button>
                 ${isSuperAdmin ? `
-                  <button onclick="App.navigate('admins')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'admins' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
+                  <button onclick="App.navigate('admins')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'admins' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                     Admins
                   </button>
-                  <button onclick="App.navigate('settings')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'settings' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
+                  <button onclick="App.navigate('settings')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'settings' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                     Settings
                   </button>
-                  <button onclick="App.navigate('audit')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'audit' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:text-slate-900'}">
+                  <button onclick="App.navigate('audit')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'audit' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                     Audit Log
                   </button>
                 ` : ''}
@@ -200,35 +217,18 @@ const App = {
             </nav>
 
             <!-- User Info & Logout -->
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 sm:gap-3">
               <div class="text-right hidden sm:block">
                 <span class="text-xs font-bold text-slate-800 block">${this.currentUser.name}</span>
                 <span class="text-[10px] text-slate-400 font-mono block">
                   ${isMember ? this.currentUser.unique_id : `@${this.currentUser.username}`}
                 </span>
               </div>
-              <button onclick="App.logout()" title="Sign Out" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 flex items-center justify-center transition-all text-xs">
+              <button onclick="App.logout()" title="Sign Out" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 flex items-center justify-center transition-all text-xs">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
               </button>
             </div>
           </div>
-        </div>
-
-        <!-- Mobile Scrollable Navigation Bar -->
-        <div class="md:hidden flex items-center overflow-x-auto px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs font-medium space-x-2">
-          ${isMember ? `
-            <button onclick="App.navigate('portal')" class="px-3 py-1.5 rounded-lg whitespace-nowrap ${this.currentView === 'portal' ? 'bg-indigo-600 text-white' : 'text-slate-600'}">Dashboard</button>
-            <button onclick="App.navigate('reports')" class="px-3 py-1.5 rounded-lg whitespace-nowrap ${this.currentView === 'reports' ? 'bg-indigo-600 text-white' : 'text-slate-600'}">Invoices</button>
-          ` : (isFoodManagerOnly ? `
-            <button onclick="App.navigate('food')" class="px-3 py-1.5 rounded-lg whitespace-nowrap ${this.currentView === 'food' ? 'bg-amber-600 text-white' : 'text-slate-600'}">Weekly Food</button>
-            <button onclick="App.navigate('payments')" class="px-3 py-1.5 rounded-lg whitespace-nowrap ${this.currentView === 'payments' ? 'bg-amber-600 text-white' : 'text-slate-600'}">Food Payments</button>
-          ` : `
-            <button onclick="App.navigate('dashboard')" class="px-2.5 py-1.5 rounded-lg whitespace-nowrap ${this.currentView === 'dashboard' ? 'bg-indigo-600 text-white' : 'text-slate-600'}">Dashboard</button>
-            <button onclick="App.navigate('bills')" class="px-2.5 py-1.5 rounded-lg whitespace-nowrap ${this.currentView === 'bills' ? 'bg-indigo-600 text-white' : 'text-slate-600'}">Bills</button>
-            <button onclick="App.navigate('food')" class="px-2.5 py-1.5 rounded-lg whitespace-nowrap ${this.currentView === 'food' ? 'bg-indigo-600 text-white' : 'text-slate-600'}">Food</button>
-            <button onclick="App.navigate('payments')" class="px-2.5 py-1.5 rounded-lg whitespace-nowrap ${this.currentView === 'payments' ? 'bg-indigo-600 text-white' : 'text-slate-600'}">Payments</button>
-            <button onclick="App.navigate('reports')" class="px-2.5 py-1.5 rounded-lg whitespace-nowrap ${this.currentView === 'reports' ? 'bg-indigo-600 text-white' : 'text-slate-600'}">Reports</button>
-          `)}
         </div>
       </header>
     `;
@@ -468,6 +468,174 @@ const App = {
     ReportsView.selectedMemberId = memberId;
     ReportsView.selectedMonth = month;
     this.navigate('reports');
+  },
+
+  renderMobileBottomNav() {
+    const isMember = this.userType === 'member';
+    const isSuperAdmin = this.currentUser?.role === 'super_admin';
+    const isFoodManagerOnly = !isMember && !isSuperAdmin && this.currentUser?.can_manage_food && !this.currentUser?.can_manage_bills && !this.currentUser?.can_manage_rooms;
+
+    if (isMember) {
+      return `
+        <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-1.5 shadow-lg flex items-center justify-around no-print" style="padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);">
+          <button onclick="App.navigate('portal')" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${this.currentView === 'portal' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
+            <i class="fa-solid fa-gauge-high text-lg"></i>
+            <span class="text-[10px] mt-0.5">My Portal</span>
+          </button>
+          <button onclick="App.navigate('reports')" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${this.currentView === 'reports' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
+            <i class="fa-solid fa-file-invoice text-lg"></i>
+            <span class="text-[10px] mt-0.5">Statement</span>
+          </button>
+          <button onclick="OfflineStore.installApp()" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all text-slate-500 hover:text-indigo-600">
+            <i class="fa-solid fa-download text-lg text-indigo-500"></i>
+            <span class="text-[10px] mt-0.5">Install App</span>
+          </button>
+          <button onclick="App.logout()" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all text-slate-500 hover:text-rose-600">
+            <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
+            <span class="text-[10px] mt-0.5">Logout</span>
+          </button>
+        </div>
+      `;
+    }
+
+    if (isFoodManagerOnly) {
+      return `
+        <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-1.5 shadow-lg flex items-center justify-around no-print" style="padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);">
+          <button onclick="App.navigate('food')" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${this.currentView === 'food' ? 'text-amber-600 font-bold' : 'text-slate-500'}">
+            <i class="fa-solid fa-utensils text-lg"></i>
+            <span class="text-[10px] mt-0.5">Weekly Food</span>
+          </button>
+          <button onclick="App.navigate('payments')" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${this.currentView === 'payments' ? 'text-amber-600 font-bold' : 'text-slate-500'}">
+            <i class="fa-solid fa-money-bill-transfer text-lg"></i>
+            <span class="text-[10px] mt-0.5">Payments</span>
+          </button>
+          <button onclick="OfflineStore.installApp()" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all text-slate-500 hover:text-amber-600">
+            <i class="fa-solid fa-download text-lg text-amber-500"></i>
+            <span class="text-[10px] mt-0.5">Install App</span>
+          </button>
+          <button onclick="App.logout()" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all text-slate-500 hover:text-rose-600">
+            <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
+            <span class="text-[10px] mt-0.5">Logout</span>
+          </button>
+        </div>
+      `;
+    }
+
+    // Default Admin Mobile Bottom Navigation
+    const isMoreActive = ['rooms', 'members', 'reports', 'admins', 'settings', 'audit'].includes(this.currentView);
+
+    return `
+      <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-2xl flex items-center justify-around no-print" style="padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);">
+        <button onclick="App.navigate('dashboard')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'dashboard' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
+          <i class="fa-solid fa-house text-lg"></i>
+          <span class="text-[10px] mt-0.5">Home</span>
+        </button>
+        <button onclick="App.navigate('bills')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'bills' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
+          <i class="fa-solid fa-file-invoice-dollar text-lg"></i>
+          <span class="text-[10px] mt-0.5">Bills</span>
+        </button>
+        <button onclick="App.navigate('food')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'food' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
+          <i class="fa-solid fa-utensils text-lg"></i>
+          <span class="text-[10px] mt-0.5">Food</span>
+        </button>
+        <button onclick="App.navigate('payments')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'payments' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
+          <i class="fa-solid fa-money-bill-transfer text-lg"></i>
+          <span class="text-[10px] mt-0.5">Payments</span>
+        </button>
+        <button onclick="App.openMobileMoreMenu()" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${isMoreActive ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
+          <i class="fa-solid fa-bars text-lg"></i>
+          <span class="text-[10px] mt-0.5">More</span>
+        </button>
+      </div>
+    `;
+  },
+
+  openMobileMoreMenu() {
+    const isSuperAdmin = this.currentUser?.role === 'super_admin';
+    const queue = typeof OfflineStore !== 'undefined' ? OfflineStore.getQueue() : [];
+
+    this.showModal(`
+      <div class="space-y-4 text-slate-800">
+        <!-- Header / User Info -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
+              <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm leading-tight">${this.currentUser?.name}</h3>
+              <p class="text-[11px] text-slate-500">@${this.currentUser?.username} &bull; <span class="capitalize text-indigo-600 font-semibold">${this.currentUser?.role?.replace('_', ' ')}</span></p>
+            </div>
+          </div>
+          <button onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+
+        <!-- Supabase Cloud Sync Quick Action -->
+        <div class="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs shadow-sm">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-emerald-950">Supabase Cloud Sync</p>
+              <p class="text-[10px] text-emerald-700">${queue.length > 0 ? `${queue.length} offline actions pending` : 'Cloud database connected'}</p>
+            </div>
+          </div>
+          <button onclick="App.closeModal(); OfflineStore.triggerCloudSync();" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold shadow-sm transition-all">
+            Sync Now
+          </button>
+        </div>
+
+        <!-- Management Navigation Grid -->
+        <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+          ${this.currentUser?.can_manage_rooms ? `
+            <button onclick="App.closeModal(); App.navigate('rooms');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-door-open text-indigo-600 text-base"></i>
+              <span>Rooms & Rents</span>
+            </button>
+          ` : ''}
+
+          ${this.currentUser?.can_manage_members ? `
+            <button onclick="App.closeModal(); App.navigate('members');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-users text-indigo-600 text-base"></i>
+              <span>Members</span>
+            </button>
+          ` : ''}
+
+          <button onclick="App.closeModal(); App.navigate('reports');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+            <i class="fa-solid fa-file-invoice text-indigo-600 text-base"></i>
+            <span>Reports & PDF</span>
+          </button>
+
+          ${isSuperAdmin ? `
+            <button onclick="App.closeModal(); App.navigate('admins');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-user-gear text-indigo-600 text-base"></i>
+              <span>Admins</span>
+            </button>
+            <button onclick="App.closeModal(); App.navigate('settings');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-sliders text-indigo-600 text-base"></i>
+              <span>Settings</span>
+            </button>
+            <button onclick="App.closeModal(); App.navigate('audit');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-shield-halved text-indigo-600 text-base"></i>
+              <span>Audit Log</span>
+            </button>
+          ` : ''}
+        </div>
+
+        <!-- App & Session Actions -->
+        <div class="pt-2 border-t border-slate-100 flex items-center gap-2">
+          <button onclick="App.closeModal(); OfflineStore.installApp();" class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-mobile-screen"></i> Install on Phone
+          </button>
+          <button onclick="App.closeModal(); App.logout();" class="flex-1 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+          </button>
+        </div>
+      </div>
+    `);
   }
 };
 

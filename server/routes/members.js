@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db, logAudit } = require('../db');
+const { pushMemberToSupabase, deleteMemberFromSupabase } = require('../supabase');
 const { requireMemberSelf, requireAdmin } = require('../middleware/auth');
 
 // Helper to calculate a member's separated balances (Monthly Bills vs Weekly Food)
@@ -261,6 +262,22 @@ router.post('/', (req, res) => {
     `).run(newId, type, assignedRoomId, join_date);
 
     logAudit('admin', null, actor_name, 'Created Member', `Added member ${name} (${finalUniqueId}, ${type})`);
+
+    // Sync to Supabase Cloud
+    pushMemberToSupabase({
+      unique_id: finalUniqueId,
+      name,
+      email,
+      whatsapp,
+      type,
+      join_date,
+      opening_balance,
+      notes
+    }).then(sb => {
+      if (sb?.id) {
+        db.prepare('UPDATE members SET supabase_id = ? WHERE id = ?').run(sb.id, newId);
+      }
+    }).catch(err => console.error('Supabase member push error:', err));
 
     res.json({
       success: true,
@@ -537,6 +554,10 @@ router.delete('/:id', (req, res) => {
     });
 
     deleteTx();
+
+    if (member.supabase_id) {
+      deleteMemberFromSupabase(member.supabase_id).catch(err => console.error('Supabase delete error:', err));
+    }
 
     logAudit('admin', null, actor_name, 'Permanently Deleted Member', `Deleted member ${member.name} (${member.unique_id}) and cleaned up all associated records`);
 

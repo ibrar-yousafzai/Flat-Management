@@ -18,6 +18,10 @@ app.use(authMiddleware);
 initDatabase();
 seedDatabase();
 
+// Sync live state from Supabase Cloud Database
+const { syncFromSupabase } = require('./supabase');
+syncFromSupabase().catch(err => console.error('Supabase initial sync error:', err.message));
+
 // API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admins', require('./routes/admins'));
@@ -30,6 +34,12 @@ app.use('/api/settings', require('./routes/settings'));
 app.use('/api/audit', require('./routes/audit'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/import', require('./routes/import'));
+
+// Cloud Sync endpoint
+app.post('/api/sync-supabase', async (req, res) => {
+  const result = await syncFromSupabase();
+  res.json(result);
+});
 
 // Serve uploaded bill photos / receipts
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

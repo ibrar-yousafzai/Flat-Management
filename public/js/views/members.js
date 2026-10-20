@@ -54,9 +54,10 @@ const MembersView = {
             </div>
           </div>
 
-          <!-- Members Table -->
+          <!-- Members Table Container -->
           <div class="bg-white rounded-2xl border border-slate-200 card-shadow overflow-hidden">
-            <div class="overflow-x-auto">
+            <!-- Desktop Members Table -->
+            <div class="hidden md:block overflow-x-auto">
               <table class="w-full text-left text-xs text-slate-600">
                 <thead class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 font-semibold">
                   <tr>
@@ -171,6 +172,80 @@ const MembersView = {
                 </tbody>
               </table>
             </div>
+
+            <!-- Dedicated Mobile Member Cards (Clean Touch-Optimized Layout) -->
+            <div class="md:hidden divide-y divide-slate-100">
+              ${filtered.length > 0 ? filtered.map(m => {
+                const isOwed = (m.outstanding_balance || 0) > 0;
+                return `
+                  <div class="p-4 space-y-3">
+                    <!-- Top: Avatar, Name, Status, Running Balance -->
+                    <div class="flex items-start justify-between">
+                      <div class="flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-black text-sm flex items-center justify-center shrink-0">
+                          ${m.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div class="font-bold text-slate-800 text-sm leading-tight">${m.name}</div>
+                          <div class="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
+                            <span class="font-mono text-indigo-600 font-bold bg-indigo-50 px-1 rounded">${m.unique_id}</span> &bull; 
+                            <span class="font-medium ${m.type === 'Inside' ? 'text-emerald-700' : 'text-slate-500'}">${m.type === 'Inside' ? (m.room_name || 'Room ?') : 'Outside'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-[10px] text-slate-400 uppercase font-semibold">Balance</div>
+                        <div class="text-sm font-black ${isOwed ? 'text-rose-600' : 'text-emerald-600'}">
+                          ${currency} ${(m.outstanding_balance || 0).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Details Row: Deposit & Contacts -->
+                    <div class="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      <div class="text-[11px] text-slate-600">
+                        <span class="text-slate-400">Deposit:</span> <strong>${currency} ${(m.security_deposit || 0).toLocaleString()}</strong>
+                        <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-1 ${m.security_deposit_status === 'Settled' ? 'bg-slate-200 text-slate-600' : 'bg-indigo-100 text-indigo-700'}">${m.security_deposit_status || 'Held'}</span>
+                      </div>
+                      <div>
+                        ${m.whatsapp ? `
+                          <a href="https://wa.me/${m.whatsapp.replace(/[^0-9]/g, '')}" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1 text-[11px]">
+                            <i class="fa-brands fa-whatsapp"></i> Chat
+                          </a>
+                        ` : '<span class="text-slate-400 text-[10px]">No Phone</span>'}
+                      </div>
+                    </div>
+
+                    <!-- Actions Toolbar -->
+                    <div class="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                      <button onclick="MembersView.viewStatement(${m.id})" class="flex-1 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-file-invoice text-indigo-600 text-xs"></i> Statement
+                      </button>
+                      <button onclick="MembersView.openEditModal(${JSON.stringify(m).replace(/"/g, '&quot;')}, ${JSON.stringify(rooms).replace(/"/g, '&quot;')})" class="flex-1 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1">
+                        <i class="fa-regular fa-pen-to-square text-xs"></i> Edit
+                      </button>
+                      ${m.status === 'Active' ? `
+                        <button onclick="MembersView.openLeavingSettlementModal(${m.id})" title="Leaving Settlement" class="p-1.5 px-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-xs font-semibold transition-all flex items-center gap-1">
+                          <i class="fa-solid fa-person-walking-dashed-line-arrow-right text-xs"></i> Settle
+                        </button>
+                      ` : `
+                        <button onclick="MembersView.reactivateMember(${m.id}, '${m.name}', ${JSON.stringify(rooms).replace(/"/g, '&quot;')})" class="p-1.5 px-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-semibold transition-all flex items-center gap-1">
+                          <i class="fa-solid fa-user-check text-xs"></i> Reactivate
+                        </button>
+                      `}
+                      <button onclick="MembersView.deleteMember(${m.id}, '${m.name.replace(/'/g, "\\'")}', '${m.unique_id}')" title="Delete Member" class="p-1.5 px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-semibold transition-all">
+                        <i class="fa-regular fa-trash-can text-xs"></i>
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('') : `
+                <div class="p-6 text-center text-xs text-slate-400">
+                  No ${this.currentTab.toLowerCase()} members found matching your search.
+                </div>
+              `}
+            </div>
+          </div>
           </div>
         </div>
       `;

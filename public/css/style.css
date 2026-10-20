@@ -1,4 +1,20 @@
-/* Custom styles and print stylesheet for Flat Management */
+/* Custom styles and mobile/print stylesheet for Flat Management */
+
+/* Mobile Safe Areas (iPhone Notch & Home Indicator) */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  padding-top: var(--sat);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile Bottom Navigation Bar */
+.mobile-bottom-nav {
+  padding-bottom: calc(var(--sab) + 0.35rem);
+}
 
 @media print {
   body * {
