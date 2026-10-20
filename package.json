@@ -1,0 +1,27 @@
+{
+  "name": "flat-management-system",
+  "version": "1.0.0",
+  "description": "Comprehensive Flat Management System with Multi-Admin, Member Portal, Bill & Food Splits, Payment Approvals, and WhatsApp/PDF Invoicing",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js"
+  },
+  "keywords": [
+    "flat",
+    "expenses",
+    "split",
+    "rent",
+    "management"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.1.7",
+    "xlsx": "^0.18.5"
+  }
+}

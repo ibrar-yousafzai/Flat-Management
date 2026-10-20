@@ -1,0 +1,212 @@
+const express = require('express');
+const router = express.Router();
+const { db, logAudit } = require('../db');
+
+// Get all weekly food entries (optionally filtered by month)
+router.get('/', (req, res) => {
+  try {
+    const { month } = req.query;
+    let query = `SELECT * FROM weekly_food WHERE 1=1`;
+    const params = [];
+
+    if (month) {
+      query += ` AND month = ?`;
+      params.push(month);
+    }
+
+    query += ` ORDER BY date DESC, id DESC`;
+    const entries = db.prepare(query).all(...params);
+
+    const enriched = entries.map(entry => {
+      const splits = db.prepare(`
+        SELECT fs.*, m.name as member_name, m.unique_id, m.whatsapp
+        FROM food_splits fs
+        JOIN members m ON fs.member_id = m.id
+        WHERE fs.food_id = ?
+        ORDER BY m.name ASC
+      `).all(entry.id);
+
+      const totalMembers = splits.length;
+      const perPerson = totalMembers > 0 ? Math.round((entry.total_amount / totalMembers) * 100) / 100 : 0;
+
+      return {
+        ...entry,
+        per_person: perPerson,
+        member_count: totalMembers,
+        members: splits
+      };
+    });
+
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Create weekly food entry with mid-week custom assignment support
+router.post('/', (req, res) => {
+  try {
+    const {
+      date = new Date().toISOString().slice(0, 10),
+      week_label = '',
+      title = 'Weekly Grocery & Mess',
+      total_amount,
+      member_ids = [],
+      custom_shares = {}, // { "memberId": 1000 } for mid-week joiners
+      notes = '',
+      actor_name = 'Admin'
+    } = req.body;
+
+    const amount = Number(total_amount);
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Valid total amount is required' });
+    }
+
+    if (!member_ids || member_ids.length === 0) {
+      return res.status(400).json({ error: 'Please select at least one participating member' });
+    }
+
+    const month = date.slice(0, 7);
+
+    const entryRes = db.prepare(`
+      INSERT INTO weekly_food (date, week_label, month, title, total_amount, notes)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(date, week_label || `Week of ${date}`, month, title.trim(), amount, notes.trim());
+
+    const foodId = entryRes.lastInsertRowid;
+    const insertSplit = db.prepare(`
+      INSERT INTO food_splits (food_id, member_id, amount, is_custom, custom_note)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    // Calculate splits with mid-week custom overrides
+    let totalCustomAmount = 0;
+    const customMemberSet = new Set();
+
+    for (const memId of member_ids) {
+      const customVal = custom_shares[memId];
+      if (customVal !== undefined && customVal !== null && customVal !== '' && !isNaN(Number(customVal))) {
+        totalCustomAmount += Number(customVal);
+        customMemberSet.add(Number(memId));
+      }
+    }
+
+    const remainingMembers = member_ids.filter(id => !customMemberSet.has(Number(id)));
+    const remainingAmount = Math.max(0, amount - totalCustomAmount);
+    const standardPerPerson = remainingMembers.length > 0 ? Math.round((remainingAmount / remainingMembers.length) * 100) / 100 : 0;
+
+    for (const memId of member_ids) {
+      const numId = Number(memId);
+      if (customMemberSet.has(numId)) {
+        const customAmt = Number(custom_shares[numId]);
+        insertSplit.run(foodId, numId, customAmt, 1, 'Mid-week / custom assigned share');
+      } else {
+        insertSplit.run(foodId, numId, standardPerPerson, 0, null);
+      }
+    }
+
+    logAudit('food_manager', null, actor_name, 'Added Food Expense', `Recorded weekly food "${title}" on ${date} (Rs. ${amount}, ${customMemberSet.size} custom mid-week shares)`);
+
+    res.json({ success: true, id: foodId, standardPerPerson, memberCount: member_ids.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update weekly food entry
+router.put('/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      date,
+      week_label,
+      title,
+      total_amount,
+      member_ids,
+      custom_shares = {},
+      notes,
+      actor_name = 'Admin'
+    } = req.body;
+
+    const current = db.prepare(`SELECT * FROM weekly_food WHERE id = ?`).get(id);
+    if (!current) {
+      return res.status(404).json({ error: 'Food entry not found' });
+    }
+
+    const newDate = date || current.date;
+    const newMonth = newDate.slice(0, 7);
+    const newAmount = total_amount !== undefined ? Number(total_amount) : current.total_amount;
+
+    db.prepare(`
+      UPDATE weekly_food SET
+        date = ?,
+        month = ?,
+        week_label = COALESCE(?, week_label),
+        title = COALESCE(?, title),
+        total_amount = ?,
+        notes = COALESCE(?, notes)
+      WHERE id = ?
+    `).run(newDate, newMonth, week_label, title ? title.trim() : null, newAmount, notes, id);
+
+    if (member_ids && member_ids.length > 0) {
+      db.prepare(`DELETE FROM food_splits WHERE food_id = ?`).run(id);
+      const insertSplit = db.prepare(`
+        INSERT INTO food_splits (food_id, member_id, amount, is_custom, custom_note)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+
+      let totalCustomAmount = 0;
+      const customMemberSet = new Set();
+      for (const memId of member_ids) {
+        const customVal = custom_shares[memId];
+        if (customVal !== undefined && customVal !== null && customVal !== '' && !isNaN(Number(customVal))) {
+          totalCustomAmount += Number(customVal);
+          customMemberSet.add(Number(memId));
+        }
+      }
+
+      const remainingMembers = member_ids.filter(mId => !customMemberSet.has(Number(mId)));
+      const remainingAmount = Math.max(0, newAmount - totalCustomAmount);
+      const standardPerPerson = remainingMembers.length > 0 ? Math.round((remainingAmount / remainingMembers.length) * 100) / 100 : 0;
+
+      for (const memId of member_ids) {
+        const numId = Number(memId);
+        if (customMemberSet.has(numId)) {
+          const customAmt = Number(custom_shares[numId]);
+          insertSplit.run(id, numId, customAmt, 1, 'Mid-week / custom assigned share');
+        } else {
+          insertSplit.run(id, numId, standardPerPerson, 0, null);
+        }
+      }
+    }
+
+    logAudit('admin', null, actor_name, 'Updated Food Expense', `Updated food entry #${id} (Rs. ${newAmount})`);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete weekly food entry
+router.delete('/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const current = db.prepare(`SELECT * FROM weekly_food WHERE id = ?`).get(id);
+    if (!current) {
+      return res.status(404).json({ error: 'Food entry not found' });
+    }
+
+    db.prepare(`DELETE FROM food_splits WHERE food_id = ?`).run(id);
+    db.prepare(`DELETE FROM weekly_food WHERE id = ?`).run(id);
+
+    const actorName = req.body?.actor_name || req.query?.actor_name || 'Admin';
+    logAudit('admin', null, actorName, 'Deleted Food Expense', `Deleted food entry "${current.title}" (${current.date})`);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;

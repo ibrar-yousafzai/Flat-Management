@@ -1,0 +1,60 @@
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const { initDatabase } = require('./db');
+const { seedDatabase } = require('./seed');
+const { authMiddleware } = require('./middleware/auth');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(authMiddleware);
+
+// Initialize DB and Seed default data
+initDatabase();
+seedDatabase();
+
+// API Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/admins', require('./routes/admins'));
+app.use('/api/rooms', require('./routes/rooms'));
+app.use('/api/members', require('./routes/members').router);
+app.use('/api/bills', require('./routes/bills'));
+app.use('/api/food', require('./routes/food'));
+app.use('/api/payments', require('./routes/payments'));
+app.use('/api/settings', require('./routes/settings'));
+app.use('/api/audit', require('./routes/audit'));
+app.use('/api/reports', require('./routes/reports'));
+app.use('/api/import', require('./routes/import'));
+
+// Serve uploaded bill photos / receipts
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Serve Frontend Static Files
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Fallback to index.html for Single Page Application
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    return res.sendFile(path.join(__dirname, '../public/index.html'));
+  }
+  next();
+});
+
+// Start Server if run directly
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(`🏢 Flat Management System is LIVE!`);
+    console.log(`🌐 Server running at: http://localhost:${PORT}`);
+    console.log(`🔑 Super Admin login: superadmin / admin123`);
+    console.log(`👤 Member sample login: MEM-001 / flat123`);
+    console.log(`=======================================================`);
+  });
+}
+
+module.exports = app;

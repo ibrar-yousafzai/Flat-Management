@@ -1,0 +1,795 @@
+// Monthly Bills & Matrix Split View
+const BillsView = {
+  selectedMonth: new Date().toISOString().slice(0, 7),
+
+  async render() {
+    try {
+      const [billsData, rooms, members, settings, monthsData] = await Promise.all([
+        API.get(`/api/bills?month=${this.selectedMonth}`),
+        API.get('/api/rooms'),
+        API.get('/api/members?status=Active'),
+        API.get('/api/settings'),
+        API.get('/api/bills/months-list')
+      ]);
+
+      const currency = settings.currency_symbol || 'Rs.';
+      const bills = billsData.bills;
+      const matrix = billsData.matrix;
+      const isConfirmed = billsData.month_status === 'confirmed' || billsData.month_status === 'closed';
+      const availableMonths = monthsData.months || ['2024-02', '2024-03', '2024-04', '2024-05', '2024-06', '2024-07', '2024-08', '2024-09', '2024-10'];
+
+      return `
+        <div class="space-y-6">
+          <!-- Header & Month Selector Toolbar -->
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 card-shadow">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${billsData.month_status === 'closed' ? 'bg-purple-50 text-purple-700 border border-purple-200' : (isConfirmed ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200')}">
+                  <i class="fa-solid ${billsData.month_status === 'closed' ? 'fa-lock text-purple-500' : (isConfirmed ? 'fa-circle-check text-emerald-500' : 'fa-pen-to-square text-amber-500')}"></i>
+                  ${billsData.month_status === 'closed' ? 'Month Closed & Rolled Over' : (isConfirmed ? 'Month Confirmed & Published' : 'Draft Mode (In Progress)')}
+                </span>
+                ${isConfirmed && billsData.confirmed_by ? `<span class="text-[11px] text-slate-400">Confirmed by ${billsData.confirmed_by}</span>` : ''}
+              </div>
+              <h1 class="text-2xl font-bold text-slate-800">Monthly Bills & Expense Splits</h1>
+              <p class="text-sm text-slate-500 mt-0.5">Add bills one by one. Confirm when done to store and publish to members. Re-edit anytime.</p>
+            </div>
+            
+            <!-- Controls -->
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                <label class="text-xs font-bold text-slate-600 px-2 uppercase">Month:</label>
+                <select onchange="BillsView.changeMonth(this.value)" class="text-xs font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-300 outline-none">
+                  ${availableMonths.map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${m}</option>`).join('')}
+                </select>
+              </div>
+
+              <button onclick="BillsView.autoGenerateRent()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Fill Rent
+              </button>
+
+              <button onclick="BillsView.openCreateBillModal(${JSON.stringify(rooms).replace(/"/g, '&quot;')}, ${JSON.stringify(members).replace(/"/g, '&quot;')})" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i> Add One-by-One Bill
+              </button>
+
+              <button onclick="BillsView.promptBatchEmailModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-paper-plane text-xs"></i> Send Invoices (Email)
+              </button>
+
+              <button onclick="BillsView.promptDeleteMonth()" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-xl shadow-xs transition-all flex items-center gap-1.5" title="Delete or Reset This Month's Bills">
+                <i class="fa-regular fa-trash-can text-xs"></i> Delete Month
+              </button>
+
+              ${isConfirmed ? `
+                <button onclick="BillsView.closeAndAdvanceMonth()" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+                  <i class="fa-solid fa-forward-step"></i> Close & Rollover to Next Month
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- DRAFT vs CONFIRMED ACTION BANNER -->
+          ${!isConfirmed ? `
+            <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shrink-0">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div>
+                  <h4 class="font-bold text-amber-950 text-sm">Monthly Bills Draft for ${this.selectedMonth}</h4>
+                  <p class="text-xs text-amber-800">Add bills one by one. Once you verify all calculations are correct, click Confirm & Publish.</p>
+                </div>
+              </div>
+              <button onclick="BillsView.confirmMonth()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition-all shrink-0 flex items-center gap-1.5">
+                <i class="fa-solid fa-check-double"></i> Confirm & Publish Month Bills
+              </button>
+            </div>
+          ` : `
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-base shrink-0">
+                  <i class="fa-solid fa-lock"></i>
+                </div>
+                <div>
+                  <h4 class="font-bold text-emerald-950 text-xs">Finalized & Stored in System</h4>
+                  <p class="text-[11px] text-emerald-800">These bills are officially confirmed and visible to members. Need to make adjustments or dispatch notifications?</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="BillsView.promptBatchEmailModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+                  <i class="fa-solid fa-envelope"></i> Send Invoices to Members
+                </button>
+                <button onclick="BillsView.reopenMonth()" class="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold rounded-xl shadow-sm transition-all shrink-0 flex items-center gap-1.5">
+                  <i class="fa-solid fa-unlock text-amber-600"></i> Unlock / Re-edit Bills
+                </button>
+              </div>
+            </div>
+          `}
+
+          <!-- Bills Summary Ribbon -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+              <span class="text-xs text-slate-400 font-semibold uppercase">Total Monthly Bills</span>
+              <p class="text-xl font-extrabold text-slate-800 mt-1">${currency} ${billsData.total_bills_amount.toLocaleString()}</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+              <span class="text-xs text-slate-400 font-semibold uppercase">Number of Bills</span>
+              <p class="text-xl font-extrabold text-indigo-600 mt-1">${bills.length} Bills</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+              <span class="text-xs text-slate-400 font-semibold uppercase">Active Inside Members</span>
+              <p class="text-xl font-extrabold text-emerald-600 mt-1">${members.filter(m => m.type === 'Inside').length}</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+              <span class="text-xs text-slate-400 font-semibold uppercase">Outside Members</span>
+              <p class="text-xl font-extrabold text-purple-600 mt-1">${members.filter(m => m.type === 'Outside').length}</p>
+            </div>
+          </div>
+
+          <!-- Main Matrix Table: Members (Rows) vs Bills (Columns) -->
+          <div class="bg-white rounded-2xl border border-slate-200 card-shadow overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-800">Monthly Split Breakdown (${this.selectedMonth})</h3>
+                <p class="text-xs text-slate-500">Rent & Monthly Utilities (Weekly food is tracked week-to-week separately)</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="BillsView.promptBatchEmailModal()" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 mr-2">
+                  <i class="fa-solid fa-paper-plane"></i> Batch Email Invoices
+                </button>
+                <button onclick="App.navigate('reports')" class="text-xs text-slate-600 hover:text-slate-900 font-semibold flex items-center gap-1">
+                  <i class="fa-solid fa-print"></i> Print Invoices
+                </button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                  <tr>
+                    <th class="py-3 px-3 font-bold border-r border-slate-200 min-w-[150px]">Member & Room</th>
+                    <th class="py-3 px-3 font-semibold text-center border-r border-slate-200 min-w-[90px] bg-amber-50/50">
+                      <div>Prior Arrears</div>
+                      <div class="text-[9px] text-amber-700 font-normal">Carried Fwd</div>
+                    </th>
+                    ${bills.map(b => `
+                      <th class="py-3 px-2 font-semibold text-center border-r border-slate-200 min-w-[100px]">
+                        <div class="font-bold text-slate-800 truncate" title="${b.title}">${b.title}</div>
+                        <div class="text-[10px] text-slate-400 font-normal">${currency} ${b.total_amount.toLocaleString()}</div>
+                        <span class="text-[9px] px-1 py-0.2 rounded bg-slate-100 text-slate-500 font-mono uppercase">${b.category}</span>
+                      </th>
+                    `).join('')}
+                    <th class="py-3 px-3 font-bold text-center border-r border-slate-200 bg-indigo-50 text-indigo-900 min-w-[100px]">Month Bills</th>
+                    <th class="py-3 px-3 font-bold text-center border-r border-slate-200 bg-emerald-50 text-emerald-900 min-w-[90px]">Bills Paid</th>
+                    <th class="py-3 px-3 font-bold text-right border-r border-slate-200 min-w-[110px]">Net Payable</th>
+                    <th class="py-3 px-3 font-semibold text-center border-r border-slate-200 bg-amber-50 text-amber-900 min-w-[90px]" title="Separate Weekly Mess">Weekly Food</th>
+                    <th class="py-3 px-3 font-semibold text-center no-print">Quick Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${matrix && matrix.length > 0 ? matrix.map(row => `
+                    <tr class="table-row-hover">
+                      <!-- Member & Room -->
+                      <td class="py-3 px-3 border-r border-slate-100">
+                        <div class="font-bold text-slate-800">${row.member.name}</div>
+                        <div class="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                          <span class="font-mono text-indigo-600">${row.member.unique_id}</span> &bull; 
+                          <span>${row.member.room_name || 'Outside'}</span>
+                        </div>
+                      </td>
+
+                      <!-- Prior Arrears -->
+                      <td class="py-3 px-3 text-center border-r border-slate-100 bg-amber-50/20 font-semibold ${row.prior_arrears !== 0 ? (row.prior_arrears > 0 ? 'text-amber-800' : 'text-emerald-700') : 'text-slate-300'}">
+                        ${row.prior_arrears !== 0 ? `${currency} ${row.prior_arrears.toLocaleString()}` : '-'}
+                      </td>
+
+                      <!-- Itemized Bills -->
+                      ${bills.map(b => {
+                        const val = row.bills[b.id] || 0;
+                        return `
+                          <td class="py-3 px-3 text-center border-r border-slate-100 font-medium ${val > 0 ? 'text-slate-700' : 'text-slate-300'}">
+                            ${val > 0 ? `${currency} ${val.toLocaleString()}` : '-'}
+                          </td>
+                        `;
+                      }).join('')}
+
+                      <!-- Total Month Bills Due -->
+                      <td class="py-3 px-3 text-center border-r border-slate-100 bg-indigo-50/30 font-bold text-indigo-900">
+                        ${currency} ${row.bills_total.toLocaleString()}
+                      </td>
+
+                      <!-- Bills Paid -->
+                      <td class="py-3 px-3 text-center border-r border-slate-100 bg-emerald-50/30 font-bold text-emerald-700">
+                        ${row.paid_amount > 0 ? `${currency} ${row.paid_amount.toLocaleString()}` : '-'}
+                      </td>
+
+                      <!-- Net Bills Balance (Carried + Bills - Paid) -->
+                      <td class="py-3 px-3 text-right border-r border-slate-100 font-extrabold ${row.net_month_payable > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                        ${currency} ${row.net_month_payable.toLocaleString()}
+                      </td>
+
+                      <!-- Separate Weekly Food Mess status -->
+                      <td class="py-3 px-3 text-center border-r border-slate-100 bg-amber-50/30 font-semibold text-amber-900">
+                        ${row.food_total > 0 ? `${currency} ${row.food_total.toLocaleString()}` : '<span class="text-slate-300">-</span>'}
+                      </td>
+
+                      <!-- Quick WhatsApp & PDF buttons -->
+                      <td class="py-3 px-3 text-center no-print">
+                        <div class="flex items-center justify-center gap-1">
+                          <button onclick="BillsView.openWhatsApp(${row.member.id})" title="Send WhatsApp Invoice" class="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-all">
+                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                          </button>
+                          <button onclick="BillsView.openInvoice(${row.member.id})" title="View / Print PDF" class="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-all">
+                            <i class="fa-solid fa-file-pdf text-sm"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  `).join('') : `
+                    <tr>
+                      <td colspan="${bills.length + 6}" class="py-8 text-center text-slate-400">
+                        No member records found for ${this.selectedMonth}.
+                      </td>
+                    </tr>
+                  `}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Individual Bills List & Management -->
+          <div class="bg-white rounded-2xl border border-slate-200 card-shadow p-6">
+            <h3 class="text-sm font-bold text-slate-800 mb-3">Bills List for ${this.selectedMonth}</h3>
+            ${bills.length > 0 ? `
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                ${bills.map(b => `
+                  <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                    <div>
+                      <div class="font-bold text-slate-800 text-xs">${b.title}</div>
+                      <div class="text-[11px] text-slate-500 mt-0.5 font-semibold text-emerald-700">
+                        ${currency} ${b.total_amount.toLocaleString()}
+                      </div>
+                      <div class="text-[10px] text-slate-400 mt-0.5">
+                        Split: <span class="capitalize font-mono">${b.split_type.replace('_', ' ')}</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <button onclick="BillsView.openEditBillModal(${JSON.stringify(b).replace(/"/g, '&quot;')})" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-all" title="Edit Bill">
+                        <i class="fa-regular fa-pen-to-square"></i>
+                      </button>
+                      <button onclick="BillsView.deleteBill(${b.id}, '${b.title}')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete Bill">
+                        <i class="fa-regular fa-trash-can"></i>
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : '<p class="text-xs text-slate-400">No bills added yet for this month. Click "Auto-Fill Rent" or "Add One-by-One Bill" above.</p>'}
+          </div>
+        </div>
+      `;
+    } catch (err) {
+      return `<div class="p-6 bg-red-50 text-red-700 rounded-xl">Error loading bills: ${err.message}</div>`;
+    }
+  },
+
+  changeMonth(month) {
+    this.selectedMonth = month;
+    App.refresh();
+  },
+
+  async confirmMonth() {
+    if (!confirm(`Are you sure you want to confirm all bills for ${this.selectedMonth}? This will officially store them and publish to member portals.`)) return;
+    try {
+      const res = await API.post('/api/bills/confirm-month', { month: this.selectedMonth, admin_name: App.currentUser?.name || 'Admin' });
+      App.toast(res.message, 'success');
+      // Prompt admin immediately to send emails to All or Selected members
+      this.promptBatchEmailModal();
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  // Clean, unified modal to send monthly bill invoices by email
+  async promptBatchEmailModal() {
+    try {
+      const [members, consolidated] = await Promise.all([
+        API.get('/api/members?status=Active'),
+        API.get(`/api/reports/month-consolidated/${this.selectedMonth}`)
+      ]);
+
+      const netMap = {};
+      for (const r of (consolidated.rows || [])) {
+        netMap[r.member.id] = r.net_bills_due;
+      }
+
+      const withEmail = members.filter(m => m.email && m.email.trim().length > 0);
+      const withoutEmail = members.filter(m => !m.email || m.email.trim().length === 0);
+
+      // Format month for display
+      const [yearStr, monthStr] = this.selectedMonth.split('-');
+      const monthObj = new Date(Number(yearStr), Number(monthStr) - 1, 1);
+      const monthDisplay = isNaN(monthObj.getTime()) ? this.selectedMonth : monthObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+      App.showModal(`
+        <div class="space-y-4 max-w-lg mx-auto">
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base">
+                <i class="fa-solid fa-paper-plane"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-slate-800">Send Monthly Bill Invoices</h3>
+                <p class="text-xs text-slate-500">${monthDisplay} &bull; Delivered via Email</p>
+              </div>
+            </div>
+            <button onclick="App.closeModal(); App.refresh();" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+
+          <!-- Simple Recipient Scope Selector -->
+          <div class="bg-slate-50 p-1.5 rounded-xl border border-slate-200 flex items-center gap-1 text-xs font-semibold">
+            <button type="button" id="tabEmailAll" onclick="BillsView.setEmailRecipientMode('all')" class="flex-1 py-2 px-3 rounded-lg bg-white text-indigo-700 shadow-xs border border-slate-200/80 font-bold text-center transition-all">
+              All Members (${withEmail.length})
+            </button>
+            <button type="button" id="tabEmailCustom" onclick="BillsView.setEmailRecipientMode('custom')" class="flex-1 py-2 px-3 rounded-lg text-slate-600 hover:text-slate-900 text-center transition-all">
+              Pick Specific Members
+            </button>
+          </div>
+
+          <!-- Summary info note -->
+          <div class="p-3 rounded-xl bg-indigo-50/60 border border-indigo-100 text-xs text-indigo-900 flex items-start gap-2.5">
+            <i class="fa-solid fa-circle-info text-indigo-500 mt-0.5 text-xs"></i>
+            <div class="leading-relaxed">
+              Each member gets a simple, clean email with their <strong>Rent, Electricity, WiFi, and Cook</strong> breakdown plus official payment accounts.
+            </div>
+          </div>
+
+          <!-- Member selection list (visible when in 'custom' mode) -->
+          <div id="emailMembersPickerContainer" class="hidden space-y-2">
+            <div class="flex items-center justify-between text-xs px-1 text-slate-500 font-medium">
+              <span>Select members to email:</span>
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="BillsView.toggleAllEmailCheckboxes(true)" class="text-indigo-600 font-bold hover:underline">Select All</button>
+                <span>&bull;</span>
+                <button type="button" onclick="BillsView.toggleAllEmailCheckboxes(false)" class="text-slate-500 font-bold hover:underline">Clear</button>
+              </div>
+            </div>
+
+            <div class="max-h-52 overflow-y-auto border border-slate-200 rounded-xl p-2 divide-y divide-slate-100 bg-white">
+              ${members.map(m => {
+                const hasEmail = m.email && m.email.trim().length > 0;
+                const due = netMap[m.id] || 0;
+                return `
+                  <label class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 transition-all cursor-pointer ${!hasEmail ? 'opacity-40' : ''}">
+                    <div class="flex items-center gap-2.5">
+                      <input type="checkbox" name="batchMemberCheckbox" value="${m.id}" ${hasEmail ? 'checked' : 'disabled'} onchange="BillsView.updateEmailSendButtonCount()" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
+                      <div>
+                        <div class="font-bold text-slate-800 text-xs">${m.name} <span class="font-mono text-slate-400 text-[10px]">(${m.unique_id})</span></div>
+                        <div class="text-[11px] text-slate-500">${m.room_name || 'Outside'} &bull; ${hasEmail ? `<span class="text-slate-600">${m.email}</span>` : '<span class="text-rose-500 italic">No email saved</span>'}</div>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-xs font-bold text-slate-800 font-mono">Rs. ${due.toLocaleString()}</div>
+                      <div class="text-[10px] text-slate-400">Total Due</div>
+                    </div>
+                  </label>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          ${withoutEmail.length > 0 ? `
+            <div class="text-[11px] text-slate-400 px-1">
+              Note: ${withoutEmail.length} ${withoutEmail.length === 1 ? 'member has' : 'members have'} no email configured (send via WhatsApp from the Reports page).
+            </div>
+          ` : ''}
+
+          <!-- Footer Actions -->
+          <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+            <button type="button" onclick="App.closeModal(); App.refresh();" class="px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-700">
+              Skip / Later
+            </button>
+            <button type="button" id="btnDispatchEmail" onclick="BillsView.submitEmailDispatch()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow transition-all flex items-center gap-2">
+              <i class="fa-solid fa-paper-plane text-xs"></i>
+              <span id="btnDispatchEmailText">Send ${withEmail.length} Invoices</span>
+            </button>
+          </div>
+        </div>
+      `);
+
+      this.emailRecipientMode = 'all';
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  setEmailRecipientMode(mode) {
+    this.emailRecipientMode = mode;
+    const tabAll = document.getElementById('tabEmailAll');
+    const tabCustom = document.getElementById('tabEmailCustom');
+    const picker = document.getElementById('emailMembersPickerContainer');
+
+    if (mode === 'all') {
+      tabAll.className = 'flex-1 py-2 px-3 rounded-lg bg-white text-indigo-700 shadow-xs border border-slate-200/80 font-bold text-center transition-all';
+      tabCustom.className = 'flex-1 py-2 px-3 rounded-lg text-slate-600 hover:text-slate-900 text-center transition-all';
+      if (picker) picker.classList.add('hidden');
+    } else {
+      tabCustom.className = 'flex-1 py-2 px-3 rounded-lg bg-white text-indigo-700 shadow-xs border border-slate-200/80 font-bold text-center transition-all';
+      tabAll.className = 'flex-1 py-2 px-3 rounded-lg text-slate-600 hover:text-slate-900 text-center transition-all';
+      if (picker) picker.classList.remove('hidden');
+    }
+
+    this.updateEmailSendButtonCount();
+  },
+
+  updateEmailSendButtonCount() {
+    const btnText = document.getElementById('btnDispatchEmailText');
+    if (!btnText) return;
+
+    if (this.emailRecipientMode === 'all') {
+      const allEnabled = document.querySelectorAll('input[name="batchMemberCheckbox"]:not(:disabled)');
+      btnText.innerText = `Send ${allEnabled.length} Invoices`;
+    } else {
+      const checkedBoxes = document.querySelectorAll('input[name="batchMemberCheckbox"]:checked');
+      btnText.innerText = `Send to ${checkedBoxes.length} Selected`;
+    }
+  },
+
+  toggleAllEmailCheckboxes(select) {
+    const checkboxes = document.querySelectorAll('input[name="batchMemberCheckbox"]:not(:disabled)');
+    checkboxes.forEach(cb => cb.checked = select);
+    this.updateEmailSendButtonCount();
+  },
+
+  async submitEmailDispatch() {
+    let memberIds = 'all';
+
+    if (this.emailRecipientMode === 'custom') {
+      const checkedBoxes = document.querySelectorAll('input[name="batchMemberCheckbox"]:checked');
+      memberIds = Array.from(checkedBoxes).map(cb => Number(cb.value));
+
+      if (memberIds.length === 0) {
+        App.toast('Please select at least one member with a valid email address.', 'error');
+        return;
+      }
+    }
+
+    const btn = document.getElementById('btnDispatchEmail');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-xs"></i> Sending Invoices...`;
+    }
+
+    await this.dispatchBatchEmail(memberIds);
+  },
+
+  async dispatchBatchEmail(memberIds) {
+    try {
+      App.toast('Dispatching invoices via email...', 'info');
+      const res = await API.post('/api/reports/batch-send-emails', {
+        month: this.selectedMonth,
+        member_ids: memberIds,
+        email_type: 'bills'
+      });
+
+      App.toast(res.message, 'success');
+      App.closeModal();
+      App.refresh();
+    } catch (err) {
+      App.toast(err.message, 'error');
+      const btn = document.getElementById('btnDispatchEmail');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-paper-plane text-xs"></i> Try Again`;
+      }
+    }
+  },
+
+  async reopenMonth() {
+    const reason = prompt(`Unlock & Reopen bills for ${this.selectedMonth} for editing?\n\nPlease enter the reason for unlocking (required for the official audit trail):`, 'Correcting meter units / utility adjustment');
+    if (!reason || !reason.trim()) {
+      App.toast('Reopen cancelled: A clear reason is required to unlock finalized bills.', 'info');
+      return;
+    }
+    try {
+      const res = await API.post('/api/bills/reopen-month', {
+        month: this.selectedMonth,
+        reason: reason.trim(),
+        admin_name: App.currentUser?.name || 'Admin'
+      });
+      App.toast(res.message, 'success');
+      App.refresh();
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  async closeAndAdvanceMonth() {
+    if (!confirm(`Are you sure you want to close ${this.selectedMonth} and roll over to the next month? Remaining member balances will be saved and carried forward automatically.`)) return;
+    try {
+      const res = await API.post('/api/bills/close-and-advance-month', { month: this.selectedMonth, admin_name: App.currentUser?.name || 'Admin' });
+      App.toast(res.message, 'success');
+      this.selectedMonth = res.nextMonth;
+      App.refresh();
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  promptDeleteMonth() {
+    App.showModal(`
+      <div class="space-y-4 max-w-md mx-auto">
+        <div class="flex items-center justify-between border-b pb-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-800">Delete Month Data</h3>
+              <p class="text-xs text-slate-500">Billing Month: <strong>${this.selectedMonth}</strong></p>
+            </div>
+          </div>
+          <button onclick="App.closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 space-y-1.5">
+          <p class="font-bold">⚠️ Permanent Action</p>
+          <p>This will permanently delete all bills, member splits, and status for month <strong>${this.selectedMonth}</strong>.</p>
+        </div>
+
+        <label class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 cursor-pointer">
+          <input type="checkbox" id="delMonthAlsoFood" class="w-4 h-4 rounded text-rose-600 focus:ring-rose-500" />
+          <span>Also delete weekly food mess batches for ${this.selectedMonth}</span>
+        </label>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="App.closeModal()" class="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
+          <button type="button" onclick="BillsView.confirmDeleteMonth()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-trash-can text-xs"></i> Delete All ${this.selectedMonth} Data
+          </button>
+        </div>
+      </div>
+    `);
+  },
+
+  async confirmDeleteMonth() {
+    const alsoFood = document.getElementById('delMonthAlsoFood')?.checked;
+    try {
+      App.toast(`Deleting data for month ${this.selectedMonth}...`, 'info');
+      const res = await API.delete(`/api/bills/month/${this.selectedMonth}?delete_food=${alsoFood ? 'true' : 'false'}`);
+      App.toast(res.message, 'success');
+      App.closeModal();
+      App.refresh();
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  async autoGenerateRent() {
+    try {
+      const res = await API.post('/api/bills/auto-generate-rent', { month: this.selectedMonth });
+      App.toast(`Rent of Rs. ${res.totalRent} auto-generated!`, 'success');
+      App.refresh();
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  openCreateBillModal(rooms, members) {
+    App.showModal(`
+      <div class="space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <h3 class="text-lg font-bold text-slate-800">Add One-by-One Bill (${this.selectedMonth})</h3>
+          <button onclick="App.closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onsubmit="BillsView.submitCreateBill(event)" class="space-y-3.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Bill Title *</label>
+              <input type="text" id="newBillTitle" required placeholder="e.g. WiFi, Cook Salary, Electricity" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Total Bill Amount (Rs.) *</label>
+              <input type="number" id="newBillAmount" required min="1" step="any" placeholder="e.g. 15000" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Category</label>
+              <select id="newBillCategory" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="utility">Utility (Electricity, Gas, Water, Wifi)</option>
+                <option value="salary">Staff Salary (Cook, Cleaner)</option>
+                <option value="maintenance">Maintenance / Repair</option>
+                <option value="other">Other / Custom</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Split Method *</label>
+              <select id="newBillSplitType" onchange="BillsView.onSplitTypeChange(this.value)" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="everyone" selected>Everyone (All active members)</option>
+                <option value="inside_only">Inside Only (Living in flat)</option>
+                <option value="by_room">By Specific Room</option>
+                <option value="pick_people">Pick Specific People</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Room Selector (for by_room) -->
+          <div id="billRoomSelector" style="display:none;">
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Select Room</label>
+            <select id="newBillRoomId" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+              ${rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
+            </select>
+          </div>
+
+          <!-- Member Pick Selector (for pick_people) -->
+          <div id="billMemberPicker" style="display:none;" class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Select Participating Members</label>
+            <div class="max-h-40 overflow-y-auto border rounded-xl p-2.5 grid grid-cols-2 gap-2 bg-slate-50 text-xs">
+              ${members.map(m => `
+                <label class="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-white">
+                  <input type="checkbox" name="selectedMember" value="${m.id}" checked class="rounded text-indigo-600" />
+                  <span>${m.name}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Notes / Bill Attachment URL</label>
+            <input type="text" id="newBillNotes" placeholder="e.g. Unit consumption or receipt link" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" onclick="App.closeModal()" class="px-4 py-2 border rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700">Add Bill</button>
+          </div>
+        </form>
+      </div>
+    `);
+  },
+
+  onSplitTypeChange(type) {
+    document.getElementById('billRoomSelector').style.display = type === 'by_room' ? 'block' : 'none';
+    document.getElementById('billMemberPicker').style.display = type === 'pick_people' ? 'block' : 'none';
+  },
+
+  async submitCreateBill(e) {
+    e.preventDefault();
+    const title = document.getElementById('newBillTitle').value;
+    const total_amount = document.getElementById('newBillAmount').value;
+    const category = document.getElementById('newBillCategory').value;
+    const split_type = document.getElementById('newBillSplitType').value;
+    const notes = document.getElementById('newBillNotes').value;
+    const room_id = split_type === 'by_room' ? document.getElementById('newBillRoomId').value : null;
+
+    let selected_members = [];
+    if (split_type === 'pick_people') {
+      const checkedBoxes = document.querySelectorAll('input[name="selectedMember"]:checked');
+      selected_members = Array.from(checkedBoxes).map(cb => Number(cb.value));
+      if (selected_members.length === 0) {
+        App.toast('Please check at least one member', 'error');
+        return;
+      }
+    }
+
+    try {
+      await API.post('/api/bills', {
+        month: this.selectedMonth,
+        title,
+        total_amount,
+        category,
+        split_type,
+        room_id,
+        selected_members,
+        notes
+      });
+      App.toast('Bill added! You can add more bills or confirm the month when done.', 'success');
+      App.closeModal();
+      App.refresh();
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  openEditBillModal(b) {
+    App.showModal(`
+      <div class="space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <h3 class="text-lg font-bold text-slate-800">Edit Bill: ${b.title}</h3>
+          <button onclick="App.closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onsubmit="BillsView.submitEditBill(event, ${b.id})" class="space-y-3.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Bill Title *</label>
+              <input type="text" id="editBillTitle" value="${b.title}" required class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-800" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Total Bill Amount (Rs.) *</label>
+              <input type="number" id="editBillAmount" value="${b.total_amount}" required min="1" step="any" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-800" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Category</label>
+              <select id="editBillCategory" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="utility" ${b.category === 'utility' ? 'selected' : ''}>Utility (Electricity, Wifi, Gas, Water)</option>
+                <option value="salary" ${b.category === 'salary' ? 'selected' : ''}>Staff Salary (Cook, Cleaner)</option>
+                <option value="maintenance" ${b.category === 'maintenance' ? 'selected' : ''}>Maintenance / Repair</option>
+                <option value="rent" ${b.category === 'rent' ? 'selected' : ''}>Rent</option>
+                <option value="other" ${b.category === 'other' ? 'selected' : ''}>Other / Custom</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Split Method</label>
+              <select id="editBillSplitType" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="everyone" ${b.split_type === 'everyone' ? 'selected' : ''}>Everyone (All active members)</option>
+                <option value="inside_only" ${b.split_type === 'inside_only' ? 'selected' : ''}>Inside Only (Living in flat)</option>
+                <option value="by_room" ${b.split_type === 'by_room' ? 'selected' : ''}>By Specific Room</option>
+                <option value="pick_people" ${b.split_type === 'pick_people' ? 'selected' : ''}>Pick Specific People</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Notes / Bill Attachment Details</label>
+            <input type="text" id="editBillNotes" value="${b.notes || ''}" placeholder="e.g. Unit count, meter reading, photo link" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" onclick="App.closeModal()" class="px-4 py-2 border rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700">Update & Recalculate Splits</button>
+          </div>
+        </form>
+      </div>
+    `);
+  },
+
+  async submitEditBill(e, billId) {
+    e.preventDefault();
+    const title = document.getElementById('editBillTitle').value;
+    const total_amount = document.getElementById('editBillAmount').value;
+    const category = document.getElementById('editBillCategory').value;
+    const split_type = document.getElementById('editBillSplitType').value;
+    const notes = document.getElementById('editBillNotes').value;
+
+    try {
+      await API.put(`/api/bills/${billId}`, {
+        title, total_amount, category, split_type, notes,
+        admin_name: App.currentUser?.name || 'Admin'
+      });
+      App.toast('Bill updated and splits recalculated!', 'success');
+      App.closeModal();
+      App.refresh();
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  async deleteBill(id, title) {
+    if (!confirm(`Are you sure you want to delete the bill "${title}"?`)) return;
+    try {
+      await API.delete(`/api/bills/${id}`);
+      App.toast('Bill deleted', 'info');
+      App.refresh();
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  async openWhatsApp(memberId) {
+    try {
+      const data = await API.get(`/api/reports/member-invoice/${memberId}?month=${this.selectedMonth}`);
+      window.open(data.whatsappUrl, '_blank');
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  async openInvoice(memberId) {
+    App.openInvoiceModal(memberId, this.selectedMonth);
+  }
+};
