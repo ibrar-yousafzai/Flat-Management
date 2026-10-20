@@ -177,11 +177,28 @@ router.get('/member-invoice/:memberId', requireMemberSelf('memberId'), (req, res
     lines.push(`\n_Submit receipt in portal using Member ID ${member.unique_id}_`);
 
     const whatsappText = lines.join('\n');
-    let phone = (member.whatsapp || '').replace(/[^0-9]/g, '');
-    if (phone.startsWith('0')) {
-      phone = '92' + phone.substring(1);
+    let countryCode = (settings.whatsapp_country_code || '92').replace(/[^0-9]/g, '');
+    if (countryCode.length > 4) {
+      countryCode = countryCode.startsWith('92') ? '92' : countryCode.slice(0, 2);
     }
-    const whatsappUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText)}` : `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+    if (!countryCode) countryCode = '92';
+
+    let phone = (member.whatsapp || '').replace(/[^0-9]/g, '');
+    if (phone.startsWith('00')) {
+      phone = phone.substring(2);
+    }
+    if (phone.startsWith('0')) {
+      phone = countryCode + phone.substring(1);
+    } else if (phone.length === 10 && !phone.startsWith(countryCode)) {
+      phone = countryCode + phone;
+    }
+
+    const whatsappUrl = phone 
+      ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(whatsappText)}` 
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappText)}`;
+    const waMeUrl = phone 
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText)}` 
+      : `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
 
     res.json({
       invoiceNumber: `INV-${month.replace('-', '')}-${member.unique_id}`,
@@ -205,7 +222,9 @@ router.get('/member-invoice/:memberId', requireMemberSelf('memberId'), (req, res
       overallBalance,
       settings,
       whatsappText,
-      whatsappUrl
+      whatsappUrl,
+      waMeUrl,
+      cleanPhone: phone
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -124,6 +124,7 @@ const ReportsView = {
 
   async renderSingleMemberInvoice(memberId, currency, settings) {
     const data = await API.get(`/api/reports/member-invoice/${memberId}?month=${this.selectedMonth}`);
+    this.currentInvoiceData = data;
     const m = data.member;
     const b = data.overallBalance;
 
@@ -353,9 +354,13 @@ const ReportsView = {
         <!-- WhatsApp & Email Action Buttons (Hidden on Print) -->
         <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 no-print">
           <div class="flex flex-wrap items-center gap-2">
-            <a href="${data.whatsappUrl}" target="_blank" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-2">
+            <a href="${data.whatsappUrl}" target="_blank" rel="noopener noreferrer" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-2">
               <i class="fa-brands fa-whatsapp text-base"></i> Send via WhatsApp
             </a>
+
+            <button type="button" onclick="ReportsView.copyWhatsAppMessage()" class="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5">
+              <i class="fa-regular fa-copy text-sm"></i> Copy WhatsApp Message
+            </button>
 
             ${m.email ? `
               <button onclick="ReportsView.sendEmailInvoice(${m.id}, '${m.name}', '${m.email}')" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-2">
@@ -370,6 +375,18 @@ const ReportsView = {
         </div>
       </div>
     `;
+  },
+
+  copyWhatsAppMessage() {
+    if (!this.currentInvoiceData?.whatsappText) {
+      App.toast('No WhatsApp invoice message to copy', 'error');
+      return;
+    }
+    navigator.clipboard.writeText(this.currentInvoiceData.whatsappText).then(() => {
+      App.toast(`Copied ${this.currentInvoiceData.member?.name || 'member'}'s WhatsApp invoice to clipboard!`, 'success');
+    }).catch(() => {
+      prompt('Copy message text:', this.currentInvoiceData.whatsappText);
+    });
   },
 
   async sendEmailInvoice(memberId, name, email) {

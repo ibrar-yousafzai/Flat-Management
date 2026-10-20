@@ -164,12 +164,13 @@ const SettingsView = {
               </h3>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Default Country Calling Code</label>
+                  <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Country Calling Code</label>
                   <div class="flex items-center gap-2">
                     <span class="text-sm font-bold text-slate-400">+</span>
-                    <input type="text" id="setWACode" value="${settings.whatsapp_country_code || '92'}" placeholder="92" class="w-28 px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-mono font-bold" />
-                    <span class="text-xs text-slate-400">(e.g. 92 for Pakistan)</span>
+                    <input type="text" id="setWACode" value="${settings.whatsapp_country_code || '92'}" placeholder="92" maxlength="4" class="w-24 px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-mono font-bold" />
+                    <span class="text-xs text-slate-500">e.g. 92 (Pakistan)</span>
                   </div>
+                  <p class="text-[10px] text-slate-400 mt-1">Do not enter full phone numbers here, only the 1-4 digit country code.</p>
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Property / Flat Title</label>

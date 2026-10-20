@@ -55,6 +55,10 @@ const BillsView = {
                 <i class="fa-solid fa-paper-plane text-xs"></i> Send Invoices (Email)
               </button>
 
+              <button onclick="BillsView.openBatchWhatsAppModal()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+                <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp Bills (One by One)
+              </button>
+
               <button onclick="BillsView.promptDeleteMonth()" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-xl shadow-xs transition-all flex items-center gap-1.5" title="Delete or Reset This Month's Bills">
                 <i class="fa-regular fa-trash-can text-xs"></i> Delete Month
               </button>
@@ -782,11 +786,207 @@ const BillsView = {
 
   async openWhatsApp(memberId) {
     try {
+      App.toast('Loading WhatsApp invoice...', 'info');
       const data = await API.get(`/api/reports/member-invoice/${memberId}?month=${this.selectedMonth}`);
-      window.open(data.whatsappUrl, '_blank');
+      
+      App.showModal(`
+        <div class="space-y-4 max-w-lg mx-auto">
+          <div class="flex items-center justify-between border-b pb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                <i class="fa-brands fa-whatsapp"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-slate-800">Send WhatsApp Bill: ${data.member.name}</h3>
+                <p class="text-xs text-slate-500">Phone: <strong>${data.member.whatsapp || 'No phone saved'}</strong> &bull; Month: ${this.selectedMonth}</p>
+              </div>
+            </div>
+            <button onclick="App.closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+
+          <!-- Total Bill Highlight -->
+          <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+            <div>
+              <div class="text-[10px] uppercase font-bold text-emerald-800">Total Net Amount Due</div>
+              <div class="text-lg font-black text-emerald-950 font-mono">Rs. ${data.netMonthBillsBalance.toLocaleString()}</div>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-white border border-emerald-300 text-emerald-800">
+              ${data.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+            </span>
+          </div>
+
+          <!-- Formatted Message Box -->
+          <div>
+            <div class="flex items-center justify-between mb-1 text-xs">
+              <span class="font-bold text-slate-700">Pre-Filled WhatsApp Message:</span>
+              <button onclick="BillsView.copyTextToClipboard('${encodeURIComponent(data.whatsappText)}')" class="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1">
+                <i class="fa-regular fa-copy"></i> Copy Text
+              </button>
+            </div>
+            <textarea readonly rows="7" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 leading-relaxed outline-none select-all">${data.whatsappText}</textarea>
+          </div>
+
+          <!-- Direct Actions -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onclick="BillsView.copyTextToClipboard('${encodeURIComponent(data.whatsappText)}')" class="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+              <i class="fa-regular fa-copy"></i> Copy Message
+            </button>
+
+            <a href="${data.whatsappUrl}" target="_blank" rel="noopener noreferrer" class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow transition-all flex items-center justify-center gap-2">
+              <i class="fa-brands fa-whatsapp text-sm"></i> Open WhatsApp Chat
+            </a>
+          </div>
+        </div>
+      `);
     } catch (err) {
       App.toast(err.message, 'error');
     }
+  },
+
+  // Modal to dispatch WhatsApp messages one by one to all members
+  async openBatchWhatsAppModal() {
+    try {
+      const [members, consolidated] = await Promise.all([
+        API.get('/api/members?status=Active'),
+        API.get(`/api/reports/month-consolidated/${this.selectedMonth}`)
+      ]);
+
+      const netMap = {};
+      for (const r of (consolidated.rows || [])) {
+        netMap[r.member.id] = r.net_bills_due;
+      }
+
+      App.showModal(`
+        <div class="space-y-4 max-w-2xl mx-auto">
+          <div class="flex items-center justify-between border-b pb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                <i class="fa-brands fa-whatsapp"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-slate-800">📱 Send WhatsApp Bills (One by One)</h3>
+                <p class="text-xs text-slate-500">Billing Month: <strong>${this.selectedMonth}</strong> &bull; Opens chat with bill pre-filled</p>
+              </div>
+            </div>
+            <button onclick="App.closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+
+          <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 leading-relaxed flex items-start gap-2">
+            <i class="fa-solid fa-circle-info text-emerald-600 mt-0.5"></i>
+            <div>
+              Click <strong>"Open WhatsApp"</strong> next to each member. It automatically moves you into WhatsApp directly with that person's chat and their bill message pre-filled. Then simply press send!
+            </div>
+          </div>
+
+          <!-- Members WhatsApp Table -->
+          <div class="max-h-80 overflow-y-auto border border-slate-200 rounded-2xl divide-y divide-slate-100 bg-white">
+            ${members.map(m => {
+              const hasPhone = m.whatsapp && m.whatsapp.trim().length > 0;
+              const due = netMap[m.id] || 0;
+              return `
+                <div id="waRow_${m.id}" class="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold">
+                      ${m.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                        <span>${m.name}</span>
+                        <span class="font-mono text-slate-400 text-[10px]">(${m.unique_id})</span>
+                        <span id="waStatus_${m.id}" class="text-[9px] px-1.5 py-0.2 rounded font-bold bg-slate-100 text-slate-500">Pending</span>
+                      </div>
+                      <div class="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                        <span>${m.room_name || 'Outside'}</span>
+                        <span>&bull;</span>
+                        <span class="font-mono ${hasPhone ? 'text-emerald-700 font-semibold' : 'text-rose-500 italic'}">
+                          ${hasPhone ? m.whatsapp : 'No phone saved'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between sm:justify-end gap-3">
+                    <div class="text-right">
+                      <div class="text-xs font-black text-slate-800 font-mono">Rs. ${due.toLocaleString()}</div>
+                      <div class="text-[10px] text-slate-400">Net Due</div>
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                      <button onclick="BillsView.copyWhatsAppForMember(${m.id})" title="Copy formatted bill text" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
+                        <i class="fa-regular fa-copy text-xs"></i> Copy
+                      </button>
+
+                      <button onclick="BillsView.sendWhatsAppToMember(${m.id})" ${hasPhone ? '' : 'disabled'} title="${hasPhone ? 'Open WhatsApp Chat' : 'Member has no phone number saved'}" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-lg text-xs font-bold shadow-xs transition-all flex items-center gap-1.5">
+                        <i class="fa-brands fa-whatsapp text-sm"></i>
+                        <span id="waBtnLabel_${m.id}">Open WhatsApp</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+            <span class="text-xs text-slate-400">${members.length} active members</span>
+            <button onclick="App.closeModal()" class="px-5 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-900 transition-all">
+              Done
+            </button>
+          </div>
+        </div>
+      `);
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  async sendWhatsAppToMember(memberId) {
+    try {
+      const data = await API.get(`/api/reports/member-invoice/${memberId}?month=${this.selectedMonth}`);
+      
+      // Update UI status badge
+      const statusEl = document.getElementById(`waStatus_${memberId}`);
+      if (statusEl) {
+        statusEl.className = 'text-[9px] px-1.5 py-0.2 rounded font-bold bg-emerald-100 text-emerald-800';
+        statusEl.innerText = 'Sent ✓';
+      }
+
+      const btnLabel = document.getElementById(`waBtnLabel_${memberId}`);
+      if (btnLabel) {
+        btnLabel.innerText = 'Sent Again';
+      }
+
+      // Open WhatsApp directly
+      const a = document.createElement('a');
+      a.href = data.whatsappUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      App.toast(`Opened WhatsApp for ${data.member.name}`, 'success');
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  async copyWhatsAppForMember(memberId) {
+    try {
+      const data = await API.get(`/api/reports/member-invoice/${memberId}?month=${this.selectedMonth}`);
+      this.copyTextToClipboard(encodeURIComponent(data.whatsappText), `${data.member.name}'s`);
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  copyTextToClipboard(encodedText, namePrefix = '') {
+    const text = decodeURIComponent(encodedText);
+    navigator.clipboard.writeText(text).then(() => {
+      App.toast(`Copied ${namePrefix ? namePrefix + ' ' : ''}WhatsApp invoice to clipboard!`, 'success');
+    }).catch(() => {
+      prompt('Copy message text:', text);
+    });
   },
 
   async openInvoice(memberId) {
