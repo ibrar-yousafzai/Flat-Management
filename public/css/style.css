@@ -174,8 +174,10 @@ thead.bg-slate-50 {
     visibility: hidden;
   }
 
-  #printable-invoice-container, #printable-invoice-container * {
-    visibility: visible;
+  /* Support both printable page container AND modal print dialogs */
+  #printable-invoice-container, #printable-invoice-container *,
+  #global-modal, #global-modal * {
+    visibility: visible !important;
   }
 
   #printable-invoice-container {
@@ -187,6 +189,36 @@ thead.bg-slate-50 {
     background: white !important;
     color: black !important;
     display: block !important;
+  }
+
+  #global-modal {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    display: block !important;
+    box-shadow: none !important;
+  }
+
+  #global-modal > div {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  .max-h-48, .max-h-56, .max-h-80, .max-h-\[85vh\] {
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .screen-hidden-row {

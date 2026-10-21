@@ -304,6 +304,23 @@ function initDatabase() {
       VALUES (?, ?, ?, 'super_admin', 1, 1, 1, 1, 1, 1)
     `).run('superadmin', 'admin123', 'Super Admin');
   }
+
+  // Automatic purge of legacy dummy seed members if real Supabase members exist
+  try {
+    const hasReal = db.prepare(`SELECT count(*) as c FROM members WHERE unique_id LIKE 'FL%'`).get().c;
+    if (hasReal > 0) {
+      const dummyIds = db.prepare(`SELECT id FROM members WHERE unique_id LIKE 'MEM-%'`).all().map(r => r.id);
+      if (dummyIds.length > 0) {
+        const placeholders = dummyIds.map(() => '?').join(',');
+        db.prepare(`DELETE FROM bill_splits WHERE member_id IN (${placeholders})`).run(...dummyIds);
+        db.prepare(`DELETE FROM food_splits WHERE member_id IN (${placeholders})`).run(...dummyIds);
+        db.prepare(`DELETE FROM payments WHERE member_id IN (${placeholders})`).run(...dummyIds);
+        db.prepare(`DELETE FROM monthly_carry_forward WHERE member_id IN (${placeholders})`).run(...dummyIds);
+        db.prepare(`DELETE FROM members WHERE id IN (${placeholders})`).run(...dummyIds);
+        console.log(`🧹 Auto-purged ${dummyIds.length} legacy dummy members. Active members: ${hasReal}`);
+      }
+    }
+  } catch (e) {}
 }
 
 // Audit logger helper

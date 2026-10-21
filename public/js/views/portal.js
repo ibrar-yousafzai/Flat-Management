@@ -52,50 +52,46 @@ const PortalView = {
       }
 
       return `
-        <div class="space-y-6 max-w-4xl mx-auto pb-10">
-          <!-- Member Mobile-First Banner -->
-          <div class="bg-gradient-to-r from-indigo-700 via-indigo-800 to-indigo-950 rounded-3xl p-6 sm:p-8 text-white card-shadow relative overflow-hidden">
-            <div class="absolute right-0 top-0 translate-x-8 -translate-y-8 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
-            
-            <div class="relative z-10 space-y-4">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-md">
-                    <i class="fa-solid fa-lock text-emerald-300"></i> Member Portal
-                  </span>
-                  ${m.security_deposit > 0 ? `
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
-                      <i class="fa-solid fa-shield-halved"></i> Deposit: ${currency} ${m.security_deposit.toLocaleString()}
-                    </span>
-                  ` : ''}
+        <div class="space-y-5 max-w-4xl mx-auto pb-10">
+          <!-- Clean Member Profile Banner (Compact & Mobile-friendly) -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 card-shadow">
+            <div class="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-base shadow-xs">
+                  ${m.name.charAt(0)}
                 </div>
-
-                <!-- 1-Click Logout on Shared Phones -->
-                <button onclick="App.logout()" title="Sign Out from shared phone" class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5">
-                  <i class="fa-solid fa-right-from-bracket"></i> Sign Out
-                </button>
+                <div>
+                  <h1 class="text-lg sm:text-xl font-black text-slate-900">${m.name}</h1>
+                  <p class="text-xs text-slate-500">
+                    <span class="font-mono text-indigo-600 font-bold">${m.unique_id}</span> &bull; 
+                    <span>${m.room_name || 'Outside Member'}</span>
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <h1 class="text-2xl sm:text-3xl font-black">${m.name}</h1>
-                <p class="text-indigo-200 text-xs sm:text-sm mt-1">
-                  Unique ID: <strong class="font-mono text-white bg-indigo-900/60 px-2 py-0.5 rounded">${m.unique_id}</strong> &bull; 
-                  Room: <strong class="text-white">${m.room_name || 'Outside Member'}</strong>
-                </p>
+              <div class="flex items-center gap-1.5">
+                ${m.security_deposit > 0 ? `
+                  <span class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Deposit: ${currency} ${m.security_deposit.toLocaleString()}
+                  </span>
+                ` : ''}
+                <button onclick="App.navigate('reports')" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5">
+                  <i class="fa-solid fa-file-invoice"></i> Statement
+                </button>
+                <button onclick="App.logout()" title="Sign Out" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                  <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+                </button>
               </div>
+            </div>
 
-              <!-- Quick Action Touch Buttons -->
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
-                <button onclick="PortalView.openSubmitPaymentModal(${m.id}, 'bills')" class="py-3 px-4 bg-indigo-500 hover:bg-indigo-600 text-white font-black text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2">
-                  <i class="fa-solid fa-building"></i> Pay Monthly Bills
-                </button>
-                <button onclick="PortalView.openSubmitPaymentModal(${m.id}, 'food')" class="py-3 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2">
-                  <i class="fa-solid fa-utensils"></i> Pay Weekly Food
-                </button>
-                <button onclick="PortalView.openFullStatementModal(${m.id})" class="py-3 px-4 bg-white/15 hover:bg-white/25 text-white font-black text-xs rounded-2xl backdrop-blur-md transition-all flex items-center justify-center gap-2">
-                  <i class="fa-solid fa-file-invoice"></i> Download Statement (PDF)
-                </button>
-              </div>
+            <!-- 2 Compact Primary Action Buttons -->
+            <div class="grid grid-cols-2 gap-2 pt-3">
+              <button onclick="PortalView.openSubmitPaymentModal(${m.id}, 'bills')" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-money-bill-transfer"></i> Pay Bills
+              </button>
+              <button onclick="PortalView.openSubmitPaymentModal(${m.id}, 'food')" class="py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-utensils"></i> Pay Food
+              </button>
             </div>
           </div>
 

@@ -2,39 +2,51 @@
 const ReportsView = {
   selectedMonth: new Date().toISOString().slice(0, 7),
   selectedMemberId: 'all',
+  memberStatementMode: 'month', // 'month' or 'full'
   visibleLimit: 6,
 
   async render() {
     try {
       const isMember = App.userType === 'member';
 
-      // If logged in as member, enforce their own ID only (strict privacy)
+      // If logged in as member, strictly lock to own ID
       if (isMember) {
-        this.selectedMemberId = String(App.currentUser.id);
+        this.selectedMemberId = String(App.currentUser?.id || 'self');
       }
 
       const [members, settings, monthsData] = await Promise.all([
-        API.get('/api/members?status=Active'),
+        isMember ? Promise.resolve([]) : API.get('/api/members?status=Active'),
         API.get('/api/settings'),
         API.get('/api/bills/months-list')
       ]);
 
       const currency = settings.currency_symbol || 'Rs.';
-      const availableMonths = monthsData.months || ['2024-02', '2024-03', '2024-04', '2024-05', '2024-06', '2024-07', '2024-08', '2024-09', '2024-10'];
+      const availableMonths = monthsData.months || ['2026-10'];
 
       return `
         <div class="space-y-6">
           <!-- Header (Hidden on Print) -->
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 card-shadow no-print">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 card-shadow no-print">
             <div>
-              <h1 class="text-2xl font-bold text-slate-800">${isMember ? 'My Official Invoice & Statement' : 'Statements, Invoicing & Master PDF'}</h1>
-              <p class="text-sm text-slate-500 mt-0.5">
-                ${isMember ? 'Your private monthly flat statement and weekly food mess status' : 'Generate single-member private invoices or the complete Admin Master Consolidated PDF Statement'}
+              <h1 class="text-xl sm:text-2xl font-bold text-slate-800">${isMember ? 'My Official Statement & Invoices' : 'Statements, Invoicing & Master PDF'}</h1>
+              <p class="text-xs text-slate-500 mt-0.5">
+                ${isMember ? 'Your private flat bills, weekly food mess ledger & receipts' : 'Generate member private invoices or Master Consolidated PDF Statement'}
               </p>
             </div>
 
             <!-- Controls -->
             <div class="flex flex-wrap items-center gap-2">
+              ${isMember ? `
+                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+                  <button onclick="ReportsView.setStatementMode('month')" class="px-3 py-1.5 rounded-lg font-bold transition-all ${this.memberStatementMode === 'month' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
+                    Monthly Invoice
+                  </button>
+                  <button onclick="ReportsView.setStatementMode('full')" class="px-3 py-1.5 rounded-lg font-bold transition-all ${this.memberStatementMode === 'full' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
+                    Full Ledger
+                  </button>
+                </div>
+              ` : ''}
+
               <div class="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
                 <label class="text-xs font-bold text-slate-600 px-1 uppercase">Month:</label>
                 <select onchange="ReportsView.changeMonth(this.value)" class="text-xs font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-300 outline-none">
@@ -55,46 +67,9 @@ const ReportsView = {
                 <button onclick="BillsView.promptBatchEmailModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
                   <i class="fa-solid fa-paper-plane"></i> Batch Email Invoices
                 </button>
+              ` : ''}
 
-                ${App.currentUser?.role === 'super_admin' ? `
-                  <a href="/api/reports/database-backup" download class="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5" title="Download offline SQLite database backup">
-                    <i class="fa-solid fa-database"></i> DB Backup
-                  </a>
-                ` : ''}
-              ` : `
-                <button onclick="PortalView.openFullStatementModal(${this.selectedMemberId})" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                  <i class="fa-solid fa-file-invoice"></i> Download My Full Statement (PDF)
-                </button>
-              `}
-
-              <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                <i class="fa-solid fa-print"></i> Print / Save as PDF
-              </button>
-            </div>
-          </div>
-
-          <!-- Monthly Backup Reminder Banner for Super Admin -->
-          ${App.currentUser?.role === 'super_admin' && !isMember ? `
-            <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-sm no-print">
-              <div class="flex items-center gap-3">
-                <span class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center text-sm font-bold shrink-0">
-                  <i class="fa-solid fa-bell"></i>
-                </span>
-                <div>
-                  <strong class="text-amber-950 font-bold text-sm">Monthly Backup Reminder (Super Admin)</strong>
-                  <p class="text-amber-800 text-[11px] mt-0.5">Please export this month's Excel statement and database backup for your offline records.</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-2 shrink-0">
-                <a href="/api/reports/export-excel/${this.selectedMonth}" download class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1.5">
-                  <i class="fa-solid fa-file-excel"></i> Export Excel (${this.selectedMonth})
-                </a>
-                <a href="/api/reports/database-backup" download class="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1.5">
-                  <i class="fa-solid fa-database"></i> Database Backup (.db)
-                </a>
-              </div>
-            </div>
-          ` : ''}
+              <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
                 <i class="fa-solid fa-print"></i> Print / Save as PDF
               </button>
             </div>
@@ -102,15 +77,25 @@ const ReportsView = {
 
           <!-- Printable Container -->
           <div id="printable-invoice-container">
-            ${this.selectedMemberId === 'all' && !isMember
-              ? await this.renderConsolidatedView(currency, settings) 
-              : await this.renderSingleMemberInvoice(this.selectedMemberId, currency, settings)}
+            ${isMember 
+              ? (this.memberStatementMode === 'full' 
+                  ? await this.renderFullMemberLedger(this.selectedMemberId, currency, settings)
+                  : await this.renderSingleMemberInvoice(this.selectedMemberId, currency, settings))
+              : (this.selectedMemberId === 'all' 
+                  ? await this.renderConsolidatedView(currency, settings) 
+                  : await this.renderSingleMemberInvoice(this.selectedMemberId, currency, settings))
+            }
           </div>
         </div>
       `;
     } catch (err) {
       return `<div class="p-6 bg-red-50 text-red-700 rounded-xl">Error loading reports: ${err.message}</div>`;
     }
+  },
+
+  setStatementMode(mode) {
+    this.memberStatementMode = mode;
+    App.refresh();
   },
 
   changeMonth(month) {
@@ -421,6 +406,147 @@ const ReportsView = {
     } catch (err) {
       App.toast(err.message, 'error');
     }
+  },
+
+  async renderFullMemberLedger(memberId, currency, settings) {
+    const data = await API.get(`/api/reports/member-full-statement/${memberId}`);
+    const m = data.member;
+    const s = data.summary;
+
+    return `
+      <div class="bg-white rounded-3xl border border-slate-200 card-shadow p-6 sm:p-8 max-w-4xl mx-auto space-y-6">
+        <!-- Header -->
+        <div class="flex items-start justify-between border-b border-slate-200 pb-5">
+          <div>
+            <span class="text-xs font-bold px-2.5 py-1 rounded bg-indigo-50 text-indigo-700 uppercase font-mono">Official Member Ledger</span>
+            <h1 class="text-2xl font-black text-slate-900 mt-2">${settings.flat_name || 'Flat Management'}</h1>
+            <p class="text-xs text-slate-500 mt-0.5">${m.name} <span class="font-mono text-indigo-600 font-bold">(${m.unique_id})</span> &bull; ${m.room_name || 'Outside Member'}</p>
+          </div>
+          <div class="text-right text-xs text-slate-500">
+            <div>Joined: <strong class="text-slate-800">${m.join_date || '-'}</strong></div>
+            <div>Generated: <strong class="text-slate-800">${new Date().toLocaleDateString()}</strong></div>
+            <div class="mt-2 no-print">
+              <button onclick="window.print()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5">
+                <i class="fa-solid fa-print"></i> Print / Save PDF
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary KPIs -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+            <span class="text-[10px] text-slate-400 font-bold block uppercase">Total Bills Charged</span>
+            <span class="font-black text-slate-800 text-base mt-0.5 block">${currency} ${Number(s.total_bills || 0).toLocaleString()}</span>
+          </div>
+          <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-200">
+            <span class="text-[10px] text-emerald-700 font-bold block uppercase">Bills Paid</span>
+            <span class="font-black text-emerald-800 text-base mt-0.5 block">${currency} ${Number(s.total_paid_bills || 0).toLocaleString()}</span>
+          </div>
+          <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200">
+            <span class="text-[10px] text-amber-700 font-bold block uppercase">Food Mess Paid</span>
+            <span class="font-black text-amber-800 text-base mt-0.5 block">${currency} ${Number(s.total_paid_food || 0).toLocaleString()}</span>
+          </div>
+          <div class="p-3 bg-rose-50 rounded-2xl border border-rose-200">
+            <span class="text-[10px] text-rose-700 font-bold block uppercase">Net Outstanding</span>
+            <span class="font-black text-rose-900 text-base mt-0.5 block">${currency} ${Number(s.net_outstanding || 0).toLocaleString()}</span>
+          </div>
+        </div>
+
+        <!-- Itemized Bills Table -->
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Itemized Monthly Bills</h3>
+          <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 text-[11px]">
+                <tr>
+                  <th class="py-2.5 px-3">Month</th>
+                  <th class="py-2.5 px-3">Bill Title</th>
+                  <th class="py-2.5 px-3">Category</th>
+                  <th class="py-2.5 px-3 text-right">My Share</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${data.bills && data.bills.length > 0 ? data.bills.map(b => `
+                  <tr>
+                    <td class="py-2 px-3 font-mono text-slate-500">${b.month}</td>
+                    <td class="py-2 px-3 font-bold text-slate-800">${b.title}</td>
+                    <td class="py-2 px-3 uppercase text-[10px] text-slate-400 font-mono">${b.category}</td>
+                    <td class="py-2 px-3 text-right font-black text-slate-800">${currency} ${Number(b.amount || 0).toLocaleString()}</td>
+                  </tr>
+                `).join('') : `
+                  <tr><td colspan="4" class="py-4 text-center text-slate-400">No monthly bills assigned.</td></tr>
+                `}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Weekly Food Mess Groceries Table -->
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Weekly Food Mess Groceries</h3>
+          <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 text-[11px]">
+                <tr>
+                  <th class="py-2.5 px-3">Date</th>
+                  <th class="py-2.5 px-3">Grocery Details</th>
+                  <th class="py-2.5 px-3 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${data.food && data.food.length > 0 ? data.food.map(f => `
+                  <tr>
+                    <td class="py-2 px-3 font-mono text-slate-500">${f.date || f.month}</td>
+                    <td class="py-2 px-3 font-medium text-slate-800">${f.title || 'Weekly Mess Food'}</td>
+                    <td class="py-2 px-3 text-right font-black text-amber-800">${currency} ${Number(f.amount || 0).toLocaleString()}</td>
+                  </tr>
+                `).join('') : `
+                  <tr><td colspan="3" class="py-4 text-center text-slate-400">No weekly food entries.</td></tr>
+                `}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Payment History Table -->
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Approved Payment Receipts</h3>
+          <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 text-[11px]">
+                <tr>
+                  <th class="py-2.5 px-3">Date</th>
+                  <th class="py-2.5 px-3">Purpose</th>
+                  <th class="py-2.5 px-3">Method & Reference</th>
+                  <th class="py-2.5 px-3 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${data.payments && data.payments.length > 0 ? data.payments.map(p => `
+                  <tr>
+                    <td class="py-2 px-3 font-mono text-slate-500">${p.payment_date}</td>
+                    <td class="py-2 px-3 font-semibold text-slate-800 capitalize">${p.payment_for || 'bills'}</td>
+                    <td class="py-2 px-3 text-slate-500">${p.payment_method} ${p.reference_no ? `(${p.reference_no})` : ''}</td>
+                    <td class="py-2 px-3 text-right font-black text-emerald-700">${currency} ${Number(p.amount || 0).toLocaleString()}</td>
+                  </tr>
+                `).join('') : `
+                  <tr><td colspan="4" class="py-4 text-center text-slate-400">No payment receipts found.</td></tr>
+                `}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Print Action Footer -->
+        <div class="pt-4 border-t border-slate-200 flex items-center justify-between no-print">
+          <span class="text-xs text-slate-400">Click Print to save a clean PDF or print on paper</span>
+          <button onclick="window.print()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-file-pdf"></i> Print / Save PDF
+          </button>
+        </div>
+      </div>
+    `;
   },
 
   // Admin Master Consolidated Statement (All members in one comprehensive document / PDF)
