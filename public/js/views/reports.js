@@ -24,39 +24,57 @@ const ReportsView = {
       const availableMonths = (monthsData.months || ['2024-10']).filter(m => !m.startsWith('2026'));
 
       return `
-        <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
-          <!-- Top Breadcrumb & Action Toolbar (Hidden on Print) -->
-          <div class="flex items-center justify-between pb-1 no-print">
-            <button onclick="App.goBack()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs transition-all active:scale-95">
-              <i class="fa-solid fa-arrow-left text-slate-600"></i>
-              <span>Back to Dashboard</span>
-            </button>
-            <div class="flex items-center gap-2">
-              <button onclick="window.print()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
-                <i class="fa-solid fa-print text-xs"></i> <span>Print / PDF</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Section Banner Card (Hidden on Print) -->
-          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden no-print">
-            <div class="flex items-center justify-between relative z-10">
-              <div>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30 mb-1">
-                  <i class="fa-solid fa-file-pdf"></i> PDF & Statements
-                </span>
-                <h1 class="text-lg sm:text-xl font-black tracking-tight">${isMember ? 'My Official Statement' : 'Statements & Reports'}</h1>
-                <p class="text-xs text-blue-100 mt-0.5">${isMember ? 'Private bills, food ledger & receipts' : 'Generate member private invoices or Master Consolidated Statement'}</p>
+        <div class="space-y-4 max-w-7xl mx-auto pb-12">
+          <!-- Top Control Header (Hidden on Print) -->
+          <div class="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200 card-shadow space-y-3 no-print">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-700 text-white flex items-center justify-center text-lg shadow-sm">
+                  <i class="fa-solid fa-file-invoice"></i>
+                </div>
+                <div>
+                  <h2 class="text-base font-black text-slate-900 leading-tight">${isMember ? 'My Official Statement' : 'Statements & Reports'}</h2>
+                  <p class="text-xs text-slate-500">${isMember ? 'Personal bills, food ledger & payment receipts' : 'Official consolidated ledger & individual member invoices'}</p>
+                </div>
               </div>
-              <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-xl shrink-0">
-                <i class="fa-solid fa-file-invoice"></i>
+
+              <!-- Top Actions: Excel, Batch Email, Print PDF -->
+              <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                ${!isMember ? `
+                  <a href="/api/reports/export-excel/${this.selectedMonth}" download class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                    <span class="hidden sm:inline">Excel</span>
+                  </a>
+                  <button onclick="BillsView.promptBatchEmailModal()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-paper-plane text-indigo-600"></i>
+                    <span class="hidden sm:inline">Batch Email</span>
+                  </button>
+                ` : ''}
+                <button onclick="window.print()" class="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95">
+                  <i class="fa-solid fa-print"></i>
+                  <span>Print / Save PDF</span>
+                </button>
               </div>
             </div>
-          </div>
 
-            <!-- Controls -->
-            <div class="flex flex-wrap items-center gap-2">
-              ${isMember ? `
+            <!-- Unified Dropdown Row -->
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-2.5 border-t border-slate-100">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-500 uppercase">Period:</span>
+                <select onchange="ReportsView.changeMonth(this.value)" class="text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-300 outline-none cursor-pointer">
+                  ${availableMonths.map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${App.formatMonth(m)}</option>`).join('')}
+                </select>
+              </div>
+
+              ${!isMember ? `
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                  <span class="text-xs font-bold text-slate-500 uppercase">Document:</span>
+                  <select id="reportMemberSelect" onchange="ReportsView.changeMember(this.value)" class="w-full sm:w-auto text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-300 outline-none cursor-pointer">
+                    <option value="all" ${this.selectedMemberId === 'all' ? 'selected' : ''}>📑 Master Consolidated Statement (All Members PDF)</option>
+                    ${members.map(m => `<option value="${m.id}" ${this.selectedMemberId == m.id ? 'selected' : ''}>👤 ${m.name} (${m.unique_id})</option>`).join('')}
+                  </select>
+                </div>
+              ` : `
                 <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
                   <button onclick="ReportsView.setStatementMode('month')" class="px-3 py-1.5 rounded-lg font-bold transition-all ${this.memberStatementMode === 'month' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}">
                     Monthly Invoice
@@ -65,33 +83,7 @@ const ReportsView = {
                     Full Ledger
                   </button>
                 </div>
-              ` : ''}
-
-              <div class="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-                <label class="text-xs font-bold text-slate-600 px-1 uppercase">Month:</label>
-                <select onchange="ReportsView.changeMonth(this.value)" class="text-xs font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-300 outline-none">
-                  ${availableMonths.map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${App.formatMonth(m)}</option>`).join('')}
-                </select>
-              </div>
-
-              ${!isMember ? `
-                <select id="reportMemberSelect" onchange="ReportsView.changeMember(this.value)" class="text-xs font-bold bg-white px-3 py-2 rounded-xl border border-slate-300 outline-none">
-                  <option value="all" ${this.selectedMemberId === 'all' ? 'selected' : ''}>📑 Admin Master Statement (All Members PDF)</option>
-                  ${members.map(m => `<option value="${m.id}" ${this.selectedMemberId == m.id ? 'selected' : ''}>👤 ${m.name} (${m.unique_id})</option>`).join('')}
-                </select>
-
-                <a href="/api/reports/export-excel/${this.selectedMonth}" download class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5" title="Export monthly records to Excel CSV">
-                  <i class="fa-solid fa-file-excel"></i> Export Excel (.csv)
-                </a>
-
-                <button onclick="BillsView.promptBatchEmailModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                  <i class="fa-solid fa-paper-plane"></i> Batch Email Invoices
-                </button>
-              ` : ''}
-
-              <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                <i class="fa-solid fa-print"></i> Print / Save as PDF
-              </button>
+              `}
             </div>
           </div>
 
@@ -577,27 +569,22 @@ const ReportsView = {
     const t = data.totals || {};
 
     return `
-      <div class="bg-white rounded-3xl border border-slate-200 card-shadow p-8 max-w-[1700px] mx-auto space-y-6">
+      <div class="bg-white rounded-3xl border border-slate-200 card-shadow p-6 sm:p-8 max-w-[1700px] mx-auto space-y-6">
         <!-- Master Statement Header -->
-        <div class="flex items-start justify-between border-b-2 border-slate-200 pb-5">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-slate-200 pb-5 gap-3">
           <div>
             <div class="flex items-center gap-2">
-              <span class="px-3 py-1 rounded-md bg-indigo-600 text-white text-[11px] font-black uppercase tracking-wider font-mono">
-                Admin Master Document
+              <span class="px-2.5 py-0.5 rounded-md bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider font-mono">
+                Official Ledger
               </span>
-              <span class="text-xs text-slate-400 font-mono">CONFIDENTIAL & OFFICIAL</span>
+              <span class="text-xs text-slate-400 font-mono">Verified Flat Records</span>
             </div>
-            <h1 class="text-2xl font-black text-slate-900 mt-2">${settings.flat_name || 'Flat Management'} - Consolidated Monthly Statement</h1>
-            <p class="text-xs text-slate-500 mt-1">Complete financial ledger for all flat members for <strong>${App.formatMonth(this.selectedMonth)}</strong></p>
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 mt-1.5">${settings.flat_name || 'Flat Management'} - Consolidated Monthly Statement</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Complete financial settlement for all flat members &bull; <strong>${App.formatMonth(this.selectedMonth)}</strong></p>
           </div>
-          <div class="text-right text-xs text-slate-500">
+          <div class="sm:text-right text-xs text-slate-500 space-y-0.5">
             <div>Billing Period: <strong class="text-slate-800 font-bold">${App.formatMonth(this.selectedMonth)}</strong></div>
-            <div class="mt-0.5">Generated On: <strong>${App.formatDisplayDate(new Date())}</strong></div>
-            <div class="mt-2 no-print">
-              <button onclick="window.print()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5">
-                <i class="fa-solid fa-file-pdf"></i> Export / Print Master PDF
-              </button>
-            </div>
+            <div>Generated On: <strong>${App.formatDisplayDate(new Date())}</strong></div>
           </div>
         </div>
 
