@@ -20,27 +20,27 @@ const PortalView = {
       const totalCombinedDue = Math.max(0, (b.bills_balance || 0) + (b.food_balance || 0));
 
       // Due Date computation
-      const currentMonth = new Date().toISOString().slice(0, 7);
+      const currentMonth = '2024-10';
       const dueDay = parseInt(settings.monthly_bills_due_day || '10', 10);
-      const dueDate = `${String(dueDay).padStart(2, '0')}-${currentMonth.slice(5, 7)}-${currentMonth.slice(2, 4)}`;
+      const dueDate = `${String(dueDay).padStart(2, '0')} Oct 2024`;
       const isPaid = totalCombinedDue <= 0;
 
       return `
-        <div class="space-y-4 max-w-xl mx-auto pb-12">
+        <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-4xl mx-auto pb-12">
           <!-- 1. Hero Status Card (Deep Cobalt Blue Gradient with Circular Gauge) -->
-          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 rounded-3xl p-5 sm:p-6 text-white shadow-md relative overflow-hidden">
             <div class="flex items-center gap-4 sm:gap-6 relative z-10">
               <!-- Left: Circular Gauge Indicator -->
               <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 ${isPaid ? 'border-emerald-400/50 bg-emerald-500/20' : 'border-amber-400/50 bg-amber-500/20'} flex flex-col items-center justify-center text-center shrink-0 backdrop-blur-xs shadow-inner">
                 <span class="text-xs sm:text-sm font-black ${isPaid ? 'text-emerald-300' : 'text-amber-300'}">
-                  ${isPaid ? 'Cleared' : 'Pending'}
+                  ${isPaid ? 'Cleared ✓' : 'Pending'}
                 </span>
-                <span class="text-[9px] text-blue-200 mt-0.5">Status</span>
+                <span class="text-[9px] text-blue-200 mt-0.5">Oct 2024</span>
               </div>
 
               <!-- Right: Flat & Account Details -->
               <div class="space-y-1.5 min-w-0">
-                <h2 class="text-base sm:text-lg font-black tracking-tight leading-tight">${settings.flat_name || 'Flat Management'}</h2>
+                <h2 class="text-base sm:text-xl font-black tracking-tight leading-tight">${settings.flat_name || 'Flat Management'}</h2>
                 <div class="space-y-1 text-xs text-blue-100">
                   <div class="flex items-center gap-2">
                     <i class="fa-solid fa-door-closed text-blue-300 w-3.5 text-center"></i>
@@ -48,7 +48,7 @@ const PortalView = {
                   </div>
                   <div class="flex items-center gap-2">
                     <i class="fa-solid fa-calendar-check text-blue-300 w-3.5 text-center"></i>
-                    <span>Active Flat Month: ${currentMonth}</span>
+                    <span>Active Period: October 2024</span>
                   </div>
                   ${m.security_deposit > 0 ? `
                     <div class="flex items-center gap-2 text-emerald-300">

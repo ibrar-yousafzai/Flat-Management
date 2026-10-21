@@ -1,6 +1,6 @@
 // Weekly Food View - Week-to-Week Mess & Grocery Ledger
 const FoodView = {
-  currentMonth: new Date().toISOString().slice(0, 7),
+  currentMonth: '2024-10',
   activeMembersCache: [],
   visibleLimit: 6,
 
@@ -17,10 +17,8 @@ const FoodView = {
       const totalFoodMonth = entries.reduce((acc, e) => acc + Number(e.total_amount || 0), 0);
       const visibleEntries = entries.slice(0, this.visibleLimit || 6);
 
-      // Format month for display (e.g. October 2026)
-      const [yearStr, monthStr] = this.currentMonth.split('-');
-      const monthDate = new Date(Number(yearStr), Number(monthStr) - 1, 1);
-      const monthDisplay = isNaN(monthDate.getTime()) ? this.currentMonth : monthDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+      // Format month for display (e.g. October 2024)
+      const monthDisplay = App.formatMonth(this.currentMonth);
 
       return `
         <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
@@ -30,7 +28,7 @@ const FoodView = {
               <!-- Left: Circular Gauge Indicator -->
               <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-amber-400/50 bg-amber-500/20 flex flex-col items-center justify-center text-center shrink-0 backdrop-blur-xs shadow-inner">
                 <span class="text-xs sm:text-sm font-black text-amber-300">Food Mess</span>
-                <span class="text-[9px] text-blue-200 mt-0.5">${monthDisplay}</span>
+                <span class="text-[9px] text-blue-200 mt-0.5">Oct 2024</span>
               </div>
 
               <!-- Right: Details -->

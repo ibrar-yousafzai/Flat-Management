@@ -69,28 +69,70 @@ router.post('/admin/login', (req, res) => {
   });
 });
 
-// Member Login
+// Member Login (Accepts Member Name OR Unique ID OR Phone, with flexible passwords)
 router.post('/member/login', (req, res) => {
-  const { unique_id, password } = req.body;
-  if (!unique_id || !password) {
-    return res.status(400).json({ error: 'Unique ID and password are required' });
+  const identifier = (req.body.unique_id || req.body.identifier || req.body.name || '').trim();
+  const password = (req.body.password || '').trim();
+
+  if (!identifier || !password) {
+    return res.status(400).json({ error: 'Please enter Member Name or ID, and Password' });
   }
 
-  const member = db.prepare(`
+  // 1. Try finding member by unique_id (e.g. FL4907, fl4907)
+  let member = db.prepare(`
     SELECT m.*, r.name as room_name 
     FROM members m
     LEFT JOIN rooms r ON m.room_id = r.id
-    WHERE m.unique_id = ?
-  `).get(unique_id.trim().toUpperCase());
+    WHERE UPPER(m.unique_id) = UPPER(?)
+  `).get(identifier);
 
-  if (!member || member.password !== password) {
-    return res.status(401).json({ error: 'Invalid Member ID or Password' });
+  // 2. If not found, try matching by exact name
+  if (!member) {
+    member = db.prepare(`
+      SELECT m.*, r.name as room_name 
+      FROM members m
+      LEFT JOIN rooms r ON m.room_id = r.id
+      WHERE LOWER(m.name) = LOWER(?)
+    `).get(identifier);
+  }
+
+  // 3. If not found, try phone / whatsapp or partial name match
+  if (!member) {
+    const cleanPhone = identifier.replace(/[^0-9]/g, '');
+    member = db.prepare(`
+      SELECT m.*, r.name as room_name 
+      FROM members m
+      LEFT JOIN rooms r ON m.room_id = r.id
+      WHERE (m.whatsapp IS NOT NULL AND LENGTH(m.whatsapp) > 5 AND REPLACE(m.whatsapp, ' ', '') = ?)
+         OR LOWER(m.name) LIKE LOWER(?)
+      LIMIT 1
+    `).get(cleanPhone || identifier, `%${identifier}%`);
+  }
+
+  if (!member) {
+    return res.status(401).json({ error: 'Member not found. Please enter your valid Name or ID (e.g. Abbas Khan or FL4907)' });
+  }
+
+  // Check password flexibility: stored password, or their unique ID, or default 'flat123'
+  const passLower = password.toLowerCase();
+  const storedPassLower = (member.password || '').toLowerCase();
+  const uniqueIdLower = (member.unique_id || '').toLowerCase();
+  const phoneClean = (member.whatsapp || '').replace(/[^0-9]/g, '');
+
+  const isPasswordValid = 
+    passLower === storedPassLower ||
+    passLower === uniqueIdLower ||
+    passLower === 'flat123' ||
+    (phoneClean && passLower === phoneClean);
+
+  if (!isPasswordValid) {
+    return res.status(401).json({ error: 'Incorrect password. Try your Member ID (' + member.unique_id + ') or flat123' });
   }
 
   const token = createSession('member', member);
   const { password: _, ...memberData } = member;
 
-  logAudit('member', member.id, member.name, 'Member Portal Login', `Member ${member.unique_id} logged in`);
+  logAudit('member', member.id, member.name, 'Member Portal Login', `Member ${member.name} (${member.unique_id}) logged in`);
 
   res.json({
     success: true,

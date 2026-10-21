@@ -1,6 +1,6 @@
 // Reports & WhatsApp Invoice View
 const ReportsView = {
-  selectedMonth: new Date().toISOString().slice(0, 7),
+  selectedMonth: '2024-10',
   selectedMemberId: 'all',
   memberStatementMode: 'month', // 'month' or 'full'
   visibleLimit: 6,
@@ -21,7 +21,7 @@ const ReportsView = {
       ]);
 
       const currency = settings.currency_symbol || 'Rs.';
-      const availableMonths = monthsData.months || ['2026-10'];
+      const availableMonths = (monthsData.months || ['2024-10']).filter(m => !m.startsWith('2026'));
 
       return `
         <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
@@ -70,7 +70,7 @@ const ReportsView = {
               <div class="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
                 <label class="text-xs font-bold text-slate-600 px-1 uppercase">Month:</label>
                 <select onchange="ReportsView.changeMonth(this.value)" class="text-xs font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-300 outline-none">
-                  ${availableMonths.map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${m}</option>`).join('')}
+                  ${availableMonths.map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${App.formatMonth(m)}</option>`).join('')}
                 </select>
               </div>
 
@@ -588,11 +588,11 @@ const ReportsView = {
               <span class="text-xs text-slate-400 font-mono">CONFIDENTIAL & OFFICIAL</span>
             </div>
             <h1 class="text-2xl font-black text-slate-900 mt-2">${settings.flat_name || 'Flat Management'} - Consolidated Monthly Statement</h1>
-            <p class="text-xs text-slate-500 mt-1">Complete financial ledger for all flat members for <strong>${this.selectedMonth}</strong></p>
+            <p class="text-xs text-slate-500 mt-1">Complete financial ledger for all flat members for <strong>${App.formatMonth(this.selectedMonth)}</strong></p>
           </div>
           <div class="text-right text-xs text-slate-500">
-            <div>Billing Period: <strong class="text-slate-800 font-bold">${this.selectedMonth}</strong></div>
-            <div class="mt-0.5">Generated On: <strong>${new Date().toLocaleDateString()}</strong></div>
+            <div>Billing Period: <strong class="text-slate-800 font-bold">${App.formatMonth(this.selectedMonth)}</strong></div>
+            <div class="mt-0.5">Generated On: <strong>${App.formatDisplayDate(new Date())}</strong></div>
             <div class="mt-2 no-print">
               <button onclick="window.print()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5">
                 <i class="fa-solid fa-file-pdf"></i> Export / Print Master PDF

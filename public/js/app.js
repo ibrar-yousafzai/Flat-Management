@@ -334,33 +334,49 @@ const App = {
           <!-- MEMBER LOGIN FORM -->
           <form id="memberLoginForm" onsubmit="App.handleMemberLogin(event)" class="space-y-4 hidden">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Unique Member ID</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-semibold text-slate-600 uppercase">Member Name or ID *</label>
+                <span class="text-[10px] text-emerald-600 font-bold">Name, ID or Phone</span>
+              </div>
               <div class="relative">
                 <i class="fa-solid fa-id-card absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="text" id="memberIdInput" required placeholder="e.g. MEM-001 or MEM-002" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none font-mono uppercase" />
+                <input type="text" id="memberIdInput" required placeholder="e.g. Abbas Khan or FL4907" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none font-bold text-slate-800" />
               </div>
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password *</label>
               <div class="relative">
                 <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="password" id="memberPassInput" required placeholder="••••••••" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none" />
+                <input type="password" id="memberPassInput" required placeholder="Your Member ID (e.g. fl4907) or flat123" class="w-full pl-9 pr-10 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none" />
+                <button type="button" onclick="App.togglePasswordVisibility('memberPassInput')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer">
+                  <i class="fa-regular fa-eye"></i>
+                </button>
               </div>
+              <p class="text-[10px] text-slate-400 mt-1">Default password is your Member ID (e.g. <code>fl4907</code>) or <code>flat123</code></p>
             </div>
 
             <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2">
               <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In to Member Portal
             </button>
 
-            <!-- 1-Tap Demo Quick Fill -->
-            <div class="p-3 bg-emerald-50/80 rounded-2xl border border-emerald-100 flex items-center justify-between text-xs">
-              <div class="text-[11px] text-emerald-950">
-                <span class="font-bold">Sample Member:</span> MEM-001 / flat123
+            <!-- 1-Tap Active Flat Members Quick Fill -->
+            <div class="p-3 bg-emerald-50/80 rounded-2xl border border-emerald-100 space-y-1.5 text-xs">
+              <div class="text-[11px] text-emerald-950 font-bold flex items-center justify-between">
+                <span>Quick Member Login:</span>
+                <span class="text-[10px] text-emerald-700">Tap to fill</span>
               </div>
-              <button type="button" onclick="App.fillLoginDemo('member')" class="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-lg border border-emerald-200 transition-all cursor-pointer">
-                Fill Demo
-              </button>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" onclick="App.fillMemberSpecific('Abbas Khan', 'fl4907')" class="px-2 py-1 bg-white hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-lg border border-emerald-200 cursor-pointer">
+                  👤 Abbas Khan
+                </button>
+                <button type="button" onclick="App.fillMemberSpecific('Hamza', 'fl3150')" class="px-2 py-1 bg-white hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-lg border border-emerald-200 cursor-pointer">
+                  👤 Hamza
+                </button>
+                <button type="button" onclick="App.fillMemberSpecific('Ibrar Khan', 'fl5166')" class="px-2 py-1 bg-white hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-lg border border-emerald-200 cursor-pointer">
+                  👤 Ibrar Khan
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -480,6 +496,45 @@ const App = {
 
   refresh() {
     this.render();
+  },
+
+  getDefaultMonth() {
+    return '2024-10';
+  },
+
+  formatMonth(monthStr) {
+    if (!monthStr) return 'October 2024';
+    let [y, m] = String(monthStr).split('-');
+    if (y === '2026') y = '2024';
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const idx = parseInt(m || '10', 10) - 1;
+    const name = monthNames[idx] || 'October';
+    return `${name} ${y || '2024'}`;
+  },
+
+  formatDisplayDate(dateStr) {
+    if (!dateStr) return '22 Oct 2024';
+    const clean = String(dateStr).replace('2026-', '2024-');
+    const d = new Date(clean);
+    if (isNaN(d.getTime())) return '22 Oct 2024';
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${d.getDate()} ${monthNames[d.getMonth()]} 2024`;
+  },
+
+  togglePasswordVisibility(inputId) {
+    const el = document.getElementById(inputId);
+    if (el) {
+      el.type = el.type === 'password' ? 'text' : 'password';
+    }
+  },
+
+  fillMemberSpecific(nameOrId, password) {
+    this.switchLoginTab('member');
+    const memEl = document.getElementById('memberIdInput');
+    const passEl = document.getElementById('memberPassInput');
+    if (memEl) memEl.value = nameOrId;
+    if (passEl) passEl.value = password;
+    this.toast(`Filled credentials for ${nameOrId}`, 'info');
   },
 
   // Responsive Modal helper (Native Bottom-Sheet on Mobile, Centered Card on PC)

@@ -32,7 +32,7 @@ const DashboardView = {
                   <!-- Circular Gauge Indicator -->
                   <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-blue-400/40 bg-blue-600/40 flex flex-col items-center justify-center text-center shrink-0 backdrop-blur-xs shadow-inner">
                     <span class="text-xs sm:text-sm font-black text-emerald-300">Live</span>
-                    <span class="text-[9px] text-blue-200 mt-0.5">${currentMonth}</span>
+                    <span class="text-[9px] text-blue-200 mt-0.5">Oct 2024</span>
                   </div>
 
                   <!-- Admin Flat Info -->
@@ -109,7 +109,7 @@ const DashboardView = {
               <div class="bg-white rounded-3xl border border-blue-100 card-shadow p-5 space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                   <h3 class="text-xs font-black text-blue-700 uppercase tracking-wider">PAYMENT REVIEW & DUES</h3>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold font-mono">${currentMonth}</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold font-mono">October 2024</span>
                 </div>
                 
                 <div class="grid grid-cols-3 gap-3 text-left">

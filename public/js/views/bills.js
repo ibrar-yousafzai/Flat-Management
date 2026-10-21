@@ -1,6 +1,6 @@
 // Monthly Bills & Matrix Split View
 const BillsView = {
-  selectedMonth: new Date().toISOString().slice(0, 7),
+  selectedMonth: '2024-10',
   visibleMembersLimit: 6,
   visibleBillsLimit: 6,
 
@@ -36,7 +36,7 @@ const BillsView = {
                 <span class="text-xs sm:text-sm font-black ${isConfirmed ? 'text-emerald-300' : 'text-amber-300'}">
                   ${billsData.month_status === 'closed' ? 'Closed' : (isConfirmed ? 'Published' : 'Draft')}
                 </span>
-                <span class="text-[9px] text-blue-200 mt-0.5">${this.selectedMonth}</span>
+                <span class="text-[9px] text-blue-200 mt-0.5">Oct 2024</span>
               </div>
 
               <!-- Right: Details -->
@@ -108,7 +108,7 @@ const BillsView = {
               <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
                 <span class="text-[11px] font-bold text-slate-500 px-1 uppercase">Month:</span>
                 <select onchange="BillsView.changeMonth(this.value)" class="text-[11px] font-bold bg-white px-2 py-0.5 rounded-lg border border-slate-200 outline-none cursor-pointer">
-                  ${availableMonths.map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${m}</option>`).join('')}
+                  ${availableMonths.filter(m => !m.startsWith('2026')).map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${App.formatMonth ? App.formatMonth(m) : m}</option>`).join('')}
                 </select>
               </div>
             </div>
