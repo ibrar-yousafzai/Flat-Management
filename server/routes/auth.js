@@ -2,30 +2,44 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const { db, logAudit } = require('../db');
+const { signToken } = require('../middleware/auth');
 
 function createSession(userType, user) {
-  const token = crypto.randomBytes(32).toString('hex');
-  const permissions = userType === 'admin' ? JSON.stringify({
+  const permissions = userType === 'admin' ? {
     can_manage_members: user.can_manage_members,
     can_manage_rooms: user.can_manage_rooms,
     can_manage_bills: user.can_manage_bills,
     can_manage_food: user.can_manage_food,
     can_manage_payments: user.can_manage_payments,
     can_approve_payments: user.can_approve_payments
-  }) : null;
+  } : null;
 
-  db.prepare(`
-    INSERT INTO sessions (token, user_type, user_id, username, name, role, permissions)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    token,
-    userType,
-    user.id,
-    userType === 'admin' ? user.username : user.unique_id,
-    user.name,
-    userType === 'admin' ? user.role : 'member',
-    permissions
-  );
+  const payload = {
+    user_type: userType,
+    user_id: user.id,
+    username: userType === 'admin' ? user.username : user.unique_id,
+    name: user.name,
+    role: userType === 'admin' ? user.role : 'member',
+    permissions,
+    exp: Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 days
+  };
+
+  const token = signToken(payload);
+
+  try {
+    db.prepare(`
+      INSERT OR REPLACE INTO sessions (token, user_type, user_id, username, name, role, permissions)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      token,
+      userType,
+      user.id,
+      userType === 'admin' ? user.username : user.unique_id,
+      user.name,
+      userType === 'admin' ? user.role : 'member',
+      permissions ? JSON.stringify(permissions) : null
+    );
+  } catch (e) {}
 
   return token;
 }

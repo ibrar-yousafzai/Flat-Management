@@ -15,8 +15,8 @@ router.get('/member-invoice/:memberId', requireMemberSelf('memberId'), (req, res
       SELECT m.*, r.name as room_name, r.base_rent as room_base_rent
       FROM members m
       LEFT JOIN rooms r ON m.room_id = r.id
-      WHERE m.id = ?
-    `).get(memberId);
+      WHERE m.id = ? OR m.unique_id = ?
+    `).get(memberId, memberId);
 
     if (!member) {
       return res.status(404).json({ error: 'Member not found' });
@@ -29,7 +29,7 @@ router.get('/member-invoice/:memberId', requireMemberSelf('memberId'), (req, res
       JOIN monthly_bills b ON bs.bill_id = b.id
       WHERE bs.member_id = ? AND b.month = ?
       ORDER BY b.id ASC
-    `).all(memberId, month);
+    `).all(member.id, month);
 
     // Food for this member in this month
     const food = db.prepare(`
@@ -744,8 +744,8 @@ router.get('/member-full-statement/:memberId', requireMemberSelf('memberId'), (r
       SELECT m.*, r.name as room_name, r.base_rent as room_base_rent
       FROM members m
       LEFT JOIN rooms r ON m.room_id = r.id
-      WHERE m.id = ?
-    `).get(memberId);
+      WHERE m.id = ? OR m.unique_id = ?
+    `).get(memberId, memberId);
 
     if (!member) return res.status(404).json({ error: 'Member not found' });
 

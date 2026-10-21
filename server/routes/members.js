@@ -147,8 +147,8 @@ router.get('/:id', requireMemberSelf('id'), (req, res) => {
       SELECT m.*, r.name as room_name, r.base_rent as room_base_rent
       FROM members m
       LEFT JOIN rooms r ON m.room_id = r.id
-      WHERE m.id = ?
-    `).get(id);
+      WHERE m.id = ? OR m.unique_id = ?
+    `).get(id, id);
 
     if (!member) {
       return res.status(404).json({ error: 'Member not found' });
@@ -383,8 +383,8 @@ router.get('/:id/settlement-statement', requireAdmin, (req, res) => {
       SELECT m.*, r.name as room_name, r.base_rent as room_base_rent
       FROM members m
       LEFT JOIN rooms r ON m.room_id = r.id
-      WHERE m.id = ?
-    `).get(id);
+      WHERE m.id = ? OR m.unique_id = ?
+    `).get(id, id);
 
     if (!member) return res.status(404).json({ error: 'Member not found' });
 
