@@ -1,10 +1,10 @@
-/* Flat Management - Modern High-End Theme & Clean Mobile Palette */
+/* Flat Management - Modern Telco/Fintech Clean Mobile Palette */
 
 :root {
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
 
-  /* Clean Crisp Light Palette (Default) */
+  /* Clean High-End Mobile Theme */
   --bg-app: #F8FAFC;
   --bg-card: #FFFFFF;
   --bg-surface: #F1F5F9;
@@ -15,14 +15,10 @@
   --text-main: #0F172A;
   --text-muted: #64748B;
   --text-subtle: #94A3B8;
-  --accent-claude: #4F46E5;
-  --accent-hover: #4338CA;
-  --accent-soft: #EEF2FF;
-  --accent-text: #3730A3;
   --card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
 }
 
-/* Modern High-Contrast Midnight Dark Mode */
+/* Optional Dark Mode (True Deep Midnight) */
 html.dark {
   --bg-app: #0B0F19;
   --bg-card: #111827;
@@ -34,10 +30,6 @@ html.dark {
   --text-main: #F9FAFB;
   --text-muted: #9CA3AF;
   --text-subtle: #6B7280;
-  --accent-claude: #6366F1;
-  --accent-hover: #4F46E5;
-  --accent-soft: #1E1B4B;
-  --accent-text: #A5B4FC;
   --card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.5), 0 2px 8px -1px rgba(0, 0, 0, 0.4);
 }
 
@@ -46,82 +38,12 @@ body {
   -webkit-tap-highlight-color: transparent;
   background-color: var(--bg-app);
   color: var(--text-main);
-  transition: background-color 0.25s ease, color 0.25s ease;
-}
-
-/* Card and Container Theme Rules */
-.bg-slate-50, .bg-slate-100 {
-  background-color: var(--bg-surface) !important;
-}
-
-.bg-white {
-  background-color: var(--bg-card) !important;
-  color: var(--text-main);
-}
-
-.border-slate-200, .border-slate-100, .border-slate-300 {
-  border-color: var(--border-subtle) !important;
-}
-
-.text-slate-900, .text-slate-800, .text-slate-700 {
-  color: var(--text-main) !important;
-}
-
-.text-slate-600, .text-slate-500 {
-  color: var(--text-muted) !important;
-}
-
-.text-slate-400, .text-slate-300 {
-  color: var(--text-subtle) !important;
-}
-
-/* Claude Terracotta Accent & Indigo Remapping */
-.bg-indigo-600 {
-  background-color: var(--accent-claude) !important;
-  color: #FFFFFF !important;
-}
-
-.hover\:bg-indigo-700:hover, .bg-indigo-700 {
-  background-color: var(--accent-hover) !important;
-}
-
-.text-indigo-600, .text-indigo-700, .text-indigo-800, .text-indigo-900 {
-  color: var(--accent-claude) !important;
-}
-
-.bg-indigo-50, .bg-indigo-50\/30, .bg-indigo-50\/50 {
-  background-color: var(--accent-soft) !important;
-}
-
-.border-indigo-200, .border-indigo-100, .border-indigo-300 {
-  border-color: var(--border-strong) !important;
-}
-
-/* Form Controls Adaptations */
-input, select, textarea {
-  background-color: var(--bg-input) !important;
-  border-color: var(--border-subtle) !important;
-  color: var(--text-main) !important;
-}
-
-input:focus, select:focus, textarea:focus {
-  border-color: var(--accent-claude) !important;
-  box-shadow: 0 0 0 2px rgba(194, 94, 46, 0.2) !important;
-}
-
-/* Table Rows & Hovers */
-.table-row-hover:hover {
-  background-color: var(--bg-surface-hover) !important;
-}
-
-thead.bg-slate-50 {
-  background-color: var(--bg-surface) !important;
-  border-color: var(--border-subtle) !important;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Card Shadow */
 .card-shadow {
-  box-shadow: var(--card-shadow) !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
 }
 
 /* Mobile Bottom Navigation Bar */
@@ -129,10 +51,18 @@ thead.bg-slate-50 {
   padding-bottom: calc(var(--sab) + 0.35rem);
 }
 
+/* Active Bottom Navigation Pill (Matching user screenshot) */
+.nav-pill-active {
+  background-color: #FFEDD5; /* soft warm peach */
+  color: #C2410C !important;  /* bold warm orange */
+  border-radius: 9999px;
+  padding: 0.35rem 0.85rem;
+}
+
 /* Dark Mode Modals & Overlays */
 .modal-backdrop {
   backdrop-filter: blur(8px);
-  background-color: rgba(14, 13, 11, 0.65) !important;
+  background-color: rgba(15, 23, 42, 0.65);
 }
 
 /* Custom Scrollbars */
@@ -142,32 +72,29 @@ thead.bg-slate-50 {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-surface);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 4px;
+  background: #CBD5E1;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-subtle);
+  background: #94A3B8;
 }
 
-/* Print & PDF Layout Styles (Optimized for Landscape Multi-page Statement & Invoices) */
-@page {
-  size: landscape;
-  margin: 8mm 6mm;
-}
-
+/* Print Styles */
 @media print {
-  html, body {
-    background: #ffffff !important;
-    color: #000000 !important;
-    font-size: 10px !important;
-    margin: 0 !important;
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
     padding: 0 !important;
-    width: 100% !important;
+    margin: 0 !important;
   }
 
   body * {
@@ -181,13 +108,14 @@ thead.bg-slate-50 {
   }
 
   #printable-invoice-container {
-    position: static !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 8px !important;
-    background: white !important;
-    color: black !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white;
+    color: black;
     display: block !important;
   }
 
@@ -223,40 +151,5 @@ thead.bg-slate-50 {
 
   .screen-hidden-row {
     display: table-row !important;
-  }
-
-  .no-print, [role="navigation"], header, aside, nav, button {
-    display: none !important;
-  }
-
-  table {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-collapse: collapse !important;
-    page-break-after: auto;
-  }
-
-  thead {
-    display: table-header-group !important;
-  }
-
-  tfoot {
-    display: table-footer-group !important;
-  }
-
-  tr {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  th, td {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    font-size: 9.5px !important;
-    padding: 4px 3px !important;
-  }
-
-  .card-shadow, .shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl {
-    box-shadow: none !important;
   }
 }

@@ -158,140 +158,34 @@ const App = {
     const isMember = this.userType === 'member';
     const isSuperAdmin = this.currentUser?.role === 'super_admin';
     const isFoodManagerOnly = !isMember && !isSuperAdmin && this.currentUser?.can_manage_food && !this.currentUser?.can_manage_bills && !this.currentUser?.can_manage_rooms;
-
-    let roleTitle = 'Admin Panel';
-    if (isMember) roleTitle = 'Member Portal';
-    else if (isSuperAdmin) roleTitle = 'Super Admin';
-    else if (isFoodManagerOnly) roleTitle = 'Food Manager';
+    const userName = (this.currentUser?.name || 'User').toLowerCase();
 
     return `
       <header class="bg-white border-b border-slate-200 sticky top-0 z-30 card-shadow no-print">
-        <div class="w-full max-w-[1750px] mx-auto px-3 sm:px-6 lg:px-8">
+        <div class="w-full max-w-xl mx-auto px-4 sm:px-6">
           <div class="flex items-center justify-between h-14 sm:h-16">
-            <!-- Brand & Network Pill -->
-            <div class="flex items-center gap-2 sm:gap-3 cursor-pointer" onclick="App.navigate(App.userType === 'member' ? 'portal' : (isFoodManagerOnly ? 'food' : 'dashboard'))">
-              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${isFoodManagerOnly ? 'bg-amber-600' : 'bg-indigo-600'} text-white flex items-center justify-center font-black text-sm sm:text-lg shadow-sm">
-                <i class="fa-solid ${isFoodManagerOnly ? 'fa-utensils' : 'fa-building'}"></i>
-              </div>
-              <div>
-                <span class="font-black text-slate-900 text-sm sm:text-base leading-none block">Flat Manager</span>
-                <span class="text-[9px] sm:text-[10px] ${isFoodManagerOnly ? 'text-amber-700' : 'text-indigo-600'} font-bold uppercase tracking-wider block mt-0.5">
-                  ${roleTitle}
-                </span>
-              </div>
+            <!-- Left: Oval User Profile Pill (Matching User Screenshot) -->
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 bg-white text-xs font-bold text-slate-800 shadow-2xs hover:bg-slate-50 cursor-pointer transition-all" onclick="App.openProfileModal()">
+              <i class="fa-regular fa-user-circle text-base text-slate-700"></i>
+              <span class="truncate max-w-[120px] sm:max-w-none font-bold">${userName}</span>
             </div>
 
-            <!-- Network Status Pill (Visible on both Mobile & Desktop) -->
-            <div class="flex items-center gap-1.5 sm:gap-2">
-              <div id="network-status-pill" class="cursor-pointer"></div>
-              <button onclick="OfflineStore.installApp()" title="Install App (PWA)" class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 border border-slate-200 transition-all">
-                <i class="fa-solid fa-download text-indigo-600"></i>
-                <span>Install App</span>
-              </button>
-            </div>
-
-            <!-- Desktop Navigation Links -->
-            <nav class="hidden md:flex items-center space-x-1 text-xs font-semibold">
-              ${isMember ? `
-                <button onclick="App.navigate('portal')" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${this.currentView === 'portal' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                  <i class="fa-solid fa-gauge-high"></i> Dashboard
-                </button>
-                <button onclick="App.navigate('reports')" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${this.currentView === 'reports' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                  <i class="fa-solid fa-file-invoice"></i> My Statement
-                </button>
-              ` : (isFoodManagerOnly ? `
-                <button onclick="App.navigate('food')" class="px-4 py-2 rounded-xl transition-all ${this.currentView === 'food' ? 'bg-amber-100 text-amber-900 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                  <i class="fa-solid fa-utensils mr-1.5 text-amber-600"></i> Weekly Food Mess
-                </button>
-                <button onclick="App.navigate('payments')" class="px-4 py-2 rounded-xl transition-all ${this.currentView === 'payments' ? 'bg-amber-100 text-amber-900 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                  <i class="fa-solid fa-money-bill-transfer mr-1.5 text-emerald-600"></i> Food Payments
-                </button>
-              ` : `
-                <button onclick="App.navigate('dashboard')" class="px-3.5 py-2 rounded-xl transition-all ${this.currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                  Dashboard
-                </button>
-                ${this.currentUser?.can_manage_bills ? `
-                  <button onclick="App.navigate('bills')" class="px-3.5 py-2 rounded-xl transition-all ${this.currentView === 'bills' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                    Bills & Splits
-                  </button>
-                ` : ''}
-                ${this.currentUser?.can_manage_food ? `
-                  <button onclick="App.navigate('food')" class="px-3.5 py-2 rounded-xl transition-all ${this.currentView === 'food' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                    Weekly Food
-                  </button>
-                ` : ''}
-                ${this.currentUser?.can_manage_payments ? `
-                  <button onclick="App.navigate('payments')" class="px-3.5 py-2 rounded-xl transition-all ${this.currentView === 'payments' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                    Payments
-                  </button>
-                ` : ''}
-                <button onclick="App.navigate('reports')" class="px-3.5 py-2 rounded-xl transition-all ${this.currentView === 'reports' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                  Reports & PDF
-                </button>
-
-                <!-- Organized Manage Dropdown for Rooms, Members, Admins, Settings, Audit -->
-                <div class="relative inline-block text-left" id="manage-dropdown-container">
-                  <button onclick="App.toggleManageDropdown(event)" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${['rooms', 'members', 'admins', 'settings', 'audit'].includes(this.currentView) ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                    <span>Manage</span>
-                    <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
-                  </button>
-                  <div id="manage-dropdown-menu" class="hidden absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50">
-                    ${this.currentUser?.can_manage_rooms ? `
-                      <button onclick="App.navigate('rooms'); App.closeManageDropdown()" class="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700">
-                        <i class="fa-solid fa-door-open text-purple-600 w-4 text-center"></i> Rooms Management
-                      </button>
-                    ` : ''}
-                    ${this.currentUser?.can_manage_members ? `
-                      <button onclick="App.navigate('members'); App.closeManageDropdown()" class="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700">
-                        <i class="fa-solid fa-users text-blue-600 w-4 text-center"></i> Members List & Dues
-                      </button>
-                    ` : ''}
-                    ${isSuperAdmin ? `
-                      <div class="border-t border-slate-100 my-1"></div>
-                      <button onclick="App.navigate('admins'); App.closeManageDropdown()" class="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700">
-                        <i class="fa-solid fa-user-shield text-indigo-600 w-4 text-center"></i> Admin Roles & Access
-                      </button>
-                      <button onclick="App.navigate('audit'); App.closeManageDropdown()" class="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700">
-                        <i class="fa-solid fa-clock-rotate-left text-slate-600 w-4 text-center"></i> Security & Audit Log
-                      </button>
-                      <button onclick="App.navigate('settings'); App.closeManageDropdown()" class="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700">
-                        <i class="fa-solid fa-sliders text-amber-600 w-4 text-center"></i> Flat Settings
-                      </button>
-                    ` : ''}
-                  </div>
-                </div>
-              `)}
-            </nav>
-
-            <!-- User Info, Notification Bell, Theme Toggle & Logout -->
-            <div class="flex items-center gap-1.5 sm:gap-2">
-              <!-- In-App Notification Bell -->
-              <button id="navbar-notif-btn" onclick="Notifications.openDrawer()" class="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 border border-slate-200 flex items-center justify-center transition-all text-xs" title="Notifications & Alerts">
-                <i class="fa-solid fa-bell"></i>
-                <span id="notif-badge-pill" class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-600 text-white font-black text-[9px] items-center justify-center border-2 border-white animate-pulse">0</span>
+            <!-- Right: Search, Notification Bell with Red Badge, Menu Hamburger -->
+            <div class="flex items-center gap-2">
+              <!-- Search Icon Button -->
+              <button onclick="App.openSearchModal()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all text-sm shadow-2xs" title="Search">
+                <i class="fa-solid fa-magnifying-glass text-xs"></i>
               </button>
 
-              <!-- Day / Night Mode Switcher -->
-              <button onclick="App.toggleTheme()" title="Switch Day / Night Mood" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-600 border border-slate-200 flex items-center justify-center transition-all text-xs">
-                <i class="fa-solid fa-moon text-amber-500 dark:hidden"></i>
-                <i class="fa-solid fa-sun text-amber-400 hidden dark:inline"></i>
+              <!-- In-App Notification Bell with Badge -->
+              <button id="navbar-notif-btn" onclick="Notifications.openDrawer()" class="relative w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all text-sm shadow-2xs" title="Notifications & Alerts">
+                <i class="fa-regular fa-bell text-sm"></i>
+                <span id="notif-badge-pill" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-600 text-white font-black text-[9px] items-center justify-center border-2 border-white animate-pulse">0</span>
               </button>
 
-              <!-- Mobile User Avatar Initial -->
-              <div class="sm:hidden w-8 h-8 rounded-xl ${isFoodManagerOnly ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'} flex items-center justify-center font-bold text-xs" title="${this.currentUser.name}">
-                ${(this.currentUser.name || 'U').charAt(0).toUpperCase()}
-              </div>
-
-              <!-- Desktop User Info -->
-              <div class="text-right hidden sm:block">
-                <span class="text-xs font-bold text-slate-800 block">${this.currentUser.name}</span>
-                <span class="text-[10px] text-slate-400 font-mono block">
-                  ${isMember ? this.currentUser.unique_id : `@${this.currentUser.username}`}
-                </span>
-              </div>
-
-              <button onclick="App.logout()" title="Sign Out" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 flex items-center justify-center transition-all text-xs">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+              <!-- Hamburger Menu Drawer Button -->
+              <button onclick="App.openMenuDrawer()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all text-sm shadow-2xs" title="More Options">
+                <i class="fa-solid fa-bars text-sm"></i>
               </button>
             </div>
           </div>
@@ -543,26 +437,35 @@ const App = {
 
     if (isMember) {
       return `
-        <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1 shadow-lg flex items-center justify-around no-print" style="padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);">
-          <button onclick="App.navigate('portal')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'portal' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
-            <i class="fa-solid fa-gauge-high text-base"></i>
-            <span class="text-[9px] mt-0.5">Portal</span>
+        <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-2 shadow-2xl flex items-center justify-between no-print" style="padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);">
+          <!-- Dashboard / Home (Peach Pill Active) -->
+          <button onclick="App.navigate('portal')" class="transition-all ${this.currentView === 'portal' ? 'bg-[#FED7AA]/50 text-[#EA580C] px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-bold text-xs' : 'flex flex-col items-center justify-center text-slate-500 hover:text-slate-900 px-2 py-1'}">
+            <i class="fa-solid fa-house ${this.currentView === 'portal' ? 'text-sm' : 'text-base'}"></i>
+            <span class="${this.currentView === 'portal' ? 'text-xs' : 'text-[10px] mt-0.5'}">Dashboard</span>
           </button>
-          <button onclick="App.navigate('reports')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'reports' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
-            <i class="fa-solid fa-file-invoice text-base"></i>
-            <span class="text-[9px] mt-0.5">Statement</span>
+
+          <!-- Billing / Statement -->
+          <button onclick="App.navigate('reports')" class="transition-all ${this.currentView === 'reports' ? 'bg-[#FED7AA]/50 text-[#EA580C] px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-bold text-xs' : 'flex flex-col items-center justify-center text-slate-500 hover:text-slate-900 px-2 py-1'}">
+            <i class="fa-solid fa-file-invoice-dollar ${this.currentView === 'reports' ? 'text-sm' : 'text-base'}"></i>
+            <span class="${this.currentView === 'reports' ? 'text-xs' : 'text-[10px] mt-0.5'}">Billing</span>
           </button>
-          <button onclick="Notifications.openDrawer()" class="relative flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all text-slate-500 hover:text-indigo-600">
-            <i class="fa-solid fa-bell text-base"></i>
-            <span class="text-[9px] mt-0.5">Alerts</span>
+
+          <!-- Services (Bank, Claim, Mess) -->
+          <button onclick="App.openServicesModal()" class="transition-all flex flex-col items-center justify-center text-slate-500 hover:text-slate-900 px-2 py-1">
+            <i class="fa-solid fa-shapes text-base"></i>
+            <span class="text-[10px] mt-0.5">Services</span>
           </button>
-          <button onclick="OfflineStore.installApp()" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all text-slate-500 hover:text-indigo-600">
-            <i class="fa-solid fa-download text-base text-indigo-500"></i>
-            <span class="text-[9px] mt-0.5">App</span>
+
+          <!-- WhatsApp Support -->
+          <button onclick="App.openWhatsAppSupport()" class="transition-all flex flex-col items-center justify-center text-slate-500 hover:text-emerald-600 px-2 py-1">
+            <i class="fa-brands fa-whatsapp text-base text-emerald-600"></i>
+            <span class="text-[10px] mt-0.5">Support</span>
           </button>
-          <button onclick="App.logout()" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all text-slate-500 hover:text-rose-600">
-            <i class="fa-solid fa-arrow-right-from-bracket text-base"></i>
-            <span class="text-[9px] mt-0.5">Logout</span>
+
+          <!-- More Options -->
+          <button onclick="App.openMenuDrawer()" class="transition-all flex flex-col items-center justify-center text-slate-500 hover:text-slate-900 px-2 py-1">
+            <i class="fa-solid fa-bars text-base"></i>
+            <span class="text-[10px] mt-0.5">More</span>
           </button>
         </div>
       `;
@@ -570,71 +473,83 @@ const App = {
 
     if (isFoodManagerOnly) {
       return `
-        <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-1.5 shadow-lg flex items-center justify-around no-print" style="padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);">
-          <button onclick="App.navigate('food')" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${this.currentView === 'food' ? 'text-amber-600 font-bold' : 'text-slate-500'}">
-            <i class="fa-solid fa-utensils text-lg"></i>
-            <span class="text-[10px] mt-0.5">Weekly Food</span>
+        <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 shadow-2xl flex items-center justify-around no-print" style="padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);">
+          <button onclick="App.navigate('food')" class="transition-all ${this.currentView === 'food' ? 'bg-[#FED7AA]/50 text-[#EA580C] px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-bold text-xs' : 'flex flex-col items-center justify-center text-slate-500 px-2 py-1'}">
+            <i class="fa-solid fa-utensils ${this.currentView === 'food' ? 'text-sm' : 'text-base'}"></i>
+            <span class="${this.currentView === 'food' ? 'text-xs' : 'text-[10px] mt-0.5'}">Food Mess</span>
           </button>
-          <button onclick="App.navigate('payments')" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${this.currentView === 'payments' ? 'text-amber-600 font-bold' : 'text-slate-500'}">
-            <i class="fa-solid fa-money-bill-transfer text-lg"></i>
-            <span class="text-[10px] mt-0.5">Payments</span>
+          <button onclick="App.navigate('payments')" class="transition-all ${this.currentView === 'payments' ? 'bg-[#FED7AA]/50 text-[#EA580C] px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-bold text-xs' : 'flex flex-col items-center justify-center text-slate-500 px-2 py-1'}">
+            <i class="fa-solid fa-money-bill-transfer ${this.currentView === 'payments' ? 'text-sm' : 'text-base'}"></i>
+            <span class="${this.currentView === 'payments' ? 'text-xs' : 'text-[10px] mt-0.5'}">Payments</span>
           </button>
-          <button onclick="OfflineStore.installApp()" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all text-slate-500 hover:text-amber-600">
-            <i class="fa-solid fa-download text-lg text-amber-500"></i>
-            <span class="text-[10px] mt-0.5">Install App</span>
-          </button>
-          <button onclick="App.logout()" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all text-slate-500 hover:text-rose-600">
-            <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
-            <span class="text-[10px] mt-0.5">Logout</span>
+          <button onclick="App.openMenuDrawer()" class="transition-all flex flex-col items-center justify-center text-slate-500 px-2 py-1">
+            <i class="fa-solid fa-bars text-base"></i>
+            <span class="text-[10px] mt-0.5">More</span>
           </button>
         </div>
       `;
     }
 
     // Default Admin Mobile Bottom Navigation
-    const isMoreActive = ['rooms', 'members', 'reports', 'admins', 'settings', 'audit'].includes(this.currentView);
+    const isBillsActive = this.currentView === 'bills';
+    const isFoodActive = this.currentView === 'food';
+    const isPaymentsActive = this.currentView === 'payments';
+    const isDashboardActive = this.currentView === 'dashboard';
 
     return `
-      <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-2xl flex items-center justify-around no-print" style="padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);">
-        <button onclick="App.navigate('dashboard')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'dashboard' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
-          <i class="fa-solid fa-house text-lg"></i>
-          <span class="text-[10px] mt-0.5">Home</span>
+      <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-2 shadow-2xl flex items-center justify-between no-print" style="padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);">
+        <!-- Dashboard / Home -->
+        <button onclick="App.navigate('dashboard')" class="transition-all ${isDashboardActive ? 'bg-[#FED7AA]/50 text-[#EA580C] px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-bold text-xs' : 'flex flex-col items-center justify-center text-slate-500 px-2 py-1'}">
+          <i class="fa-solid fa-house ${isDashboardActive ? 'text-sm' : 'text-base'}"></i>
+          <span class="${isDashboardActive ? 'text-xs' : 'text-[10px] mt-0.5'}">Home</span>
         </button>
-        <button onclick="App.navigate('bills')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'bills' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
-          <i class="fa-solid fa-file-invoice-dollar text-lg"></i>
-          <span class="text-[10px] mt-0.5">Bills</span>
+
+        <!-- Bills -->
+        <button onclick="App.navigate('bills')" class="transition-all ${isBillsActive ? 'bg-[#FED7AA]/50 text-[#EA580C] px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-bold text-xs' : 'flex flex-col items-center justify-center text-slate-500 px-2 py-1'}">
+          <i class="fa-solid fa-file-invoice-dollar ${isBillsActive ? 'text-sm' : 'text-base'}"></i>
+          <span class="${isBillsActive ? 'text-xs' : 'text-[10px] mt-0.5'}">Bills</span>
         </button>
-        <button onclick="App.navigate('food')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'food' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
-          <i class="fa-solid fa-utensils text-lg"></i>
-          <span class="text-[10px] mt-0.5">Food</span>
+
+        <!-- Food -->
+        <button onclick="App.navigate('food')" class="transition-all ${isFoodActive ? 'bg-[#FED7AA]/50 text-[#EA580C] px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-bold text-xs' : 'flex flex-col items-center justify-center text-slate-500 px-2 py-1'}">
+          <i class="fa-solid fa-utensils ${isFoodActive ? 'text-sm' : 'text-base'}"></i>
+          <span class="${isFoodActive ? 'text-xs' : 'text-[10px] mt-0.5'}">Food</span>
         </button>
-        <button onclick="App.navigate('payments')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'payments' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
-          <i class="fa-solid fa-money-bill-transfer text-lg"></i>
-          <span class="text-[10px] mt-0.5">Payments</span>
+
+        <!-- Payments -->
+        <button onclick="App.navigate('payments')" class="transition-all ${isPaymentsActive ? 'bg-[#FED7AA]/50 text-[#EA580C] px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-bold text-xs' : 'flex flex-col items-center justify-center text-slate-500 px-2 py-1'}">
+          <i class="fa-solid fa-money-bill-transfer ${isPaymentsActive ? 'text-sm' : 'text-base'}"></i>
+          <span class="${isPaymentsActive ? 'text-xs' : 'text-[10px] mt-0.5'}">Payments</span>
         </button>
-        <button onclick="App.openMobileMoreMenu()" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${isMoreActive ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
-          <i class="fa-solid fa-bars text-lg"></i>
+
+        <!-- More -->
+        <button onclick="App.openMenuDrawer()" class="transition-all flex flex-col items-center justify-center text-slate-500 px-2 py-1">
+          <i class="fa-solid fa-bars text-base"></i>
           <span class="text-[10px] mt-0.5">More</span>
         </button>
       </div>
     `;
   },
 
-  openMobileMoreMenu() {
+  // Menu Drawer (Accessible via hamburger icon or 'More' tab)
+  openMenuDrawer() {
+    const isMember = this.userType === 'member';
     const isSuperAdmin = this.currentUser?.role === 'super_admin';
+    const isFoodManagerOnly = !isMember && !isSuperAdmin && this.currentUser?.can_manage_food && !this.currentUser?.can_manage_bills && !this.currentUser?.can_manage_rooms;
     const queue = typeof OfflineStore !== 'undefined' ? OfflineStore.getQueue() : [];
+    const notifPermission = typeof Notification !== 'undefined' ? Notification.permission : 'default';
 
     this.showModal(`
       <div class="space-y-4 text-slate-800">
         <!-- Header / User Info -->
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
-              <i class="fa-solid fa-user-shield"></i>
+            <div class="w-10 h-10 rounded-2xl ${isMember ? 'bg-blue-600' : 'bg-indigo-600'} text-white flex items-center justify-center font-bold text-base shadow-sm">
+              <i class="fa-solid ${isMember ? 'fa-user' : 'fa-user-shield'}"></i>
             </div>
             <div>
               <h3 class="font-bold text-slate-900 text-sm leading-tight">${this.currentUser?.name}</h3>
-              <p class="text-[11px] text-slate-500">@${this.currentUser?.username} &bull; <span class="capitalize text-indigo-600 font-semibold">${this.currentUser?.role?.replace('_', ' ')}</span></p>
+              <p class="text-[11px] text-slate-500">${isMember ? this.currentUser?.unique_id : `@${this.currentUser?.username}`} &bull; <span class="capitalize ${isMember ? 'text-blue-600' : 'text-indigo-600'} font-semibold">${isMember ? 'Member' : (this.currentUser?.role?.replace('_', ' ') || 'Admin')}</span></p>
             </div>
           </div>
           <button onclick="App.closeModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center">
@@ -649,8 +564,8 @@ const App = {
               <i class="fa-solid fa-cloud-arrow-up"></i>
             </div>
             <div>
-              <p class="text-xs font-bold text-emerald-950">Supabase Cloud Sync</p>
-              <p class="text-[10px] text-emerald-700">${queue.length > 0 ? `${queue.length} offline actions pending` : 'Cloud database connected'}</p>
+              <p class="text-xs font-bold text-emerald-950">Cloud Sync (Supabase)</p>
+              <p class="text-[10px] text-emerald-700">${queue.length > 0 ? `${queue.length} offline actions queued` : 'Real-time database sync active'}</p>
             </div>
           </div>
           <button onclick="App.closeModal(); OfflineStore.triggerCloudSync();" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold shadow-sm transition-all">
@@ -660,46 +575,96 @@ const App = {
 
         <!-- Management Navigation Grid -->
         <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
-          ${this.currentUser?.can_manage_rooms ? `
-            <button onclick="App.closeModal(); App.navigate('rooms');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
-              <i class="fa-solid fa-door-open text-indigo-600 text-base"></i>
-              <span>Rooms & Rents</span>
+          ${isMember ? `
+            <button onclick="App.closeModal(); App.navigate('portal');" class="p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-house text-blue-600 text-base"></i>
+              <span>Dashboard</span>
             </button>
-          ` : ''}
+            <button onclick="App.closeModal(); App.navigate('reports');" class="p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-file-invoice text-blue-600 text-base"></i>
+              <span>Statements & PDF</span>
+            </button>
+            <button onclick="App.closeModal(); PortalView.openBankAccountsModal();" class="p-3 rounded-2xl bg-slate-50 hover:bg-amber-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-building-columns text-amber-600 text-base"></i>
+              <span>Bank Accounts</span>
+            </button>
+            <button onclick="App.closeModal(); PortalView.openClaimPaymentModal();" class="p-3 rounded-2xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-receipt text-emerald-600 text-base"></i>
+              <span>Claim Payment</span>
+            </button>
+          ` : `
+            <button onclick="App.closeModal(); App.navigate('dashboard');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-house text-indigo-600 text-base"></i>
+              <span>Dashboard</span>
+            </button>
+            <button onclick="App.closeModal(); App.navigate('bills');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-file-invoice-dollar text-indigo-600 text-base"></i>
+              <span>Bills & Utilities</span>
+            </button>
+            <button onclick="App.closeModal(); App.navigate('food');" class="p-3 rounded-2xl bg-slate-50 hover:bg-amber-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-utensils text-amber-600 text-base"></i>
+              <span>Weekly Food</span>
+            </button>
+            <button onclick="App.closeModal(); App.navigate('payments');" class="p-3 rounded-2xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-money-bill-transfer text-emerald-600 text-base"></i>
+              <span>Payments</span>
+            </button>
 
-          ${this.currentUser?.can_manage_members ? `
-            <button onclick="App.closeModal(); App.navigate('members');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
-              <i class="fa-solid fa-users text-indigo-600 text-base"></i>
-              <span>Members</span>
-            </button>
-          ` : ''}
+            ${this.currentUser?.can_manage_rooms ? `
+              <button onclick="App.closeModal(); App.navigate('rooms');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+                <i class="fa-solid fa-door-open text-indigo-600 text-base"></i>
+                <span>Rooms & Rents</span>
+              </button>
+            ` : ''}
 
-          <button onclick="App.closeModal(); App.navigate('reports');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
-            <i class="fa-solid fa-file-invoice text-indigo-600 text-base"></i>
-            <span>Reports & PDF</span>
-          </button>
+            ${this.currentUser?.can_manage_members ? `
+              <button onclick="App.closeModal(); App.navigate('members');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+                <i class="fa-solid fa-users text-indigo-600 text-base"></i>
+                <span>Members</span>
+              </button>
+            ` : ''}
 
-          ${isSuperAdmin ? `
-            <button onclick="App.closeModal(); App.navigate('admins');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
-              <i class="fa-solid fa-user-gear text-indigo-600 text-base"></i>
-              <span>Admins</span>
+            <button onclick="App.closeModal(); App.navigate('reports');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+              <i class="fa-solid fa-file-pdf text-indigo-600 text-base"></i>
+              <span>Reports & PDF</span>
             </button>
-            <button onclick="App.closeModal(); App.navigate('settings');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
-              <i class="fa-solid fa-sliders text-indigo-600 text-base"></i>
-              <span>Settings</span>
-            </button>
-            <button onclick="App.closeModal(); App.navigate('audit');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
-              <i class="fa-solid fa-shield-halved text-indigo-600 text-base"></i>
-              <span>Audit Log</span>
-            </button>
-          ` : ''}
+
+            ${isSuperAdmin ? `
+              <button onclick="App.closeModal(); App.navigate('admins');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+                <i class="fa-solid fa-user-gear text-indigo-600 text-base"></i>
+                <span>Admins</span>
+              </button>
+              <button onclick="App.closeModal(); App.navigate('settings');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+                <i class="fa-solid fa-sliders text-indigo-600 text-base"></i>
+                <span>Settings</span>
+              </button>
+              <button onclick="App.closeModal(); App.navigate('audit');" class="p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-left transition-all flex items-center gap-2.5">
+                <i class="fa-solid fa-shield-halved text-indigo-600 text-base"></i>
+                <span>Audit Log</span>
+              </button>
+            ` : ''}
+          `}
         </div>
+
+        <!-- Lock Screen / Push Notifications Toggle Row -->
+        <button onclick="App.togglePushNotifications();" class="w-full p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition-all flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <i class="fa-solid fa-bell text-rose-500 text-base"></i>
+            <div>
+              <span class="font-bold text-xs block">Lock Screen Alerts</span>
+              <span class="text-[10px] text-slate-500 block">Banner & lock screen notifications outside app</span>
+            </div>
+          </div>
+          <span class="text-[10px] px-2.5 py-1 rounded-full font-bold ${notifPermission === 'granted' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+            ${notifPermission === 'granted' ? 'Active ✓' : 'Enable'}
+          </span>
+        </button>
 
         <!-- Day / Night Mood Switcher Row -->
         <button onclick="App.toggleTheme(); App.closeModal();" class="w-full p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition-all flex items-center justify-between">
           <div class="flex items-center gap-2.5">
             <i class="fa-solid ${this.isDarkMode() ? 'fa-sun text-amber-400' : 'fa-moon text-amber-500'} text-base"></i>
-            <span class="font-bold text-xs">${this.isDarkMode() ? 'Night Mode (Black Velvet)' : 'Day Mode (Claude Editorial)'}</span>
+            <span class="font-bold text-xs">${this.isDarkMode() ? 'Night Mode (Black Velvet)' : 'Day Mode (Clean)'}</span>
           </div>
           <span class="text-[10px] px-2.5 py-1 rounded-full font-bold bg-slate-200 text-slate-700">
             Switch to ${this.isDarkMode() ? 'Day ☀️' : 'Night 🌙'}
@@ -709,7 +674,7 @@ const App = {
         <!-- App & Session Actions -->
         <div class="pt-2 border-t border-slate-100 flex items-center gap-2">
           <button onclick="App.closeModal(); OfflineStore.installApp();" class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5">
-            <i class="fa-solid fa-mobile-screen"></i> Install on Phone
+            <i class="fa-solid fa-mobile-screen"></i> Install App
           </button>
           <button onclick="App.closeModal(); App.logout();" class="flex-1 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5">
             <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
@@ -717,6 +682,314 @@ const App = {
         </div>
       </div>
     `);
+  },
+
+  openMobileMoreMenu() {
+    this.openMenuDrawer();
+  },
+
+  // Oval profile pill modal (matching screenshot header profile)
+  openProfileModal() {
+    const isMember = this.userType === 'member';
+    const notifPermission = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+
+    this.showModal(`
+      <div class="space-y-4 text-slate-800">
+        <!-- Top Profile Card -->
+        <div class="text-center p-4 bg-gradient-to-b from-blue-50 to-white rounded-2xl border border-blue-100">
+          <div class="w-16 h-16 rounded-full ${isMember ? 'bg-blue-600' : 'bg-indigo-600'} text-white text-2xl flex items-center justify-center mx-auto mb-2 shadow-md">
+            <i class="fa-solid ${isMember ? 'fa-user' : 'fa-user-shield'}"></i>
+          </div>
+          <h2 class="text-lg font-black text-slate-900">${this.currentUser?.name}</h2>
+          <p class="text-xs text-blue-700 font-mono font-bold mt-0.5">
+            ${isMember ? `Member ID: ${this.currentUser?.unique_id}` : `@${this.currentUser?.username} &bull; ${this.currentUser?.role?.replace('_', ' ')}`}
+          </p>
+          <div class="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Status: Active & Verified
+          </div>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs space-y-2">
+          ${isMember ? `
+            <div class="flex justify-between py-1 border-b border-slate-200/60">
+              <span class="text-slate-500">Flat Location:</span>
+              <span class="font-bold text-slate-800">Flat Management (Active)</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-200/60">
+              <span class="text-slate-500">Contact / WhatsApp:</span>
+              <span class="font-bold text-slate-800">${this.currentUser?.phone || 'On File'}</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-slate-500">App Mode:</span>
+              <span class="font-bold text-emerald-600">Offline PWA Supported ✓</span>
+            </div>
+          ` : `
+            <div class="flex justify-between py-1 border-b border-slate-200/60">
+              <span class="text-slate-500">System Role:</span>
+              <span class="font-bold text-slate-800 capitalize">${this.currentUser?.role?.replace('_', ' ')}</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-200/60">
+              <span class="text-slate-500">Database Engine:</span>
+              <span class="font-bold text-emerald-600">Supabase Cloud + Local Cache</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-slate-500">Push Notifications:</span>
+              <span class="font-bold ${notifPermission === 'granted' ? 'text-emerald-600' : 'text-amber-600'}">${notifPermission === 'granted' ? 'Enabled (Lock Screen Active)' : 'Disabled'}</span>
+            </div>
+          `}
+        </div>
+
+        <!-- Quick Preferences -->
+        <div class="space-y-2">
+          <button onclick="App.toggleTheme();" class="w-full p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid ${this.isDarkMode() ? 'fa-sun text-amber-500' : 'fa-moon text-indigo-500'}"></i>
+              Theme Mood
+            </span>
+            <span class="text-[10px] text-slate-500">${this.isDarkMode() ? 'Night Mode' : 'Day Mode'}</span>
+          </button>
+
+          <button onclick="OfflineStore.installApp();" class="w-full p-2.5 rounded-xl bg-slate-100 hover:bg-blue-50 text-blue-700 font-bold text-xs flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-mobile-screen"></i>
+              Add to Mobile Home Screen
+            </span>
+            <span class="text-[10px] text-blue-600 font-semibold">Install PWA</span>
+          </button>
+        </div>
+
+        <!-- Logout Action -->
+        <div class="pt-2 border-t border-slate-100 flex gap-2">
+          <button onclick="App.closeModal()" class="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-all">
+            Close
+          </button>
+          <button onclick="App.closeModal(); App.logout();" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md transition-all">
+            Sign Out
+          </button>
+        </div>
+      </div>
+    `);
+  },
+
+  // Interactive Live Search Modal
+  async openSearchModal() {
+    this.showModal(`
+      <div class="space-y-4 text-slate-800">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div class="flex items-center gap-2 text-slate-900 font-bold text-sm">
+            <i class="fa-solid fa-magnifying-glass text-blue-600"></i>
+            <span>Quick Search</span>
+          </div>
+          <button onclick="App.closeModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center">
+            <i class="fa-solid fa-xmark text-xs"></i>
+          </button>
+        </div>
+
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+          <input type="text" id="quickSearchInput" oninput="App.handleLiveSearch(this.value)" placeholder="Search members, bills, payments, rooms..." autofocus class="w-full pl-9 pr-4 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+        </div>
+
+        <div id="quickSearchResults" class="max-h-72 overflow-y-auto space-y-1.5 text-xs">
+          <div class="p-4 text-center text-slate-400">
+            <i class="fa-solid fa-keyboard text-2xl mb-1 text-slate-300 block"></i>
+            Type above to quickly search records
+          </div>
+        </div>
+      </div>
+    `);
+
+    setTimeout(() => {
+      const input = document.getElementById('quickSearchInput');
+      if (input) input.focus();
+    }, 150);
+  },
+
+  async handleLiveSearch(query) {
+    const resultsContainer = document.getElementById('quickSearchResults');
+    if (!resultsContainer) return;
+    const q = (query || '').trim().toLowerCase();
+
+    if (!q) {
+      resultsContainer.innerHTML = `
+        <div class="p-4 text-center text-slate-400">
+          <i class="fa-solid fa-keyboard text-2xl mb-1 text-slate-300 block"></i>
+          Type above to quickly search records
+        </div>
+      `;
+      return;
+    }
+
+    try {
+      const isMember = this.userType === 'member';
+      if (isMember) {
+        const portalData = await API.get('/api/portal/dashboard');
+        const bills = portalData.recentBills || [];
+        const payments = portalData.recentPayments || [];
+
+        const filteredBills = bills.filter(b => (b.month || '').toLowerCase().includes(q) || (b.bill_type || '').toLowerCase().includes(q));
+        const filteredPayments = payments.filter(p => (p.payment_month || '').toLowerCase().includes(q) || (p.payment_method || '').toLowerCase().includes(q));
+
+        if (filteredBills.length === 0 && filteredPayments.length === 0) {
+          resultsContainer.innerHTML = `<div class="p-4 text-center text-slate-400">No records found matching "${query}"</div>`;
+          return;
+        }
+
+        let html = '';
+        filteredBills.forEach(b => {
+          html += `
+            <div onclick="App.closeModal(); App.navigate('reports');" class="p-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 cursor-pointer flex items-center justify-between transition-all">
+              <div>
+                <span class="font-bold text-slate-800">${b.month} Bill</span>
+                <span class="text-[10px] text-slate-500 block">${b.bill_type || 'Monthly Rent & Utilities'}</span>
+              </div>
+              <span class="font-black text-rose-600">Rs ${Number(b.member_amount || b.total_amount || 0).toLocaleString()}</span>
+            </div>
+          `;
+        });
+        filteredPayments.forEach(p => {
+          html += `
+            <div onclick="App.closeModal(); App.navigate('reports');" class="p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 cursor-pointer flex items-center justify-between transition-all">
+              <div>
+                <span class="font-bold text-slate-800">Payment (${p.payment_month || 'Recent'})</span>
+                <span class="text-[10px] text-slate-500 block">${p.payment_method || 'Online'} &bull; ${p.payment_date || ''}</span>
+              </div>
+              <span class="font-black text-emerald-600">Rs ${Number(p.amount || 0).toLocaleString()}</span>
+            </div>
+          `;
+        });
+        resultsContainer.innerHTML = html;
+      } else {
+        // Admin Search: members, bills, payments
+        const [members, bills] = await Promise.all([
+          API.get('/api/members'),
+          API.get('/api/bills')
+        ]);
+
+        const filteredMembers = (members || []).filter(m => (m.name || '').toLowerCase().includes(q) || (m.unique_id || '').toLowerCase().includes(q));
+        const filteredBills = (bills || []).filter(b => (b.month || '').toLowerCase().includes(q) || (b.bill_type || '').toLowerCase().includes(q));
+
+        if (filteredMembers.length === 0 && filteredBills.length === 0) {
+          resultsContainer.innerHTML = `<div class="p-4 text-center text-slate-400">No members or bills found matching "${query}"</div>`;
+          return;
+        }
+
+        let html = '';
+        filteredMembers.forEach(m => {
+          html += `
+            <div onclick="App.closeModal(); App.navigate('members');" class="p-2.5 rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 cursor-pointer flex items-center justify-between transition-all">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
+                  ${(m.name || 'M').charAt(0)}
+                </div>
+                <div>
+                  <span class="font-bold text-slate-800 block">${m.name}</span>
+                  <span class="text-[10px] text-slate-500 font-mono">${m.unique_id || ''} &bull; Room ${m.room_number || '-'}</span>
+                </div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-200 text-slate-700">${m.status || 'Active'}</span>
+            </div>
+          `;
+        });
+        filteredBills.slice(0, 5).forEach(b => {
+          html += `
+            <div onclick="App.closeModal(); App.navigate('bills');" class="p-2.5 rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 cursor-pointer flex items-center justify-between transition-all">
+              <div>
+                <span class="font-bold text-slate-800">${b.month} Bill</span>
+                <span class="text-[10px] text-slate-500 block">${b.bill_type || 'Utilities'}</span>
+              </div>
+              <span class="font-black text-indigo-600">Rs ${Number(b.total_amount || 0).toLocaleString()}</span>
+            </div>
+          `;
+        });
+        resultsContainer.innerHTML = html;
+      }
+    } catch (err) {
+      console.warn('Search error:', err);
+    }
+  },
+
+  // Services Modal (Quick shortcuts: Bank accounts, Invoice PDF, Food mess, WhatsApp help)
+  openServicesModal() {
+    this.showModal(`
+      <div class="space-y-4 text-slate-800">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div class="flex items-center gap-2 font-bold text-sm text-slate-900">
+            <i class="fa-solid fa-shapes text-orange-500"></i>
+            <span>Services & Quick Actions</span>
+          </div>
+          <button onclick="App.closeModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center">
+            <i class="fa-solid fa-xmark text-xs"></i>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 text-xs font-semibold">
+          <button onclick="App.closeModal(); PortalView.openBankAccountsModal();" class="p-3.5 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-amber-200 text-left transition-all flex flex-col items-start gap-2 shadow-2xs">
+            <div class="w-8 h-8 rounded-xl bg-amber-600 text-white flex items-center justify-center text-sm shadow-xs">
+              <i class="fa-solid fa-building-columns"></i>
+            </div>
+            <div>
+              <span class="font-black text-amber-950 block">Bank Accounts</span>
+              <span class="text-[10px] text-amber-700 block">Copy IBAN & Pay</span>
+            </div>
+          </button>
+
+          <button onclick="App.closeModal(); PortalView.generateMemberPDF();" class="p-3.5 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 text-left transition-all flex flex-col items-start gap-2 shadow-2xs">
+            <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-sm shadow-xs">
+              <i class="fa-solid fa-file-pdf"></i>
+            </div>
+            <div>
+              <span class="font-black text-blue-950 block">Invoice PDF</span>
+              <span class="text-[10px] text-blue-700 block">Download Monthly PDF</span>
+            </div>
+          </button>
+
+          <button onclick="App.closeModal(); PortalView.openClaimPaymentModal();" class="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 text-left transition-all flex flex-col items-start gap-2 shadow-2xs">
+            <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm shadow-xs">
+              <i class="fa-solid fa-receipt"></i>
+            </div>
+            <div>
+              <span class="font-black text-emerald-950 block">Claim Payment</span>
+              <span class="text-[10px] text-emerald-700 block">Submit Transfer Slip</span>
+            </div>
+          </button>
+
+          <button onclick="App.closeModal(); App.openWhatsAppSupport();" class="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100 border border-green-200 text-left transition-all flex flex-col items-start gap-2 shadow-2xs">
+            <div class="w-8 h-8 rounded-xl bg-green-600 text-white flex items-center justify-center text-sm shadow-xs">
+              <i class="fa-brands fa-whatsapp"></i>
+            </div>
+            <div>
+              <span class="font-black text-green-950 block">WhatsApp Support</span>
+              <span class="text-[10px] text-green-700 block">Direct Admin Chat</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    `);
+  },
+
+  // Open Direct WhatsApp Support
+  async openWhatsAppSupport() {
+    try {
+      const settings = await API.get('/api/settings');
+      const phone = settings?.contact_phone || settings?.emergency_phone || '923001234567';
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
+      const userText = encodeURIComponent(`Hello Admin, I am ${this.currentUser?.name} (${this.currentUser?.unique_id || 'Member'}). I need assistance regarding Flat Management.`);
+      window.open(`https://wa.me/${cleanPhone}?text=${userText}`, '_blank');
+    } catch (e) {
+      window.open(`https://wa.me/?text=Hello%20Admin,%20I%20need%20assistance%20with%20Flat%20Management`, '_blank');
+    }
+  },
+
+  // Request & Toggle Outside-App Lock Screen / Push Notifications
+  async togglePushNotifications() {
+    if (typeof Notifications !== 'undefined') {
+      await Notifications.requestPushPermission();
+    } else {
+      App.toast('Notification service is starting...', 'info');
+    }
   },
 
   toggleManageDropdown(e) {
