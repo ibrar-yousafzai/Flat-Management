@@ -140,8 +140,8 @@ const OfflineStore = {
       el.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Syncing (${queue.length})...`;
       el.onclick = () => this.processSyncQueue();
     } else {
-      el.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs cursor-pointer';
-      el.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online &bull; Supabase`;
+      el.className = 'inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs cursor-pointer';
+      el.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span> <span>Online<span class="hidden sm:inline"> &bull; Supabase</span></span>`;
       el.onclick = () => this.triggerCloudSync();
     }
   },

@@ -52,7 +52,13 @@ app.post('/api/sync-supabase', async (req, res) => {
 });
 
 // Serve uploaded bill photos / receipts
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+const uploadsStaticDir = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, '../uploads');
+try {
+  if (!require('fs').existsSync(uploadsStaticDir)) {
+    require('fs').mkdirSync(uploadsStaticDir, { recursive: true });
+  }
+} catch (e) {}
+app.use('/uploads', express.static(uploadsStaticDir));
 
 // Serve Frontend Static Files
 app.use(express.static(path.join(__dirname, '../public')));

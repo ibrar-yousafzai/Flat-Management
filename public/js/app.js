@@ -179,9 +179,9 @@ const App = {
             <!-- Network Status Pill (Visible on both Mobile & Desktop) -->
             <div class="flex items-center gap-1.5 sm:gap-2">
               <div id="network-status-pill" class="cursor-pointer"></div>
-              <button onclick="OfflineStore.installApp()" title="Install App (PWA)" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 border border-slate-200 transition-all">
+              <button onclick="OfflineStore.installApp()" title="Install App (PWA)" class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 border border-slate-200 transition-all">
                 <i class="fa-solid fa-download text-indigo-600"></i>
-                <span class="hidden sm:inline">Install App</span>
+                <span>Install App</span>
               </button>
             </div>
 
@@ -255,12 +255,19 @@ const App = {
                 <i class="fa-solid fa-sun text-amber-400 hidden dark:inline"></i>
               </button>
 
+              <!-- Mobile User Avatar Initial -->
+              <div class="sm:hidden w-8 h-8 rounded-xl ${isFoodManagerOnly ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'} flex items-center justify-center font-bold text-xs" title="${this.currentUser.name}">
+                ${(this.currentUser.name || 'U').charAt(0).toUpperCase()}
+              </div>
+
+              <!-- Desktop User Info -->
               <div class="text-right hidden sm:block">
                 <span class="text-xs font-bold text-slate-800 block">${this.currentUser.name}</span>
                 <span class="text-[10px] text-slate-400 font-mono block">
                   ${isMember ? this.currentUser.unique_id : `@${this.currentUser.username}`}
                 </span>
               </div>
+
               <button onclick="App.logout()" title="Sign Out" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 flex items-center justify-center transition-all text-xs">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
               </button>

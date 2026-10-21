@@ -6,7 +6,11 @@ const fs = require('fs');
 const xlsx = require('xlsx');
 const { db, logAudit } = require('../db');
 
-const upload = multer({ dest: path.join(__dirname, '../../uploads') });
+// Use memoryStorage for cloud/serverless compatibility (e.g. Vercel read-only filesystem)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 }
+});
 
 // Helper to normalize member name
 function cleanName(name) {
@@ -45,11 +49,16 @@ router.post('/upload', upload.single('file'), (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const workbook = xlsx.readFile(req.file.path);
+    const workbook = req.file.buffer
+      ? xlsx.read(req.file.buffer, { type: 'buffer' })
+      : xlsx.readFile(req.file.path);
+
     const result = processWorkbook(workbook);
 
-    // Clean up uploaded temp file
-    try { fs.unlinkSync(req.file.path); } catch (e) {}
+    // Clean up uploaded temp file if on disk
+    if (req.file.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
 
     logAudit('admin', null, req.body.actor_name || 'Admin', 'Uploaded Excel File', `Processed uploaded Excel (${result.monthsImported} months)`);
 
@@ -59,7 +68,7 @@ router.post('/upload', upload.single('file'), (req, res) => {
       details: result
     });
   } catch (err) {
-    if (req.file && fs.existsSync(req.file.path)) {
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
       try { fs.unlinkSync(req.file.path); } catch (e) {}
     }
     console.error('Upload process error:', err);
