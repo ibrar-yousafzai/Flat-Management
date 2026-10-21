@@ -117,7 +117,7 @@ const BillsView = {
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
               <span class="text-xs text-slate-400 font-semibold uppercase">Total Monthly Bills</span>
-              <p class="text-xl font-extrabold text-slate-800 mt-1">${currency} ${billsData.total_bills_amount.toLocaleString()}</p>
+              <p class="text-xl font-extrabold text-slate-800 mt-1">${currency} ${Number(billsData.total_bills_amount || 0).toLocaleString()}</p>
             </div>
             <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
               <span class="text-xs text-slate-400 font-semibold uppercase">Number of Bills</span>
@@ -175,7 +175,14 @@ const BillsView = {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                  ${visibleMatrix && visibleMatrix.length > 0 ? visibleMatrix.map(row => `
+                  ${visibleMatrix && visibleMatrix.length > 0 ? visibleMatrix.map(row => {
+                    const priorArrears = Number(row.carried_forward ?? row.prior_arrears ?? 0);
+                    const billsTotal = Number(row.bills_total ?? 0);
+                    const paidAmount = Number(row.paid_amount ?? 0);
+                    const netPayable = Number(row.net_month_payable ?? 0);
+                    const foodTotal = Number(row.food_total ?? 0);
+
+                    return `
                     <tr class="table-row-hover">
                       <!-- Member & Room -->
                       <td class="py-3 px-3 border-r border-slate-100">
@@ -187,13 +194,13 @@ const BillsView = {
                       </td>
 
                       <!-- Prior Arrears -->
-                      <td class="py-3 px-3 text-center border-r border-slate-100 bg-amber-50/20 font-semibold ${row.prior_arrears !== 0 ? (row.prior_arrears > 0 ? 'text-amber-800' : 'text-emerald-700') : 'text-slate-300'}">
-                        ${row.prior_arrears !== 0 ? `${currency} ${row.prior_arrears.toLocaleString()}` : '-'}
+                      <td class="py-3 px-3 text-center border-r border-slate-100 bg-amber-50/20 font-semibold ${priorArrears !== 0 ? (priorArrears > 0 ? 'text-amber-800' : 'text-emerald-700') : 'text-slate-300'}">
+                        ${priorArrears !== 0 ? `${currency} ${priorArrears.toLocaleString()}` : '-'}
                       </td>
 
                       <!-- Itemized Bills -->
                       ${bills.map(b => {
-                        const val = row.bills[b.id] || 0;
+                        const val = Number(row.bills[b.id] || 0);
                         return `
                           <td class="py-3 px-3 text-center border-r border-slate-100 font-medium ${val > 0 ? 'text-slate-700' : 'text-slate-300'}">
                             ${val > 0 ? `${currency} ${val.toLocaleString()}` : '-'}
@@ -203,22 +210,22 @@ const BillsView = {
 
                       <!-- Total Month Bills Due -->
                       <td class="py-3 px-3 text-center border-r border-slate-100 bg-indigo-50/30 font-bold text-indigo-900">
-                        ${currency} ${row.bills_total.toLocaleString()}
+                        ${currency} ${billsTotal.toLocaleString()}
                       </td>
 
                       <!-- Bills Paid -->
                       <td class="py-3 px-3 text-center border-r border-slate-100 bg-emerald-50/30 font-bold text-emerald-700">
-                        ${row.paid_amount > 0 ? `${currency} ${row.paid_amount.toLocaleString()}` : '-'}
+                        ${paidAmount > 0 ? `${currency} ${paidAmount.toLocaleString()}` : '-'}
                       </td>
 
                       <!-- Net Bills Balance (Carried + Bills - Paid) -->
-                      <td class="py-3 px-3 text-right border-r border-slate-100 font-extrabold ${row.net_month_payable > 0 ? 'text-rose-600' : 'text-emerald-600'}">
-                        ${currency} ${row.net_month_payable.toLocaleString()}
+                      <td class="py-3 px-3 text-right border-r border-slate-100 font-extrabold ${netPayable > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                        ${currency} ${netPayable.toLocaleString()}
                       </td>
 
                       <!-- Separate Weekly Food Mess status -->
                       <td class="py-3 px-3 text-center border-r border-slate-100 bg-amber-50/30 font-semibold text-amber-900">
-                        ${row.food_total > 0 ? `${currency} ${row.food_total.toLocaleString()}` : '<span class="text-slate-300">-</span>'}
+                        ${foodTotal > 0 ? `${currency} ${foodTotal.toLocaleString()}` : '<span class="text-slate-300">-</span>'}
                       </td>
 
                       <!-- Quick WhatsApp & PDF buttons -->
@@ -233,7 +240,8 @@ const BillsView = {
                         </div>
                       </td>
                     </tr>
-                  `).join('') : `
+                    `;
+                  }).join('') : `
                     <tr>
                       <td colspan="${bills.length + 6}" class="py-8 text-center text-slate-400">
                         No member records found for ${this.selectedMonth}.
@@ -246,7 +254,13 @@ const BillsView = {
 
             <!-- Mobile Member Split Cards (Small screen optimized) -->
             <div class="md:hidden divide-y divide-slate-100">
-              ${visibleMatrix && visibleMatrix.length > 0 ? visibleMatrix.map(row => `
+              ${visibleMatrix && visibleMatrix.length > 0 ? visibleMatrix.map(row => {
+                const priorArrears = Number(row.carried_forward ?? row.prior_arrears ?? 0);
+                const billsTotal = Number(row.bills_total ?? 0);
+                const paidAmount = Number(row.paid_amount ?? 0);
+                const netPayable = Number(row.net_month_payable ?? 0);
+
+                return `
                 <div class="p-4 space-y-3">
                   <!-- Header -->
                   <div class="flex items-start justify-between">
@@ -259,8 +273,8 @@ const BillsView = {
                     </div>
                     <div class="text-right">
                       <div class="text-[10px] text-slate-400 uppercase font-semibold">Net Payable</div>
-                      <div class="text-base font-black ${row.net_month_payable > 0 ? 'text-rose-600' : 'text-emerald-600'}">
-                        ${currency} ${row.net_month_payable.toLocaleString()}
+                      <div class="text-base font-black ${netPayable > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                        ${currency} ${netPayable.toLocaleString()}
                       </div>
                     </div>
                   </div>
@@ -269,17 +283,17 @@ const BillsView = {
                   <div class="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl text-center text-xs border border-slate-100">
                     <div>
                       <span class="text-[10px] text-slate-400 block">Prior Arrears</span>
-                      <span class="font-bold ${row.prior_arrears !== 0 ? (row.prior_arrears > 0 ? 'text-amber-800' : 'text-emerald-700') : 'text-slate-400'}">
-                        ${row.prior_arrears !== 0 ? `${currency} ${row.prior_arrears.toLocaleString()}` : '-'}
+                      <span class="font-bold ${priorArrears !== 0 ? (priorArrears > 0 ? 'text-amber-800' : 'text-emerald-700') : 'text-slate-400'}">
+                        ${priorArrears !== 0 ? `${currency} ${priorArrears.toLocaleString()}` : '-'}
                       </span>
                     </div>
                     <div>
                       <span class="text-[10px] text-slate-400 block">Month Bills</span>
-                      <span class="font-bold text-indigo-900">${currency} ${row.bills_total.toLocaleString()}</span>
+                      <span class="font-bold text-indigo-900">${currency} ${billsTotal.toLocaleString()}</span>
                     </div>
                     <div>
                       <span class="text-[10px] text-slate-400 block">Bills Paid</span>
-                      <span class="font-bold text-emerald-700">${row.paid_amount > 0 ? `${currency} ${row.paid_amount.toLocaleString()}` : '-'}</span>
+                      <span class="font-bold text-emerald-700">${paidAmount > 0 ? `${currency} ${paidAmount.toLocaleString()}` : '-'}</span>
                     </div>
                   </div>
 
@@ -291,7 +305,7 @@ const BillsView = {
                     </summary>
                     <div class="pt-2 space-y-1.5 border-t border-slate-100 mt-1">
                       ${bills.map(b => {
-                        const val = row.bills[b.id] || 0;
+                        const val = Number(row.bills[b.id] || 0);
                         return `
                           <div class="flex items-center justify-between text-[11px]">
                             <span class="text-slate-600 truncate max-w-[200px]">${b.title}</span>
@@ -312,7 +326,8 @@ const BillsView = {
                     </button>
                   </div>
                 </div>
-              `).join('') : `
+                `;
+              }).join('') : `
                 <div class="p-6 text-center text-xs text-slate-400">
                   No member records found for ${this.selectedMonth}.
                 </div>

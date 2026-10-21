@@ -926,6 +926,8 @@ const FoodView = {
         API.get('/api/settings')
       ]);
 
+      this.cachedSettings = settings || {};
+
       const foodMap = {};
       for (const r of (consolidated.rows || [])) {
         foodMap[r.member.id] = r.food_balance;
@@ -937,7 +939,8 @@ const FoodView = {
       })).filter(m => m.food_due > 0);
 
       App.showModal(`
-        <div class="space-y-4 max-w-lg mx-auto">
+        <div class="space-y-4 max-w-2xl mx-auto">
+          <!-- Modal Header -->
           <div class="flex items-center justify-between border-b pb-3">
             <div class="flex items-center gap-2.5">
               <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-base">
@@ -945,48 +948,87 @@ const FoodView = {
               </div>
               <div>
                 <h3 class="text-base font-bold text-slate-800">Send Food Mess Reminders</h3>
-                <p class="text-xs text-slate-500">Notify members with outstanding weekly grocery dues</p>
+                <p class="text-xs text-slate-500">Month: <strong>${this.currentMonth}</strong> &bull; Direct 1-Click WhatsApp & PDF Invoices</p>
               </div>
             </div>
             <button onclick="App.closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
           </div>
 
+          <!-- Info banner -->
+          <div class="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed flex items-start gap-2">
+            <i class="fa-brands fa-whatsapp text-emerald-600 text-sm mt-0.5"></i>
+            <div>
+              Click <strong>"WhatsApp"</strong> next to any member to instantly jump to their private chat with their food dues breakdown pre-filled. You can also view or print their <strong>PDF Statement</strong>.
+            </div>
+          </div>
+
           <div>
-            <div class="flex items-center justify-between text-xs px-1 mb-1.5">
-              <span class="text-slate-500 font-semibold">Members with Unpaid Food Dues:</span>
-              <span class="text-slate-400 font-mono">${dueMembers.length} members</span>
+            <div class="flex items-center justify-between text-xs px-1 mb-2">
+              <span class="text-slate-600 font-bold">Members with Unpaid Food Dues (${dueMembers.length}):</span>
+              <button onclick="FoodView.toggleSelectAllFood(this)" class="text-indigo-600 hover:text-indigo-800 font-semibold text-[11px]">Select / Deselect All for Email</button>
             </div>
 
-            <div class="max-h-56 overflow-y-auto border border-slate-200 rounded-2xl p-2 divide-y divide-slate-100 bg-slate-50">
-              ${dueMembers.length > 0 ? dueMembers.map(m => `
-                <label class="flex items-center justify-between p-2.5 rounded-xl hover:bg-white transition-all cursor-pointer">
-                  <div class="flex items-center gap-3">
-                    <input type="checkbox" name="foodReminderMember" value="${m.id}" ${m.email ? 'checked' : 'disabled'} class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500" />
-                    <div>
-                      <div class="font-bold text-slate-800 text-xs">${m.name} <span class="font-mono text-slate-400 text-[10px]">(${m.unique_id})</span></div>
-                      <div class="text-[11px] text-slate-500">${m.email ? `<span class="text-slate-600">${m.email}</span>` : '<span class="text-rose-500 italic">No email saved (WhatsApp only)</span>'}</div>
+            <div class="max-h-80 overflow-y-auto border border-slate-200 rounded-2xl divide-y divide-slate-100 bg-white">
+              ${dueMembers.length > 0 ? dueMembers.map(m => {
+                const hasPhone = m.whatsapp && m.whatsapp.trim().length > 0;
+                return `
+                  <div class="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                      <input type="checkbox" name="foodReminderMember" value="${m.id}" ${m.email ? 'checked' : 'disabled'} class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 shrink-0" />
+                      <div>
+                        <div class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                          <span>${m.name}</span>
+                          <span class="font-mono text-slate-400 text-[10px]">(${m.unique_id})</span>
+                          <span class="text-[9px] px-1.5 py-0.2 rounded font-medium bg-slate-100 text-slate-600">${m.room_name || 'Outside'}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                          <span class="font-mono ${hasPhone ? 'text-emerald-700 font-semibold' : 'text-rose-500 italic'}">
+                            <i class="fa-brands fa-whatsapp text-xs mr-0.5"></i>${hasPhone ? m.whatsapp : 'No WhatsApp saved'}
+                          </span>
+                          ${m.email ? `<span>&bull;</span><span class="text-slate-400 truncate max-w-[150px]">${m.email}</span>` : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center justify-between sm:justify-end gap-2.5">
+                      <div class="text-right mr-1">
+                        <div class="text-xs font-black text-amber-700 font-mono">Rs. ${Number(m.food_due).toLocaleString()}</div>
+                        <div class="text-[9px] text-slate-400 uppercase font-semibold">Food Due</div>
+                      </div>
+
+                      <div class="flex items-center gap-1.5">
+                        <button onclick="FoodView.copyWhatsAppFoodForMember(${m.id}, '${m.name.replace(/'/g, "\\'")}', ${m.food_due}, '${m.unique_id}')" title="Copy formatted text" class="p-2 sm:px-2.5 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1">
+                          <i class="fa-regular fa-copy text-xs"></i> <span class="hidden sm:inline">Copy</span>
+                        </button>
+
+                        <button onclick="FoodView.sendWhatsAppFoodToMember(${m.id}, '${m.name.replace(/'/g, "\\'")}', '${m.whatsapp || ''}', ${m.food_due}, '${m.unique_id}')" ${hasPhone ? '' : 'disabled'} title="${hasPhone ? 'Direct to WhatsApp' : 'No phone saved'}" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5">
+                          <i class="fa-brands fa-whatsapp text-sm"></i>
+                          <span>WhatsApp</span>
+                        </button>
+
+                        <button onclick="App.openInvoiceModal(${m.id}, '${this.currentMonth}')" title="View / Print PDF Statement" class="p-2 sm:px-2.5 sm:py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1">
+                          <i class="fa-solid fa-file-invoice text-xs"></i> <span class="hidden sm:inline">PDF</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div class="text-right">
-                    <div class="text-xs font-black text-amber-700 font-mono">Rs. ${m.food_due.toLocaleString()}</div>
-                    <div class="text-[10px] text-slate-400">Due</div>
-                  </div>
-                </label>
-              `).join('') : `
-                <div class="py-6 text-center text-xs text-slate-400">All members have cleared their food mess dues! 🎉</div>
+                `;
+              }).join('') : `
+                <div class="py-8 text-center text-xs text-slate-400">All members have cleared their food mess dues! 🎉</div>
               `}
             </div>
           </div>
 
-          <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-            <button type="button" onclick="FoodView.copyWhatsAppFoodBroadcast()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
-              <i class="fa-brands fa-whatsapp text-sm"></i> Copy WhatsApp Message
+          <!-- Bottom Actions -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-3 border-t border-slate-100">
+            <button type="button" onclick="FoodView.copyWhatsAppFoodBroadcast()" class="w-full sm:w-auto px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-bullhorn text-emerald-600 text-xs"></i> Copy Group Broadcast Text
             </button>
 
-            <div class="flex items-center gap-2">
-              <button type="button" onclick="App.closeModal()" class="px-4 py-2 border rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button type="button" onclick="App.closeModal()" class="px-4 py-2 border rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50">Close</button>
               <button type="button" onclick="FoodView.sendBatchFoodEmail()" ${dueMembers.length === 0 ? 'disabled' : ''} class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow transition-all flex items-center gap-1.5 disabled:opacity-50">
-                <i class="fa-solid fa-paper-plane text-xs"></i> Email Reminder
+                <i class="fa-solid fa-paper-plane text-xs"></i> Send Email Reminders
               </button>
             </div>
           </div>
@@ -995,6 +1037,62 @@ const FoodView = {
     } catch (err) {
       App.toast(err.message, 'error');
     }
+  },
+
+  toggleSelectAllFood(btn) {
+    const checkboxes = document.querySelectorAll('input[name="foodReminderMember"]:not(:disabled)');
+    const anyUnchecked = Array.from(checkboxes).some(cb => !cb.checked);
+    checkboxes.forEach(cb => cb.checked = anyUnchecked);
+  },
+
+  getMemberWhatsAppMessage(m, settings = {}) {
+    const flatName = settings.flat_name || 'Flat Management';
+    return `*🍲 Flat Mess Food Dues Reminder*\n` +
+      `*Flat:* ${flatName}\n` +
+      `*Period:* ${this.currentMonth}\n\n` +
+      `Assalam-o-Alaikum *${m.name}* (${m.unique_id || ''}),\n\n` +
+      `Your outstanding weekly food grocery mess share is *Rs. ${Number(m.food_due).toLocaleString()}*.\n\n` +
+      `Since groceries and vegetable supplies are purchased week-to-week, please clear your food mess dues as soon as possible so meals continue smoothly.\n\n` +
+      `📄 *View / Download Statement:* ${window.location.origin}/#reports\n` +
+      `After payment, please upload your receipt proof under "Payment for Food Mess" in your portal.\n\n` +
+      `Thank you!`;
+  },
+
+  cleanPhoneNumber(phone) {
+    if (!phone) return '';
+    let p = String(phone).replace(/[^0-9]/g, '');
+    if (p.startsWith('03')) {
+      p = '92' + p.slice(1);
+    }
+    return p;
+  },
+
+  sendWhatsAppFoodToMember(memberId, name, phone, foodDue, uniqueId) {
+    const m = { id: memberId, name, whatsapp: phone, food_due: foodDue, unique_id: uniqueId };
+    const text = this.getMemberWhatsAppMessage(m, this.cachedSettings || {});
+    const cleanPhone = this.cleanPhoneNumber(phone);
+    if (!cleanPhone) {
+      this.copyTextToClipboard(encodeURIComponent(text), `Copied food reminder for ${name}! Please paste into WhatsApp.`);
+      return;
+    }
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    App.toast(`Opened WhatsApp chat for ${name}!`, 'success');
+  },
+
+  copyWhatsAppFoodForMember(memberId, name, foodDue, uniqueId) {
+    const m = { id: memberId, name, food_due: foodDue, unique_id: uniqueId };
+    const text = this.getMemberWhatsAppMessage(m, this.cachedSettings || {});
+    this.copyTextToClipboard(encodeURIComponent(text), `Copied food reminder for ${name} to clipboard!`);
+  },
+
+  copyTextToClipboard(encodedText, successMsg) {
+    const text = decodeURIComponent(encodedText);
+    navigator.clipboard.writeText(text).then(() => {
+      App.toast(successMsg || 'Copied to clipboard!', 'success');
+    }).catch(() => {
+      prompt('Copy message text:', text);
+    });
   },
 
   async sendBatchFoodEmail() {

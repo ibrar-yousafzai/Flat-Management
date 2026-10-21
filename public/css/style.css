@@ -154,25 +154,77 @@ thead.bg-slate-50 {
   background: var(--text-subtle);
 }
 
-/* Print Styles */
+/* Print & PDF Layout Styles (Optimized for Landscape Multi-page Statement & Invoices) */
+@page {
+  size: landscape;
+  margin: 8mm 6mm;
+}
+
 @media print {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
   body * {
     visibility: hidden;
   }
+
   #printable-invoice-container, #printable-invoice-container * {
     visibility: visible;
   }
+
   #printable-invoice-container {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 20px;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 8px !important;
     background: white !important;
     color: black !important;
+    display: block !important;
   }
-  .no-print {
+
+  .screen-hidden-row {
+    display: table-row !important;
+  }
+
+  .no-print, [role="navigation"], header, aside, nav, button {
     display: none !important;
+  }
+
+  table {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  th, td {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    font-size: 9.5px !important;
+    padding: 4px 3px !important;
+  }
+
+  .card-shadow, .shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl {
+    box-shadow: none !important;
   }
 }

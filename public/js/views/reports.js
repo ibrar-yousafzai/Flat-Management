@@ -503,37 +503,52 @@ const ReportsView = {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 font-medium">
-              ${visibleRows.map(r => `
-                <tr class="table-row-hover">
+              ${rows.map((r, index) => {
+                const isOverLimit = index >= (this.visibleLimit || 6);
+                const priorArrears = Number(r.prior_arrears ?? r.carried_forward ?? 0);
+                const rentVal = Number(r.member_rent || 0);
+                const elecVal = Number(r.member_electricity || 0);
+                const wifiVal = Number(r.member_wifi || 0);
+                const cookVal = Number(r.member_cook || 0);
+                const otherVal = Number(r.member_other || 0);
+                const billsTotal = Number(r.bills_total || 0);
+                const paidBills = Number(r.paid_bills || 0);
+                const netBillsDue = Number(r.net_bills_due || 0);
+                const foodBalance = Number(r.food_balance || 0);
+                const overallOutstanding = Number(r.overall_outstanding || 0);
+
+                return `
+                <tr class="table-row-hover ${isOverLimit ? 'hidden screen-hidden-row' : ''}">
                   <td class="py-2.5 px-3 border-r border-slate-100">
                     <span class="font-bold text-slate-900">${r.member.name}</span>
                     <span class="font-mono text-[10px] text-indigo-600 block">${r.member.unique_id} &bull; ${r.member.room_name || 'Outside'}</span>
                   </td>
-                  <td class="py-2.5 px-2 text-center border-r border-slate-100">${r.member_rent > 0 ? r.member_rent.toLocaleString() : '-'}</td>
-                  <td class="py-2.5 px-2 text-center border-r border-slate-100">${r.member_electricity > 0 ? r.member_electricity.toLocaleString() : '-'}</td>
-                  <td class="py-2.5 px-2 text-center border-r border-slate-100">${r.member_wifi > 0 ? r.member_wifi.toLocaleString() : '-'}</td>
-                  <td class="py-2.5 px-2 text-center border-r border-slate-100">${r.member_cook > 0 ? r.member_cook.toLocaleString() : '-'}</td>
-                  <td class="py-2.5 px-2 text-center border-r border-slate-100">${r.member_other > 0 ? r.member_other.toLocaleString() : '-'}</td>
-                  <td class="py-2.5 px-2 text-center border-r border-slate-100 bg-amber-50/30 ${r.prior_arrears !== 0 ? (r.prior_arrears > 0 ? 'text-amber-800 font-bold' : 'text-emerald-700 font-bold') : 'text-slate-300'}">
-                    ${r.prior_arrears !== 0 ? r.prior_arrears.toLocaleString() : '-'}
+                  <td class="py-2.5 px-2 text-center border-r border-slate-100">${rentVal > 0 ? rentVal.toLocaleString() : '-'}</td>
+                  <td class="py-2.5 px-2 text-center border-r border-slate-100">${elecVal > 0 ? elecVal.toLocaleString() : '-'}</td>
+                  <td class="py-2.5 px-2 text-center border-r border-slate-100">${wifiVal > 0 ? wifiVal.toLocaleString() : '-'}</td>
+                  <td class="py-2.5 px-2 text-center border-r border-slate-100">${cookVal > 0 ? cookVal.toLocaleString() : '-'}</td>
+                  <td class="py-2.5 px-2 text-center border-r border-slate-100">${otherVal > 0 ? otherVal.toLocaleString() : '-'}</td>
+                  <td class="py-2.5 px-2 text-center border-r border-slate-100 bg-amber-50/30 ${priorArrears !== 0 ? (priorArrears > 0 ? 'text-amber-800 font-bold' : 'text-emerald-700 font-bold') : 'text-slate-300'}">
+                    ${priorArrears !== 0 ? priorArrears.toLocaleString() : '-'}
                   </td>
                   <td class="py-2.5 px-2 text-center border-r border-slate-100 bg-indigo-50/30 font-bold text-indigo-900">
-                    ${r.bills_total.toLocaleString()}
+                    ${billsTotal.toLocaleString()}
                   </td>
                   <td class="py-2.5 px-2 text-center border-r border-slate-100 bg-emerald-50/30 font-bold text-emerald-700">
-                    ${r.paid_bills > 0 ? r.paid_bills.toLocaleString() : '-'}
+                    ${paidBills > 0 ? paidBills.toLocaleString() : '-'}
                   </td>
-                  <td class="py-2.5 px-3 text-right border-r border-slate-100 font-extrabold ${r.net_bills_due > 0 ? 'text-rose-600' : 'text-emerald-600'}">
-                    ${currency} ${r.net_bills_due.toLocaleString()}
+                  <td class="py-2.5 px-3 text-right border-r border-slate-100 font-extrabold ${netBillsDue > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                    ${currency} ${netBillsDue.toLocaleString()}
                   </td>
-                  <td class="py-2.5 px-2 text-center border-r border-slate-100 bg-amber-50/30 font-bold ${r.food_balance > 0 ? 'text-amber-800' : 'text-emerald-700'}">
-                    ${r.food_balance !== 0 ? `${currency} ${r.food_balance.toLocaleString()}` : '-'}
+                  <td class="py-2.5 px-2 text-center border-r border-slate-100 bg-amber-50/30 font-bold ${foodBalance > 0 ? 'text-amber-800' : 'text-emerald-700'}">
+                    ${foodBalance !== 0 ? `${currency} ${foodBalance.toLocaleString()}` : '-'}
                   </td>
-                  <td class="py-2.5 px-3 text-right font-black ${r.overall_outstanding > 0 ? 'text-purple-900' : 'text-emerald-600'}">
-                    ${currency} ${r.overall_outstanding.toLocaleString()}
+                  <td class="py-2.5 px-3 text-right font-black ${overallOutstanding > 0 ? 'text-purple-900' : 'text-emerald-600'}">
+                    ${currency} ${overallOutstanding.toLocaleString()}
                   </td>
                 </tr>
-              `).join('')}
+                `;
+              }).join('')}
             </tbody>
             <!-- GRAND TOTALS FOOTER -->
             <tfoot class="bg-slate-200/80 font-black text-slate-900 text-xs border-t-2 border-slate-300">
