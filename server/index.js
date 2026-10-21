@@ -35,6 +35,7 @@ app.use('/api/settings', require('./routes/settings'));
 app.use('/api/audit', require('./routes/audit'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/import', require('./routes/import'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {

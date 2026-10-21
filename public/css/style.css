@@ -1,44 +1,44 @@
-/* Flat Management - Claude AI Theme & Dark/Light Mode Stylesheet */
+/* Flat Management - Modern High-End Theme & Clean Mobile Palette */
 
 :root {
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
 
-  /* Claude AI Day Mode Palette */
-  --bg-app: #FAF9F5;
+  /* Clean Crisp Light Palette (Default) */
+  --bg-app: #F8FAFC;
   --bg-card: #FFFFFF;
-  --bg-surface: #F3F1EA;
-  --bg-surface-hover: #ECE9E0;
+  --bg-surface: #F1F5F9;
+  --bg-surface-hover: #E2E8F0;
   --bg-input: #FFFFFF;
-  --border-subtle: #E8E6DF;
-  --border-strong: #D5D2C8;
-  --text-main: #191816;
-  --text-muted: #66635D;
-  --text-subtle: #96938B;
-  --accent-claude: #C25E2E;
-  --accent-hover: #A3481D;
-  --accent-soft: #FBF0EB;
-  --accent-text: #963D16;
-  --card-shadow: 0 4px 20px -2px rgba(25, 24, 22, 0.04), 0 2px 6px -1px rgba(25, 24, 22, 0.02);
+  --border-subtle: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --text-subtle: #94A3B8;
+  --accent-claude: #4F46E5;
+  --accent-hover: #4338CA;
+  --accent-soft: #EEF2FF;
+  --accent-text: #3730A3;
+  --card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
 }
 
-/* Claude AI Night / Black Mode Palette */
+/* Modern High-Contrast Midnight Dark Mode */
 html.dark {
-  --bg-app: #131210;
-  --bg-card: #1C1A17;
-  --bg-surface: #24221E;
-  --bg-surface-hover: #2C2A25;
-  --bg-input: #171614;
-  --border-subtle: #2D2B26;
-  --border-strong: #3D3A33;
-  --text-main: #EDECE8;
-  --text-muted: #A8A59D;
-  --text-subtle: #75726B;
-  --accent-claude: #D96E3B;
-  --accent-hover: #E8804E;
-  --accent-soft: #2B1D16;
-  --accent-text: #F3A87D;
-  --card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4), 0 2px 8px -1px rgba(0, 0, 0, 0.3);
+  --bg-app: #0B0F19;
+  --bg-card: #111827;
+  --bg-surface: #1F2937;
+  --bg-surface-hover: #374151;
+  --bg-input: #111827;
+  --border-subtle: #1F2937;
+  --border-strong: #374151;
+  --text-main: #F9FAFB;
+  --text-muted: #9CA3AF;
+  --text-subtle: #6B7280;
+  --accent-claude: #6366F1;
+  --accent-hover: #4F46E5;
+  --accent-soft: #1E1B4B;
+  --accent-text: #A5B4FC;
+  --card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.5), 0 2px 8px -1px rgba(0, 0, 0, 0.4);
 }
 
 body {

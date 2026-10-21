@@ -216,6 +216,29 @@ function initDatabase() {
       ip_address TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- In-App Notifications table
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'system', -- 'bill', 'food', 'rent', 'payment', 'announcement', 'system'
+      target_type TEXT NOT NULL DEFAULT 'all',  -- 'all', 'member', 'admin'
+      target_id INTEGER,                        -- member_id or admin_id (NULL = all)
+      actor_name TEXT,                          -- e.g. "Admin (Ibrar Khan)" or member name
+      data TEXT,                                -- JSON payload
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Notification read receipts per user
+    CREATE TABLE IF NOT EXISTS notification_reads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      notification_id INTEGER NOT NULL,
+      user_type TEXT NOT NULL,                  -- 'admin' or 'member'
+      user_id INTEGER NOT NULL,
+      read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(notification_id, user_type, user_id)
+    );
   `);
 
   // Safe schema migrations
@@ -323,6 +346,21 @@ function initDatabase() {
   } catch (e) {}
 }
 
+// In-App Notification helper
+function createNotification({ title, message, category = 'system', target_type = 'all', target_id = null, actor_name = null, data = null }) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO notifications (title, message, category, target_type, target_id, actor_name, data)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    const info = stmt.run(title, message, category, target_type, target_id, actor_name, data ? JSON.stringify(data) : null);
+    return info.lastInsertRowid;
+  } catch (err) {
+    console.error('Notification creation error:', err.message);
+    return null;
+  }
+}
+
 // Audit logger helper
 function logAudit(actorType, actorId, actorName, action, details, ip = '') {
   try {
@@ -338,5 +376,6 @@ function logAudit(actorType, actorId, actorName, action, details, ip = '') {
 module.exports = {
   db,
   initDatabase,
-  logAudit
+  logAudit,
+  createNotification
 };

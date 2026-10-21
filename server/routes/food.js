@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, logAudit } = require('../db');
+const { db, logAudit, createNotification } = require('../db');
 
 // Get all weekly food entries (optionally filtered by month)
 router.get('/', (req, res) => {
@@ -106,6 +106,15 @@ router.post('/', (req, res) => {
     }
 
     logAudit('food_manager', null, actor_name, 'Added Food Expense', `Recorded weekly food "${title}" on ${date} (Rs. ${amount}, ${customMemberSet.size} custom mid-week shares)`);
+
+    createNotification({
+      title: `Weekly Mess Grocery: ${title}`,
+      message: `Rs. ${amount.toLocaleString()} mess grocery recorded for ${date}. Share: Rs. ${standardPerPerson.toLocaleString()} per member.`,
+      category: 'food',
+      target_type: 'all',
+      actor_name: actor_name || req.user?.name || 'Food Manager',
+      data: { food_id: foodId, amount, date, standardPerPerson }
+    });
 
     res.json({ success: true, id: foodId, standardPerPerson, memberCount: member_ids.length });
   } catch (err) {

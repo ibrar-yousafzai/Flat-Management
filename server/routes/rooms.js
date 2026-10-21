@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, logAudit } = require('../db');
+const { db, logAudit, createNotification } = require('../db');
 
 // Get all rooms with current occupants and per-person rent
 router.get('/', (req, res) => {
@@ -89,6 +89,15 @@ router.put('/:id', (req, res) => {
     );
 
     logAudit('admin', null, actor_name, 'Updated Room', `Updated ${currentRoom.name}: Rent set to Rs. ${base_rent || currentRoom.base_rent}`);
+
+    createNotification({
+      title: `Room Rent Updated: ${name || currentRoom.name}`,
+      message: `Fixed room rent updated to Rs. ${Number(base_rent !== undefined ? base_rent : currentRoom.base_rent).toLocaleString()} / month.`,
+      category: 'rent',
+      target_type: 'all',
+      actor_name: actor_name || req.user?.name || 'Admin',
+      data: { room_id: id, base_rent: base_rent !== undefined ? base_rent : currentRoom.base_rent }
+    });
 
     res.json({ success: true });
   } catch (err) {

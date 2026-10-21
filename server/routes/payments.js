@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, logAudit } = require('../db');
+const { db, logAudit, createNotification } = require('../db');
 
 // Get all payments (filterable by member_id, status, payment_for: 'all' | 'bills' | 'food')
 router.get('/', (req, res) => {
@@ -96,6 +96,16 @@ router.post('/record', (req, res) => {
 
     logAudit('admin', admin_id, admin_name, 'Recorded Payment', `Recorded Rs. ${amount} (${payment_for.toUpperCase()}) for ${member.name} (${member.unique_id}) via ${payment_method}`);
 
+    createNotification({
+      title: `Payment Received & Credited`,
+      message: `Admin recorded payment of Rs. ${Number(amount).toLocaleString()} for ${payment_for === 'food' ? 'Weekly Food Mess' : 'Monthly Bills'}.`,
+      category: 'payment',
+      target_type: 'member',
+      target_id: Number(member_id),
+      actor_name: admin_name,
+      data: { amount, payment_for, payment_id: info.lastInsertRowid }
+    });
+
     res.json({ success: true, id: info.lastInsertRowid });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -145,6 +155,15 @@ router.post('/submit', (req, res) => {
     );
 
     logAudit('member', member_id, member.name, 'Submitted Payment', `Member submitted Rs. ${amount} for ${payment_for.toUpperCase()} via ${payment_method} for approval`);
+
+    createNotification({
+      title: `New Payment Claim Submitted`,
+      message: `${member.name} (${member.unique_id}) submitted Rs. ${Number(amount).toLocaleString()} for ${payment_for === 'food' ? 'Weekly Food Mess' : 'Monthly Bills'}.`,
+      category: 'payment',
+      target_type: 'admin',
+      actor_name: member.name,
+      data: { payment_id: info.lastInsertRowid, amount, member_id, payment_for }
+    });
 
     res.json({
       success: true,
@@ -237,6 +256,16 @@ router.post('/:id/approve', (req, res) => {
 
     logAudit('admin', admin_id, admin_name, 'Approved Payment', `Approved payment #${id} of Rs. ${payment.amount} for ${payment.member_name} (${payment.unique_id}). Comment: ${admin_comment}`);
 
+    createNotification({
+      title: `Payment Approved & Credited`,
+      message: `Your payment of Rs. ${Number(payment.amount).toLocaleString()} for ${payment.payment_for === 'food' ? 'Weekly Food Mess' : 'Monthly Bills'} has been approved and credited!`,
+      category: 'payment',
+      target_type: 'member',
+      target_id: payment.member_id,
+      actor_name: admin_name,
+      data: { payment_id: id, amount: payment.amount, payment_for: payment.payment_for }
+    });
+
     res.json({ success: true, message: 'Payment approved and credited to member balance.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -274,6 +303,16 @@ router.post('/:id/reject', (req, res) => {
     `).run(admin_comment.trim(), admin_id, id);
 
     logAudit('admin', admin_id, admin_name, 'Rejected Payment', `Rejected payment #${id} of Rs. ${payment.amount} for ${payment.member_name}. Reason: ${admin_comment}`);
+
+    createNotification({
+      title: `Payment Claim Rejected`,
+      message: `Your payment claim of Rs. ${Number(payment.amount).toLocaleString()} was rejected: "${admin_comment.trim()}".`,
+      category: 'payment',
+      target_type: 'member',
+      target_id: payment.member_id,
+      actor_name: admin_name,
+      data: { payment_id: id, amount: payment.amount, reason: admin_comment }
+    });
 
     res.json({ success: true, message: 'Payment rejected with explanation comment.' });
   } catch (err) {

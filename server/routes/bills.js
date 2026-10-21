@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, logAudit } = require('../db');
+const { db, logAudit, createNotification } = require('../db');
 
 // Helper to get days in a given month (YYYY-MM)
 function getDaysInMonth(yearMonth) {
@@ -500,6 +500,15 @@ router.post('/', (req, res) => {
     }
 
     logAudit('admin', null, actor_name, 'Created Bill', `Added bill "${title}" for ${month} (Rs. ${amount}, Split: ${split_type})`);
+
+    createNotification({
+      title: `New Bill Added: ${title}`,
+      message: `A bill of Rs. ${amount.toLocaleString()} was added for ${month} (${split_type.replace('_', ' ')}). Split share: Rs. ${splitShare.toLocaleString()} each.`,
+      category: 'bill',
+      target_type: 'all',
+      actor_name: actor_name || req.user?.name || 'Admin',
+      data: { bill_id: billId, amount, month, split_type }
+    });
 
     res.json({ success: true, id: billId, count: eligibleMembers.length, splitShare });
   } catch (err) {

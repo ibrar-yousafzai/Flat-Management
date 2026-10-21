@@ -24,10 +24,10 @@ const App = {
     this.render();
   },
 
-  // Claude AI Theme & Dark / Light Mood Engine
+  // Clean Theme Engine (Default Light, Optional Modern Dark)
   initTheme() {
     const saved = localStorage.getItem('flat_theme');
-    const isDark = saved === 'dark' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const isDark = saved === 'dark';
     if (isDark) {
       document.documentElement.classList.add('dark');
     } else {
@@ -147,6 +147,11 @@ const App = {
     if (typeof OfflineStore !== 'undefined') {
       OfflineStore.renderNetworkIndicator();
     }
+
+    // Initialize in-app notification center & badge counter
+    if (typeof Notifications !== 'undefined') {
+      Notifications.init();
+    }
   },
 
   renderNavbar() {
@@ -258,8 +263,14 @@ const App = {
               `)}
             </nav>
 
-            <!-- User Info, Theme Toggle & Logout -->
-            <div class="flex items-center gap-1.5 sm:gap-2.5">
+            <!-- User Info, Notification Bell, Theme Toggle & Logout -->
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <!-- In-App Notification Bell -->
+              <button id="navbar-notif-btn" onclick="Notifications.openDrawer()" class="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 border border-slate-200 flex items-center justify-center transition-all text-xs" title="Notifications & Alerts">
+                <i class="fa-solid fa-bell"></i>
+                <span id="notif-badge-pill" class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-600 text-white font-black text-[9px] items-center justify-center border-2 border-white animate-pulse">0</span>
+              </button>
+
               <!-- Day / Night Mode Switcher -->
               <button onclick="App.toggleTheme()" title="Switch Day / Night Mood" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-600 border border-slate-200 flex items-center justify-center transition-all text-xs">
                 <i class="fa-solid fa-moon text-amber-500 dark:hidden"></i>
@@ -532,22 +543,26 @@ const App = {
 
     if (isMember) {
       return `
-        <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-1.5 shadow-lg flex items-center justify-around no-print" style="padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);">
-          <button onclick="App.navigate('portal')" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${this.currentView === 'portal' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
-            <i class="fa-solid fa-gauge-high text-lg"></i>
-            <span class="text-[10px] mt-0.5">My Portal</span>
+        <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1 shadow-lg flex items-center justify-around no-print" style="padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);">
+          <button onclick="App.navigate('portal')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'portal' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
+            <i class="fa-solid fa-gauge-high text-base"></i>
+            <span class="text-[9px] mt-0.5">Portal</span>
           </button>
-          <button onclick="App.navigate('reports')" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${this.currentView === 'reports' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
-            <i class="fa-solid fa-file-invoice text-lg"></i>
-            <span class="text-[10px] mt-0.5">Statement</span>
+          <button onclick="App.navigate('reports')" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${this.currentView === 'reports' ? 'text-indigo-600 font-bold' : 'text-slate-500'}">
+            <i class="fa-solid fa-file-invoice text-base"></i>
+            <span class="text-[9px] mt-0.5">Statement</span>
           </button>
-          <button onclick="OfflineStore.installApp()" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all text-slate-500 hover:text-indigo-600">
-            <i class="fa-solid fa-download text-lg text-indigo-500"></i>
-            <span class="text-[10px] mt-0.5">Install App</span>
+          <button onclick="Notifications.openDrawer()" class="relative flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all text-slate-500 hover:text-indigo-600">
+            <i class="fa-solid fa-bell text-base"></i>
+            <span class="text-[9px] mt-0.5">Alerts</span>
           </button>
-          <button onclick="App.logout()" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all text-slate-500 hover:text-rose-600">
-            <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
-            <span class="text-[10px] mt-0.5">Logout</span>
+          <button onclick="OfflineStore.installApp()" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all text-slate-500 hover:text-indigo-600">
+            <i class="fa-solid fa-download text-base text-indigo-500"></i>
+            <span class="text-[9px] mt-0.5">App</span>
+          </button>
+          <button onclick="App.logout()" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all text-slate-500 hover:text-rose-600">
+            <i class="fa-solid fa-arrow-right-from-bracket text-base"></i>
+            <span class="text-[9px] mt-0.5">Logout</span>
           </button>
         </div>
       `;
