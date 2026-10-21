@@ -25,25 +25,40 @@ router.get('/', (req, res) => {
         LEFT JOIN rooms r ON m.room_id = r.id
         WHERE fs.food_id = ?
         ORDER BY m.name ASC
-      `).all(entry.id);
+      `).all(entry.id).map(s => {
+        const amt = Number(s.amount || 0);
+        const paid = Number(s.paid_amount !== undefined && s.paid_amount !== null ? s.paid_amount : (s.is_paid === 1 ? amt : 0));
+        const remaining = Math.max(0, amt - paid);
+        let status = 'unpaid';
+        if (paid >= amt && amt > 0) status = 'paid';
+        else if (paid > 0) status = 'partial';
+        return {
+          ...s,
+          amount: amt,
+          paid_amount: paid,
+          remaining_due: remaining,
+          payment_status: status
+        };
+      });
 
       const totalMembers = splits.length;
       const perPerson = totalMembers > 0 ? Math.round((entry.total_amount / totalMembers) * 100) / 100 : 0;
       
-      const paidSplits = splits.filter(s => s.is_paid === 1);
-      const paidCount = paidSplits.length;
-      const unpaidCount = totalMembers - paidCount;
-      const paidAmount = paidSplits.reduce((acc, s) => acc + Number(s.amount || 0), 0);
-      const unpaidAmount = Math.max(0, entry.total_amount - paidAmount);
+      const fullyPaidCount = splits.filter(s => s.payment_status === 'paid').length;
+      const partialCount = splits.filter(s => s.payment_status === 'partial').length;
+      const unpaidCount = splits.filter(s => s.payment_status === 'unpaid').length;
+      const totalPaidAmount = splits.reduce((acc, s) => acc + s.paid_amount, 0);
+      const totalRemainingAmount = Math.max(0, entry.total_amount - totalPaidAmount);
 
       return {
         ...entry,
         per_person: perPerson,
         member_count: totalMembers,
-        paid_count: paidCount,
+        paid_count: fullyPaidCount,
+        partial_count: partialCount,
         unpaid_count: unpaidCount,
-        paid_amount: paidAmount,
-        unpaid_amount: unpaidAmount,
+        paid_amount: totalPaidAmount,
+        unpaid_amount: totalRemainingAmount,
         members: splits
       };
     });
@@ -229,7 +244,7 @@ router.delete('/:id', (req, res) => {
   }
 });
 
-// Toggle member paid status for a specific weekly food split
+// Toggle member paid status for a specific weekly food split (Full toggle)
 router.patch('/splits/:id/toggle-paid', (req, res) => {
   try {
     const { id } = req.params;
@@ -245,25 +260,82 @@ router.patch('/splits/:id/toggle-paid', (req, res) => {
       return res.status(404).json({ error: 'Food split not found' });
     }
 
-    const newPaid = split.is_paid === 1 ? 0 : 1;
+    const isCurrentlyPaid = split.is_paid === 1 && (split.paid_amount >= split.amount);
+    const newPaid = isCurrentlyPaid ? 0 : 1;
+    const newPaidAmount = newPaid === 1 ? split.amount : 0;
     const paidAt = newPaid === 1 ? new Date().toISOString() : null;
 
     db.prepare(`
       UPDATE food_splits
-      SET is_paid = ?, paid_at = ?
+      SET is_paid = ?, paid_amount = ?, paid_at = ?
       WHERE id = ?
-    `).run(newPaid, paidAt, id);
+    `).run(newPaid, newPaidAmount, paidAt, id);
 
     const actorName = req.body?.actor_name || req.user?.name || 'Admin';
-    logAudit('admin', split.member_id, actorName, newPaid === 1 ? 'Marked Food Paid' : 'Marked Food Unpaid', `${split.member_name} marked ${newPaid === 1 ? 'PAID' : 'UNPAID'} for "${split.food_title}" (Rs. ${split.amount})`);
+    logAudit('admin', split.member_id, actorName, newPaid === 1 ? 'Marked Food Paid' : 'Marked Food Unpaid', `${split.member_name} marked ${newPaid === 1 ? 'PAID (Full)' : 'UNPAID'} for "${split.food_title}" (Rs. ${split.amount})`);
 
     res.json({
       success: true,
       split_id: id,
       is_paid: newPaid,
+      paid_amount: newPaidAmount,
+      remaining_due: newPaid === 1 ? 0 : split.amount,
       paid_at: paidAt,
       member_name: split.member_name,
       amount: split.amount
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Record partial payment or custom payment installment for weekly food split
+router.post('/splits/:id/record-payment', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount_received, actor_name = 'Admin' } = req.body;
+
+    const received = Number(amount_received);
+    if (isNaN(received) || received <= 0) {
+      return res.status(400).json({ error: 'Valid payment amount is required' });
+    }
+
+    const split = db.prepare(`
+      SELECT fs.*, m.name as member_name, wf.title as food_title, wf.date as food_date
+      FROM food_splits fs
+      JOIN members m ON fs.member_id = m.id
+      JOIN weekly_food wf ON fs.food_id = wf.id
+      WHERE fs.id = ?
+    `).get(id);
+
+    if (!split) {
+      return res.status(404).json({ error: 'Food split not found' });
+    }
+
+    const currentPaid = Number(split.paid_amount || (split.is_paid === 1 ? split.amount : 0));
+    const newTotalPaid = Math.min(split.amount, currentPaid + received);
+    const isFullyPaid = newTotalPaid >= split.amount ? 1 : 0;
+    const paidAt = isFullyPaid ? new Date().toISOString() : split.paid_at;
+
+    db.prepare(`
+      UPDATE food_splits
+      SET paid_amount = ?, is_paid = ?, paid_at = ?
+      WHERE id = ?
+    `).run(newTotalPaid, isFullyPaid, paidAt, id);
+
+    const remainingDue = Math.max(0, split.amount - newTotalPaid);
+
+    logAudit('admin', split.member_id, actor_name, 'Recorded Food Partial Payment', `Received Rs. ${received} from ${split.member_name} for "${split.food_title}" (Paid: Rs. ${newTotalPaid}/${split.amount}, Due: Rs. ${remainingDue})`);
+
+    res.json({
+      success: true,
+      split_id: id,
+      paid_amount: newTotalPaid,
+      amount_received: received,
+      remaining_due: remainingDue,
+      is_paid: isFullyPaid,
+      member_name: split.member_name,
+      total_amount: split.amount
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -282,7 +354,7 @@ router.post('/:id/mark-all-paid', (req, res) => {
     const now = new Date().toISOString();
     db.prepare(`
       UPDATE food_splits
-      SET is_paid = 1, paid_at = ?
+      SET is_paid = 1, paid_amount = amount, paid_at = ?
       WHERE food_id = ? AND is_paid != 1
     `).run(now, id);
 

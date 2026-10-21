@@ -172,10 +172,11 @@ const FoodView = {
             ${visibleEntries.length > 0 ? visibleEntries.map(entry => {
               const customMembersCount = entry.members.filter(m => m.is_custom).length;
               const paidCount = entry.paid_count || 0;
+              const partialCount = entry.partial_count || 0;
               const unpaidCount = entry.unpaid_count !== undefined ? entry.unpaid_count : (entry.member_count - paidCount);
               const paidAmount = entry.paid_amount || 0;
               const unpaidAmount = entry.unpaid_amount !== undefined ? entry.unpaid_amount : Math.max(0, entry.total_amount - paidAmount);
-              const percentPaid = entry.member_count > 0 ? Math.round((paidCount / entry.member_count) * 100) : 0;
+              const percentCollected = entry.total_amount > 0 ? Math.min(100, Math.round((paidAmount / entry.total_amount) * 100)) : 0;
 
               return `
               <div class="bg-white rounded-3xl border border-slate-200 card-shadow p-5 hover:border-amber-300 transition-all space-y-4">
@@ -198,7 +199,7 @@ const FoodView = {
                       <div class="text-base sm:text-lg font-black text-slate-900">${currency} ${entry.total_amount.toLocaleString()}</div>
                       <div class="text-[10px] text-slate-500 font-bold">${currency} ${entry.per_person.toLocaleString()} avg / person (${entry.member_count} members)</div>
                     </div>
-                    ${unpaidCount > 0 ? `
+                    ${unpaidAmount > 0 ? `
                       <button onclick="FoodView.markAllPaid(${entry.id})" class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-[10px] font-bold transition-all whitespace-nowrap cursor-pointer" title="Mark all members paid for this week">
                         <i class="fa-solid fa-check-double mr-1"></i>All Paid
                       </button>
@@ -212,57 +213,101 @@ const FoodView = {
                   </div>
                 </div>
 
-                <!-- Collection Progress Bar -->
+                <!-- Collection Progress Bar (With Partial Payments & Total Remaining) -->
                 <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
-                  <div class="flex items-center justify-between text-xs font-bold">
-                    <span class="text-emerald-700 flex items-center gap-1">
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-bold gap-1">
+                    <span class="text-emerald-700 flex items-center gap-1.5">
                       <i class="fa-solid fa-circle-check"></i>
-                      <span>${paidCount} / ${entry.member_count} Paid (${currency} ${paidAmount.toLocaleString()})</span>
+                      <span>Collected: ${currency} ${paidAmount.toLocaleString()} (${percentCollected}%) &bull; ${paidCount} Paid ${partialCount > 0 ? `+ ${partialCount} Partial` : ''}</span>
                     </span>
-                    <span class="${unpaidCount > 0 ? 'text-rose-600' : 'text-slate-400'}">
-                      ${unpaidCount > 0 ? `${unpaidCount} Unpaid (${currency} ${unpaidAmount.toLocaleString()})` : 'All Cleared ✓'}
+                    <span class="${unpaidAmount > 0 ? 'text-rose-600' : 'text-slate-400'}">
+                      ${unpaidAmount > 0 ? `Remaining Due: ${currency} ${unpaidAmount.toLocaleString()} (${unpaidCount} members)` : 'All Mess Cleared ✓'}
                     </span>
                   </div>
                   <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                    <div class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style="width: ${percentPaid}%"></div>
+                    <div class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style="width: ${percentCollected}%"></div>
                   </div>
                 </div>
 
-                <!-- Participating Members with 1-Tap Paid Toggle -->
+                <!-- Participating Members with Installment / Partial Payment Support -->
                 <div class="space-y-2">
                   <div class="flex items-center justify-between">
-                    <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Member Dues & Payment Status</p>
-                    <span class="text-[10px] text-slate-500 font-bold">Tap to toggle Paid / Unpaid</span>
+                    <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Member Dues & Installments</p>
+                    <span class="text-[10px] text-slate-500 font-bold">1-Tap Pay or Record Partial</span>
                   </div>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    ${entry.members.map(m => `
-                      <div class="p-2.5 rounded-2xl border ${m.is_paid === 1 ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/40 border-rose-200'} flex items-center justify-between gap-2 transition-all">
+                    ${entry.members.map(m => {
+                      const totalAmt = Number(m.amount || 0);
+                      const paidAmt = Number(m.paid_amount !== undefined ? m.paid_amount : (m.is_paid === 1 ? totalAmt : 0));
+                      const remDue = Number(m.remaining_due !== undefined ? m.remaining_due : Math.max(0, totalAmt - paidAmt));
+                      const isFullyPaid = m.payment_status === 'paid' || (paidAmt >= totalAmt && totalAmt > 0);
+                      const isPartial = !isFullyPaid && paidAmt > 0;
+                      const paidPct = totalAmt > 0 ? Math.min(100, Math.round((paidAmt / totalAmt) * 100)) : 0;
+
+                      let cardBg = 'bg-rose-50/40 border-rose-200';
+                      if (isFullyPaid) cardBg = 'bg-emerald-50/60 border-emerald-300';
+                      else if (isPartial) cardBg = 'bg-amber-50/70 border-amber-300';
+
+                      return `
+                      <div class="p-2.5 rounded-2xl border ${cardBg} flex items-center justify-between gap-2 transition-all">
                         <div class="min-w-0">
                           <div class="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
                             <span>${m.member_name}</span>
                             ${m.is_custom ? '<span class="text-[9px] bg-amber-200 text-amber-900 font-bold px-1 rounded">Custom</span>' : ''}
                           </div>
-                          <div class="text-[10px] text-slate-500 font-mono">
-                            ${currency} ${Number(m.amount).toLocaleString()} &bull; ${m.room_name || 'Outside'}
-                          </div>
+
+                          ${isFullyPaid ? `
+                            <div class="text-[10px] text-emerald-700 font-mono font-bold flex items-center gap-1">
+                              <i class="fa-solid fa-circle-check text-[9px]"></i> ${currency} ${totalAmt.toLocaleString()} (Paid) &bull; ${m.room_name || 'Outside'}
+                            </div>
+                          ` : isPartial ? `
+                            <div class="space-y-1 mt-0.5">
+                              <div class="text-[10px] font-mono flex items-center gap-1">
+                                <span class="text-emerald-700 font-bold">Paid: ${currency} ${paidAmt.toLocaleString()}</span>
+                                <span class="text-slate-300">&bull;</span>
+                                <span class="text-rose-600 font-bold">Due: ${currency} ${remDue.toLocaleString()}</span>
+                              </div>
+                              <div class="w-24 bg-amber-200 rounded-full h-1 overflow-hidden">
+                                <div class="bg-amber-600 h-1 rounded-full" style="width: ${paidPct}%"></div>
+                              </div>
+                            </div>
+                          ` : `
+                            <div class="text-[10px] text-rose-600 font-mono font-bold">
+                              ${currency} ${totalAmt.toLocaleString()} Due &bull; ${m.room_name || 'Outside'}
+                            </div>
+                          `}
                         </div>
 
-                        <div class="flex items-center gap-1.5 shrink-0">
-                          ${m.is_paid === 1 ? `
-                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700 transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Paid. Tap to change back to Unpaid">
+                        <div class="flex items-center gap-1 shrink-0">
+                          ${isFullyPaid ? `
+                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700 transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Paid. Tap to mark as Unpaid">
                               <i class="fa-solid fa-check text-[9px]"></i> PAID
                             </button>
-                          ` : `
-                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-600 text-white shadow-2xs hover:bg-rose-700 transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Unpaid. Tap to mark as Paid">
-                              <i class="fa-solid fa-hand-holding-dollar text-[9px]"></i> PAY
+                          ` : isPartial ? `
+                            <button onclick="FoodView.openPartialPayModal(${m.id}, '${m.member_name.replace(/'/g, "\\'")}', ${totalAmt}, ${paidAmt}, ${remDue}, '${entry.title.replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg text-[10px] font-black bg-amber-600 hover:bg-amber-700 text-white shadow-2xs transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Add partial payment">
+                              <i class="fa-solid fa-plus text-[9px]"></i> Pay Due
                             </button>
-                            <button onclick="FoodView.sendSingleMemberWhatsApp('${m.member_name.replace(/'/g, "\\'")}', '${m.whatsapp || ''}', ${m.amount}, '${entry.title.replace(/'/g, "\\'")}', '${entry.date}')" class="w-6 h-6 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center text-[10px] transition-all cursor-pointer active:scale-95" title="Send WhatsApp reminder for Rs. ${m.amount}">
+                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="w-6 h-6 rounded-lg bg-white border border-slate-200 hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 flex items-center justify-center text-[10px] transition-all cursor-pointer" title="Mark Fully Paid">
+                              <i class="fa-solid fa-check-double"></i>
+                            </button>
+                            <button onclick="FoodView.sendSingleMemberWhatsApp('${m.member_name.replace(/'/g, "\\'")}', '${m.whatsapp || ''}', ${remDue}, ${totalAmt}, ${paidAmt}, '${entry.title.replace(/'/g, "\\'")}', '${entry.date}')" class="w-6 h-6 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center text-[10px] transition-all cursor-pointer active:scale-95" title="Send WhatsApp reminder for remaining Rs. ${remDue}">
+                              <i class="fa-brands fa-whatsapp"></i>
+                            </button>
+                          ` : `
+                            <button onclick="FoodView.openPartialPayModal(${m.id}, '${m.member_name.replace(/'/g, "\\'")}', ${totalAmt}, 0, ${totalAmt}, '${entry.title.replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-amber-50 text-amber-800 border border-amber-300 transition-all flex items-center gap-0.5 cursor-pointer active:scale-95" title="Record partial payment">
+                              <i class="fa-solid fa-coins text-[9px]"></i> Partial
+                            </button>
+                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-600 text-white shadow-2xs hover:bg-rose-700 transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Mark as Paid">
+                              <i class="fa-solid fa-check text-[9px]"></i> PAY
+                            </button>
+                            <button onclick="FoodView.sendSingleMemberWhatsApp('${m.member_name.replace(/'/g, "\\'")}', '${m.whatsapp || ''}', ${totalAmt}, ${totalAmt}, 0, '${entry.title.replace(/'/g, "\\'")}', '${entry.date}')" class="w-6 h-6 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center text-[10px] transition-all cursor-pointer active:scale-95" title="Send WhatsApp reminder for Rs. ${totalAmt}">
                               <i class="fa-brands fa-whatsapp"></i>
                             </button>
                           `}
                         </div>
                       </div>
-                    `).join('')}
+                      `;
+                    }).join('')}
                   </div>
                 </div>
               </div>
@@ -1238,6 +1283,108 @@ const FoodView = {
     });
   },
 
+  openPartialPayModal(splitId, memberName, totalAmount, currentPaid, remainingDue, foodTitle) {
+    const currency = (this.cachedSettings && this.cachedSettings.currency) || 'Rs.';
+    
+    App.showModal(`
+      <div class="space-y-4 max-w-sm mx-auto">
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-800">Record Food Payment</h3>
+              <p class="text-[11px] text-slate-400 font-medium">${memberName}</p>
+            </div>
+          </div>
+          <button onclick="App.closeModal()" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-xs cursor-pointer">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Expense Overview Card -->
+        <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-3 space-y-2">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-slate-500">Mess Batch</span>
+            <span class="text-slate-800 truncate max-w-[170px] font-bold">${foodTitle}</span>
+          </div>
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-slate-500">Total Share</span>
+            <span class="text-slate-800 font-mono font-bold">${currency} ${Number(totalAmount).toLocaleString()}</span>
+          </div>
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-slate-500">Already Paid</span>
+            <span class="text-emerald-700 font-mono font-bold">${currency} ${Number(currentPaid).toLocaleString()}</span>
+          </div>
+          <div class="flex items-center justify-between text-xs font-bold pt-1.5 border-t border-amber-200/60">
+            <span class="text-amber-900">Remaining Due</span>
+            <span class="text-rose-600 font-mono text-sm font-black">${currency} ${Number(remainingDue).toLocaleString()}</span>
+          </div>
+        </div>
+
+        <!-- Payment Input Form -->
+        <form onsubmit="FoodView.submitPartialPayment(event, ${splitId}, '${memberName.replace(/'/g, "\\'")}')" class="space-y-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Payment Received Now (${currency}) *</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2 font-bold text-amber-600 text-sm">${currency}</span>
+              <input type="number" id="partialPayAmount" value="${remainingDue}" min="1" max="${remainingDue}" step="any" required autofocus class="w-full pl-10 pr-3 py-2 text-base font-black text-slate-800 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none shadow-2xs" />
+            </div>
+          </div>
+
+          <!-- Quick Fill Preset Chips -->
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] font-bold text-slate-400">Quick:</span>
+            ${[500, 1000, 1500, 2000].filter(amt => amt < remainingDue).map(amt => `
+              <button type="button" onclick="document.getElementById('partialPayAmount').value = ${amt}" class="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-700 text-[10px] font-bold border border-slate-200 transition-all cursor-pointer">
+                Rs. ${amt}
+              </button>
+            `).join('')}
+            <button type="button" onclick="document.getElementById('partialPayAmount').value = ${remainingDue}" class="px-2 py-0.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 text-[10px] font-bold border border-amber-300 transition-all cursor-pointer">
+              Full (Rs. ${remainingDue})
+            </button>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onclick="App.closeModal()" class="px-3.5 py-1.5 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer">
+              Cancel
+            </button>
+            <button type="submit" class="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95">
+              <i class="fa-solid fa-circle-check"></i> Record Payment
+            </button>
+          </div>
+        </form>
+      </div>
+    `);
+  },
+
+  async submitPartialPayment(e, splitId, memberName) {
+    e.preventDefault();
+    const inputEl = document.getElementById('partialPayAmount');
+    if (!inputEl) return;
+    const amount = Number(inputEl.value);
+    if (isNaN(amount) || amount <= 0) {
+      App.toast('Please enter a valid amount', 'error');
+      return;
+    }
+
+    try {
+      const res = await API.post(`/api/food/splits/${splitId}/record-payment`, {
+        amount_received: amount,
+        actor_name: App.currentUser?.name || 'Admin'
+      });
+
+      App.toast(`Recorded Rs. ${amount.toLocaleString()} for ${memberName}! Remaining: Rs. ${res.remaining_due.toLocaleString()}`, 'success');
+      App.closeModal();
+      await App.refresh();
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
   async toggleMemberPaid(splitId) {
     try {
       const res = await API.patch(`/api/food/splits/${splitId}/toggle-paid`);
@@ -1260,14 +1407,22 @@ const FoodView = {
     }
   },
 
-  sendSingleMemberWhatsApp(name, phone, amount, title, date) {
+  sendSingleMemberWhatsApp(name, phone, remainingDue, totalAmount, paidAmount, title, date) {
     const flatName = (this.cachedSettings && this.cachedSettings.flat_name) || 'Flat Management';
+    let paymentStatusDetail = '';
+    if (paidAmount && paidAmount > 0) {
+      paymentStatusDetail = `You have paid *Rs. ${Number(paidAmount).toLocaleString()}* out of *Rs. ${Number(totalAmount).toLocaleString()}*.\n` +
+        `Your remaining due is *Rs. ${Number(remainingDue).toLocaleString()}*.`;
+    } else {
+      paymentStatusDetail = `Your share of *Rs. ${Number(remainingDue || totalAmount).toLocaleString()}* is currently unpaid.`;
+    }
+
     const text = `*🍲 Food Mess Payment Reminder*\n` +
       `*Flat:* ${flatName}\n` +
       `*Batch:* ${title} (${date})\n\n` +
       `Assalam-o-Alaikum *${name}*,\n\n` +
-      `Your share of *Rs. ${Number(amount).toLocaleString()}* for weekly mess groceries (${title}) is currently unpaid.\n` +
-      `Since food supplies are bought week-to-week, please clear your share at your earliest so mess groceries continue uninterrupted.\n\n` +
+      `${paymentStatusDetail}\n\n` +
+      `Since groceries and vegetables are bought week-to-week, please clear your share at your earliest so mess groceries continue uninterrupted.\n\n` +
       `Thank you!`;
     const cleanPhone = this.cleanPhoneNumber(phone);
     if (!cleanPhone) {

@@ -1,5 +1,5 @@
 // Flat Management System - Progressive Web App Service Worker
-const CACHE_NAME = 'flat-app-v2';
+const CACHE_NAME = 'flat-app-v3';
 
 const STATIC_ASSETS = [
   '/',
@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
   '/js/api.js',
   '/js/offline-store.js',
   '/js/notifications.js',
+  '/js/ai-automation.js',
   '/js/app.js',
   '/js/views/dashboard.js',
   '/js/views/rooms.js',
@@ -28,7 +29,7 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[ServiceWorker] Pre-caching offline app shell');
+      console.log('[ServiceWorker] Pre-caching offline app shell v3');
       return cache.addAll(STATIC_ASSETS).catch((err) => {
         console.warn('[ServiceWorker] Pre-cache warning:', err);
       });
@@ -42,14 +43,14 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.filter((key) => key !== CACHE_NAME && key !== 'flat-api-cache').map((key) => caches.delete(key))
       );
     })
   );
   self.clients.claim();
 });
 
-// Fetch Event - Stale-while-revalidate for static files, Network-first for APIs
+// Fetch Event - Network-First for real-time updates when online, Cache-fallback for offline
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -82,7 +83,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets, serve from cache first, then update cache in background
+  // For application scripts, manifest, and HTML pages: use Network-First so updates take effect immediately
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.html') || url.pathname.endsWith('.json') || url.pathname === '/') {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => {
+            if (cached) return cached;
+            if (request.mode === 'navigate') {
+              return caches.match('/index.html');
+            }
+          });
+        })
+    );
+    return;
+  }
+
+  // For other static assets (css, icons, fonts), stale-while-revalidate
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const fetchPromise = fetch(request).then((networkResponse) => {
@@ -98,6 +124,7 @@ self.addEventListener('fetch', (event) => {
       return cachedResponse || fetchPromise;
     })
   );
+});
 });
 
 // Push Notifications Listener (Phone Lock Screen & Notification Tray)

@@ -29,9 +29,14 @@ function getMemberBalance(memberId) {
   `).get(memberId).total;
 
   // Total weekly food assigned (Separate Week-to-Week Mess)
-  const foodTotal = db.prepare(`
-    SELECT COALESCE(SUM(amount), 0) as total FROM food_splits WHERE member_id = ?
-  `).get(memberId).total;
+  const foodTotalRow = db.prepare(`
+    SELECT 
+      COALESCE(SUM(amount), 0) as total,
+      COALESCE(SUM(COALESCE(paid_amount, CASE WHEN is_paid = 1 THEN amount ELSE 0 END)), 0) as split_paid_total
+    FROM food_splits WHERE member_id = ?
+  `).get(memberId) || { total: 0, split_paid_total: 0 };
+  const foodTotal = foodTotalRow.total;
+  const foodSplitPaidTotal = foodTotalRow.split_paid_total;
 
   // Payments approved specifically for food mess
   const foodPaymentsTotal = db.prepare(`
@@ -39,6 +44,8 @@ function getMemberBalance(memberId) {
     FROM payments 
     WHERE member_id = ? AND status = 'approved' AND payment_for = 'food'
   `).get(memberId).total;
+
+  const effectiveFoodPaid = Math.max(foodSplitPaidTotal, foodPaymentsTotal);
 
   // Pending payments for food mess
   const foodPendingTotal = db.prepare(`
@@ -52,7 +59,7 @@ function getMemberBalance(memberId) {
   const billsBalance = Math.round((openingBalance + billsTotal - billsPaymentsTotal) * 100) / 100;
   
   // 2. Weekly Food Balance (Week-to-week mess, overpayment is advance for next week)
-  const foodBalance = Math.round((foodTotal - foodPaymentsTotal) * 100) / 100;
+  const foodBalance = Math.max(0, Math.round((foodTotal - effectiveFoodPaid) * 100) / 100);
 
   // Combined totals for convenience
   const totalCharges = openingBalance + billsTotal + foodTotal;

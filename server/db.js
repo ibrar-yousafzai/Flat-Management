@@ -304,6 +304,9 @@ function initDatabase() {
   try {
     db.prepare(`ALTER TABLE food_splits ADD COLUMN paid_at DATETIME`).run();
   } catch (e) {}
+  try {
+    db.prepare(`ALTER TABLE food_splits ADD COLUMN paid_amount REAL DEFAULT 0`).run();
+  } catch (e) {}
 
   // Default settings
   const defaultSettings = [
