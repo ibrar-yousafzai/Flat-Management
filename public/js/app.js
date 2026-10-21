@@ -237,14 +237,8 @@ const App = {
               </nav>
             ` : ''}
 
-            <!-- Right Side Tools: AI Assistant, Search, Notifications, User/Menu -->
+            <!-- Right Side Tools: Search, Notifications, User/Menu -->
             <div class="flex items-center gap-1.5 sm:gap-2">
-              <!-- AI Automation Hub Pill (Desktop & Mobile) -->
-              <button onclick="AIAutomation.openHub()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold text-[11px] sm:text-xs shadow-xs transition-all active:scale-95 cursor-pointer" title="AI Smart Automation">
-                <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i>
-                <span class="hidden sm:inline">AI Automation</span>
-              </button>
-
               <!-- Search Icon Button -->
               <button onclick="App.openSearchModal()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all text-xs sm:text-sm shadow-2xs cursor-pointer" title="Search">
                 <i class="fa-solid fa-magnifying-glass text-xs"></i>
@@ -301,34 +295,27 @@ const App = {
           <!-- ADMIN LOGIN FORM -->
           <form id="adminLoginForm" onsubmit="App.handleAdminLogin(event)" class="space-y-4">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Admin Username</label>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Admin Username *</label>
               <div class="relative">
                 <i class="fa-solid fa-user absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="text" id="adminUser" required value="superadmin" placeholder="superadmin" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-600 outline-none" />
+                <input type="text" id="adminUser" required placeholder="Enter username" autocomplete="username" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-600 outline-none font-medium text-slate-800" />
               </div>
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password *</label>
               <div class="relative">
                 <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="password" id="adminPass" required value="admin123" placeholder="••••••••" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-600 outline-none" />
+                <input type="password" id="adminPass" required placeholder="Enter password" autocomplete="current-password" class="w-full pl-9 pr-10 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-600 outline-none font-medium text-slate-800" />
+                <button type="button" onclick="App.togglePasswordVisibility('adminPass')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer">
+                  <i class="fa-regular fa-eye"></i>
+                </button>
               </div>
             </div>
 
             <button type="submit" class="w-full py-3 bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2">
               <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In as Admin
             </button>
-
-            <!-- 1-Tap Demo Quick Fill -->
-            <div class="p-3 bg-blue-50/80 rounded-2xl border border-blue-100 flex items-center justify-between text-xs">
-              <div class="text-[11px] text-blue-900">
-                <span class="font-bold">Demo Login:</span> superadmin / admin123
-              </div>
-              <button type="button" onclick="App.fillLoginDemo('admin')" class="px-2.5 py-1 bg-white hover:bg-blue-100 text-blue-800 font-bold text-[10px] rounded-lg border border-blue-200 transition-all cursor-pointer">
-                Fill Demo
-              </button>
-            </div>
           </form>
 
           <!-- MEMBER LOGIN FORM -->
@@ -340,7 +327,7 @@ const App = {
               </div>
               <div class="relative">
                 <i class="fa-solid fa-id-card absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="text" id="memberIdInput" required placeholder="e.g. Abbas Khan or FL4907" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none font-bold text-slate-800" />
+                <input type="text" id="memberIdInput" required placeholder="Enter member name, ID or phone" autocomplete="username" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none font-bold text-slate-800" />
               </div>
             </div>
 
@@ -348,36 +335,16 @@ const App = {
               <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password *</label>
               <div class="relative">
                 <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="password" id="memberPassInput" required placeholder="Your Member ID (e.g. fl4907) or flat123" class="w-full pl-9 pr-10 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none" />
+                <input type="password" id="memberPassInput" required placeholder="Enter your password" autocomplete="current-password" class="w-full pl-9 pr-10 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none font-medium text-slate-800" />
                 <button type="button" onclick="App.togglePasswordVisibility('memberPassInput')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer">
                   <i class="fa-regular fa-eye"></i>
                 </button>
               </div>
-              <p class="text-[10px] text-slate-400 mt-1">Default password is your Member ID (e.g. <code>fl4907</code>) or <code>flat123</code></p>
             </div>
 
             <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2">
               <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In to Member Portal
             </button>
-
-            <!-- 1-Tap Active Flat Members Quick Fill -->
-            <div class="p-3 bg-emerald-50/80 rounded-2xl border border-emerald-100 space-y-1.5 text-xs">
-              <div class="text-[11px] text-emerald-950 font-bold flex items-center justify-between">
-                <span>Quick Member Login:</span>
-                <span class="text-[10px] text-emerald-700">Tap to fill</span>
-              </div>
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <button type="button" onclick="App.fillMemberSpecific('Abbas Khan', 'fl4907')" class="px-2 py-1 bg-white hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-lg border border-emerald-200 cursor-pointer">
-                  👤 Abbas Khan
-                </button>
-                <button type="button" onclick="App.fillMemberSpecific('Hamza', 'fl3150')" class="px-2 py-1 bg-white hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-lg border border-emerald-200 cursor-pointer">
-                  👤 Hamza
-                </button>
-                <button type="button" onclick="App.fillMemberSpecific('Ibrar Khan', 'fl5166')" class="px-2 py-1 bg-white hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-lg border border-emerald-200 cursor-pointer">
-                  👤 Ibrar Khan
-                </button>
-              </div>
-            </div>
           </form>
         </div>
       </div>
@@ -400,24 +367,6 @@ const App = {
       memberForm.classList.remove('hidden');
       tabMember.className = 'py-2.5 rounded-xl bg-white text-emerald-700 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer';
       tabAdmin.className = 'py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5 cursor-pointer';
-    }
-  },
-
-  fillLoginDemo(type) {
-    if (type === 'admin') {
-      this.switchLoginTab('admin');
-      const userEl = document.getElementById('adminUser');
-      const passEl = document.getElementById('adminPass');
-      if (userEl) userEl.value = 'superadmin';
-      if (passEl) passEl.value = 'admin123';
-      this.toast('Filled Super Admin demo credentials', 'info');
-    } else {
-      this.switchLoginTab('member');
-      const memEl = document.getElementById('memberIdInput');
-      const passEl = document.getElementById('memberPassInput');
-      if (memEl) memEl.value = 'MEM-001';
-      if (passEl) passEl.value = 'flat123';
-      this.toast('Filled Sample Member demo credentials', 'info');
     }
   },
 

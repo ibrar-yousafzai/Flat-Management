@@ -180,75 +180,31 @@ const DashboardView = {
 
             <!-- RIGHT SIDEBAR COLUMN (lg: 4 columns on PC, stacks below on Mobile) -->
             <div class="lg:col-span-4 space-y-4">
-              <!-- AI Automation Assistant Card -->
-              <div class="bg-gradient-to-br from-violet-900 via-indigo-900 to-slate-900 rounded-3xl p-5 text-white shadow-md space-y-3.5 relative overflow-hidden">
-                <div class="flex items-center justify-between relative z-10">
-                  <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-xl bg-violet-500/30 text-violet-300 flex items-center justify-center text-sm backdrop-blur-xs">
-                      <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    </div>
-                    <div>
-                      <h4 class="text-sm font-black text-white leading-tight">AI & Automations</h4>
-                      <p class="text-[10px] text-violet-200">Smart flat helper tools</p>
-                    </div>
-                  </div>
-                  <span class="text-[9px] px-2 py-0.5 rounded-full bg-violet-400/20 text-violet-200 font-mono font-bold">v2.0</span>
-                </div>
-
-                <div class="space-y-2 relative z-10">
-                  <button onclick="AIAutomation.openHub('parser')" class="w-full p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-between text-left transition-all cursor-pointer">
-                    <div class="flex items-center gap-2">
-                      <i class="fa-solid fa-bolt text-amber-400 text-xs w-4 text-center"></i>
-                      <div>
-                        <div class="text-xs font-bold text-white">Expense Text Parser</div>
-                        <div class="text-[10px] text-violet-200">Paste text &rarr; Auto-create bill</div>
-                      </div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right text-[10px] text-violet-300"></i>
-                  </button>
-
-                  <button onclick="AIAutomation.openHub('splitter')" class="w-full p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-between text-left transition-all cursor-pointer">
-                    <div class="flex items-center gap-2">
-                      <i class="fa-solid fa-scale-balanced text-cyan-400 text-xs w-4 text-center"></i>
-                      <div>
-                        <div class="text-xs font-bold text-white">Mid-Week Pro-Rater</div>
-                        <div class="text-[10px] text-violet-200">Proportional mess shares</div>
-                      </div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right text-[10px] text-violet-300"></i>
-                  </button>
-
-                  <button onclick="AIAutomation.openHub('reminders')" class="w-full p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-between text-left transition-all cursor-pointer">
-                    <div class="flex items-center gap-2">
-                      <i class="fa-brands fa-whatsapp text-emerald-400 text-xs w-4 text-center"></i>
-                      <div>
-                        <div class="text-xs font-bold text-white">Smart WhatsApp Remind</div>
-                        <div class="text-[10px] text-violet-200">Polite & urgent bilingual alerts</div>
-                      </div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right text-[10px] text-violet-300"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Pending Dues Watchlist Card -->
+              <!-- Pending Dues Watchlist Card (Top Priority in Sidebar) -->
               <div class="bg-white rounded-3xl border border-slate-200 card-shadow p-5 space-y-3">
                 <div class="flex items-center justify-between border-b pb-2">
-                  <h4 class="text-xs font-black text-slate-800 uppercase tracking-wider">Unpaid Dues Watchlist</h4>
-                  <span class="text-[10px] text-slate-400 font-bold">${dueMembers.length} Members</span>
+                  <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-xs">
+                      <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <h4 class="text-xs font-black text-slate-800 uppercase tracking-wider">Unpaid Dues Watchlist</h4>
+                  </div>
+                  <span class="text-[10px] text-rose-600 bg-rose-50 font-bold px-2 py-0.5 rounded-full border border-rose-200">${dueMembers.length} Members</span>
                 </div>
 
                 ${dueMembers.length > 0 ? `
-                  <div class="space-y-2">
+                  <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1">
                     ${dueMembers.map(m => `
-                      <div class="p-2.5 rounded-2xl border border-slate-100 bg-slate-50/70 flex items-center justify-between gap-2">
+                      <div class="p-2.5 rounded-2xl border border-slate-100 bg-slate-50/70 hover:bg-white hover:border-slate-200 transition-all flex items-center justify-between gap-2">
                         <div class="min-w-0">
                           <div class="font-bold text-slate-800 text-xs truncate">${m.name}</div>
                           <div class="text-[10px] text-slate-400 font-mono">${m.room_name || 'Outside'} &bull; ${m.unique_id}</div>
                         </div>
-                        <div class="text-right shrink-0">
-                          <div class="text-xs font-black text-rose-600 font-mono">${currency} ${(m.outstanding_balance || 0).toLocaleString()}</div>
-                          <button onclick="BillsView.quickRecordPay(${m.id}, ${m.outstanding_balance})" class="mt-1 text-[10px] px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all cursor-pointer">
+                        <div class="flex items-center gap-1.5 shrink-0">
+                          <div class="text-right mr-1">
+                            <div class="text-xs font-black text-rose-600 font-mono">${currency} ${(m.outstanding_balance || 0).toLocaleString()}</div>
+                          </div>
+                          <button onclick="BillsView.quickRecordPay(${m.id}, ${m.outstanding_balance})" class="text-[10px] px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all cursor-pointer shadow-2xs active:scale-95" title="Record Payment">
                             Pay
                           </button>
                         </div>
@@ -261,6 +217,42 @@ const DashboardView = {
                     All active members are fully cleared!
                   </div>
                 `}
+              </div>
+
+              <!-- Flat Financial Accounts Quick Card -->
+              <div class="bg-gradient-to-br from-slate-900 to-blue-950 rounded-3xl p-5 text-white shadow-md space-y-3">
+                <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                  <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-300 flex items-center justify-center text-xs">
+                      <i class="fa-solid fa-building-columns"></i>
+                    </div>
+                    <span class="text-xs font-black tracking-wider uppercase">Official Accounts</span>
+                  </div>
+                  <button onclick="App.navigate('settings')" class="text-[10px] text-blue-300 hover:text-white transition-colors cursor-pointer">
+                    Edit &rarr;
+                  </button>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                  <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+                    <div>
+                      <div class="text-[10px] text-blue-200 uppercase font-bold">${settings.bank_name || 'Bank Account'}</div>
+                      <div class="font-bold text-white text-xs">${settings.account_title || 'Flat Manager'}</div>
+                      <div class="font-mono text-[11px] text-blue-100 select-all">${settings.account_number || 'Not configured'}</div>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div class="p-2 rounded-xl bg-white/5 border border-white/10">
+                      <div class="text-[9px] text-amber-300 uppercase font-bold">JazzCash</div>
+                      <div class="font-mono font-bold text-white text-xs mt-0.5 truncate">${settings.jazzcash_number || '-'}</div>
+                    </div>
+                    <div class="p-2 rounded-xl bg-white/5 border border-white/10">
+                      <div class="text-[9px] text-emerald-300 uppercase font-bold">Easypaisa</div>
+                      <div class="font-mono font-bold text-white text-xs mt-0.5 truncate">${settings.easypaisa_number || '-'}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
