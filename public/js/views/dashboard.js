@@ -17,71 +17,60 @@ const DashboardView = {
       const currency = settings.currency_symbol || 'Rs.';
 
       let html = `
-        <div class="space-y-6">
-          <!-- Welcome & Flat Title -->
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 card-shadow">
-            <div>
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Active Flat Month: ${currentMonth}
-              </span>
-              <h1 class="text-2xl font-bold text-slate-800">${settings.flat_name || 'Flat Management System'}</h1>
-              <p class="text-sm text-slate-500 mt-0.5">Automated rent dividing, weekly food tracking, payments & member portal</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <button onclick="App.navigate('bills')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-sm transition-all flex items-center gap-2">
-                <i class="fa-solid fa-file-invoice-dollar"></i> Monthly Bills
-              </button>
-              <button onclick="App.openPaymentModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl shadow-sm transition-all flex items-center gap-2">
-                <i class="fa-solid fa-money-bill-transfer"></i> Record Payment
-              </button>
+        <div class="space-y-5">
+          <!-- Organized Command Header Card (Unified, replaces 3 stacked giant banners) -->
+          <div class="bg-white rounded-3xl border border-slate-200 card-shadow p-5 sm:p-7 relative overflow-hidden">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-5 relative z-10">
+              <!-- Left: Title, Badges & Alert -->
+              <div class="space-y-1.5 sm:space-y-2">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Active Flat Month: ${currentMonth}
+                  </span>
+
+                  ${pendingPayments.length > 0 ? `
+                    <button onclick="App.navigate('payments')" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition-all cursor-pointer shadow-xs">
+                      <i class="fa-solid fa-bell text-amber-600 animate-bounce"></i>
+                      <span>${pendingPayments.length} Payment${pendingPayments.length > 1 ? 's' : ''} Pending Review &rarr;</span>
+                    </button>
+                  ` : ''}
+                </div>
+
+                <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">${settings.flat_name || 'Flat Management System'}</h1>
+                <p class="text-xs sm:text-sm text-slate-500">Automated rent dividing, weekly food tracking, payments & member portal</p>
+              </div>
+
+              <!-- Right: Quick Action Buttons -->
+              <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                <button onclick="App.openPaymentModal()" class="flex-1 sm:flex-initial px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+                  <i class="fa-solid fa-money-bill-transfer"></i> Record Payment
+                </button>
+                <button onclick="App.navigate('bills')" class="flex-1 sm:flex-initial px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+                  <i class="fa-solid fa-file-invoice-dollar"></i> Monthly Bills
+                </button>
+                ${App.currentUser?.role === 'super_admin' ? `
+                  <div class="relative inline-block text-left" id="backup-dropdown-container">
+                    <button onclick="DashboardView.toggleBackupMenu(event)" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl border border-slate-200 transition-all flex items-center gap-1.5" title="Export & Backup">
+                      <i class="fa-solid fa-download text-indigo-600"></i>
+                      <span>Backup</span>
+                      <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                    </button>
+                    <div id="backup-dropdown-menu" class="hidden absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-30">
+                      <a href="/api/reports/export-excel/${currentMonth}" download class="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                        <i class="fa-solid fa-file-excel text-emerald-600 text-sm"></i> Export Excel (${currentMonth})
+                      </a>
+                      <a href="/api/reports/database-backup" download class="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 border-t border-slate-100">
+                        <i class="fa-solid fa-database text-indigo-600 text-sm"></i> SQLite DB Backup (.db)
+                      </a>
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
             </div>
           </div>
 
-          <!-- Pending Approvals Alert Banner (if any) -->
-          ${pendingPayments.length > 0 ? `
-            <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-pulse">
-              <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xl shrink-0 font-bold">
-                  <i class="fa-solid fa-bell"></i>
-                </div>
-                <div>
-                  <h3 class="font-bold text-amber-900 text-base">
-                    ${pendingPayments.length} Payment Submission${pendingPayments.length > 1 ? 's' : ''} Awaiting Approval!
-                  </h3>
-                  <p class="text-xs text-amber-700">Members submitted payment proofs via their dashboard. Review and approve to credit their balance.</p>
-                </div>
-              </div>
-              <button onclick="App.navigate('payments')" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs rounded-xl shadow transition-all shrink-0">
-                Review & Approve Now &rarr;
-              </button>
-            </div>
-          ` : ''}
-
-          <!-- Monthly Backup Reminder for Super Admin -->
-          ${App.currentUser?.role === 'super_admin' ? `
-            <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
-              <div class="flex items-center gap-3">
-                <span class="w-9 h-9 rounded-xl bg-indigo-500 text-white flex items-center justify-center text-sm font-bold shrink-0">
-                  <i class="fa-solid fa-floppy-disk"></i>
-                </span>
-                <div>
-                  <h4 class="font-bold text-xs text-indigo-100">Monthly Backup Reminder (Super Admin)</h4>
-                  <p class="text-[11px] text-indigo-300 mt-0.5">Keep an offline backup copy of monthly member statements and database records.</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-2 shrink-0">
-                <a href="/api/reports/export-excel/${currentMonth}" download class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1.5">
-                  <i class="fa-solid fa-file-excel text-xs"></i> Export Excel (${currentMonth})
-                </a>
-                <a href="/api/reports/database-backup" download class="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1.5">
-                  <i class="fa-solid fa-database text-xs"></i> DB Backup (.db)
-                </a>
-              </div>
-            </div>
-          ` : ''}
-
-          <!-- 4 Main KPI Cards -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- 4 Main KPI Cards (Responsive 2x2 grid on mobile, 4 on desktop) -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <!-- Active Members -->
             <div class="bg-white p-5 rounded-2xl border border-slate-200 card-shadow flex items-center justify-between">
               <div>
@@ -215,5 +204,11 @@ const DashboardView = {
     } catch (err) {
       return `<div class="p-6 bg-red-50 text-red-700 rounded-xl">Error loading dashboard: ${err.message}</div>`;
     }
+  },
+
+  toggleBackupMenu(e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById('backup-dropdown-menu');
+    if (menu) menu.classList.toggle('hidden');
   }
 };

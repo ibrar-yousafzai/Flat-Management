@@ -188,62 +188,73 @@ const App = {
             <!-- Desktop Navigation Links -->
             <nav class="hidden md:flex items-center space-x-1 text-xs font-semibold">
               ${isMember ? `
-                <button onclick="App.navigate('portal')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'portal' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                  <i class="fa-solid fa-gauge-high mr-1"></i> Dashboard
+                <button onclick="App.navigate('portal')" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${this.currentView === 'portal' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
+                  <i class="fa-solid fa-gauge-high"></i> Dashboard
                 </button>
-                <button onclick="App.navigate('reports')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'reports' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                  <i class="fa-solid fa-file-invoice mr-1"></i> My Statement
+                <button onclick="App.navigate('reports')" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${this.currentView === 'reports' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
+                  <i class="fa-solid fa-file-invoice"></i> My Statement
                 </button>
               ` : (isFoodManagerOnly ? `
-                <button onclick="App.navigate('food')" class="px-4 py-2 rounded-xl transition-all ${this.currentView === 'food' ? 'bg-amber-100 text-amber-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">
+                <button onclick="App.navigate('food')" class="px-4 py-2 rounded-xl transition-all ${this.currentView === 'food' ? 'bg-amber-100 text-amber-900 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}">
                   <i class="fa-solid fa-utensils mr-1.5 text-amber-600"></i> Weekly Food Mess
                 </button>
-                <button onclick="App.navigate('payments')" class="px-4 py-2 rounded-xl transition-all ${this.currentView === 'payments' ? 'bg-amber-100 text-amber-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">
-                  <i class="fa-solid fa-money-bill-transfer mr-1.5 text-emerald-600"></i> Food Payments & Approvals
+                <button onclick="App.navigate('payments')" class="px-4 py-2 rounded-xl transition-all ${this.currentView === 'payments' ? 'bg-amber-100 text-amber-900 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}">
+                  <i class="fa-solid fa-money-bill-transfer mr-1.5 text-emerald-600"></i> Food Payments
                 </button>
               ` : `
-                <button onclick="App.navigate('dashboard')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
+                <button onclick="App.navigate('dashboard')" class="px-3.5 py-2 rounded-xl transition-all ${this.currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                   Dashboard
                 </button>
-                ${this.currentUser?.can_manage_rooms ? `
-                  <button onclick="App.navigate('rooms')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'rooms' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                    Rooms
-                  </button>
-                ` : ''}
-                ${this.currentUser?.can_manage_members ? `
-                  <button onclick="App.navigate('members')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'members' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                    Members
-                  </button>
-                ` : ''}
                 ${this.currentUser?.can_manage_bills ? `
-                  <button onclick="App.navigate('bills')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'bills' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
+                  <button onclick="App.navigate('bills')" class="px-3.5 py-2 rounded-xl transition-all ${this.currentView === 'bills' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                     Bills & Splits
                   </button>
                 ` : ''}
                 ${this.currentUser?.can_manage_food ? `
-                  <button onclick="App.navigate('food')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'food' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
+                  <button onclick="App.navigate('food')" class="px-3.5 py-2 rounded-xl transition-all ${this.currentView === 'food' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                     Weekly Food
                   </button>
                 ` : ''}
                 ${this.currentUser?.can_manage_payments ? `
-                  <button onclick="App.navigate('payments')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'payments' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
+                  <button onclick="App.navigate('payments')" class="px-3.5 py-2 rounded-xl transition-all ${this.currentView === 'payments' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                     Payments
                   </button>
                 ` : ''}
-                <button onclick="App.navigate('reports')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'reports' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
+                <button onclick="App.navigate('reports')" class="px-3.5 py-2 rounded-xl transition-all ${this.currentView === 'reports' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
                   Reports & PDF
                 </button>
-                ${isSuperAdmin ? `
-                  <button onclick="App.navigate('admins')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'admins' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                    Admins
+
+                <!-- Organized Manage Dropdown for Rooms, Members, Admins, Settings, Audit -->
+                <div class="relative inline-block text-left" id="manage-dropdown-container">
+                  <button onclick="App.toggleManageDropdown(event)" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${['rooms', 'members', 'admins', 'settings', 'audit'].includes(this.currentView) ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
+                    <span>Manage</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
                   </button>
-                  <button onclick="App.navigate('settings')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'settings' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                    Settings
-                  </button>
-                  <button onclick="App.navigate('audit')" class="px-3 py-2 rounded-xl transition-all ${this.currentView === 'audit' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:text-slate-900'}">
-                    Audit Log
-                  </button>
-                ` : ''}
+                  <div id="manage-dropdown-menu" class="hidden absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50">
+                    ${this.currentUser?.can_manage_rooms ? `
+                      <button onclick="App.navigate('rooms'); App.closeManageDropdown()" class="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700">
+                        <i class="fa-solid fa-door-open text-purple-600 w-4 text-center"></i> Rooms Management
+                      </button>
+                    ` : ''}
+                    ${this.currentUser?.can_manage_members ? `
+                      <button onclick="App.navigate('members'); App.closeManageDropdown()" class="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700">
+                        <i class="fa-solid fa-users text-blue-600 w-4 text-center"></i> Members List & Dues
+                      </button>
+                    ` : ''}
+                    ${isSuperAdmin ? `
+                      <div class="border-t border-slate-100 my-1"></div>
+                      <button onclick="App.navigate('admins'); App.closeManageDropdown()" class="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700">
+                        <i class="fa-solid fa-user-shield text-indigo-600 w-4 text-center"></i> Admin Roles & Access
+                      </button>
+                      <button onclick="App.navigate('audit'); App.closeManageDropdown()" class="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700">
+                        <i class="fa-solid fa-clock-rotate-left text-slate-600 w-4 text-center"></i> Security & Audit Log
+                      </button>
+                      <button onclick="App.navigate('settings'); App.closeManageDropdown()" class="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700">
+                        <i class="fa-solid fa-sliders text-amber-600 w-4 text-center"></i> Flat Settings
+                      </button>
+                    ` : ''}
+                  </div>
+                </div>
               `)}
             </nav>
 
@@ -691,8 +702,34 @@ const App = {
         </div>
       </div>
     `);
+  },
+
+  toggleManageDropdown(e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById('manage-dropdown-menu');
+    if (menu) menu.classList.toggle('hidden');
+  },
+
+  closeManageDropdown() {
+    const menu = document.getElementById('manage-dropdown-menu');
+    if (menu) menu.classList.add('hidden');
   }
 };
+
+// Global click listener to close open dropdowns
+window.addEventListener('click', (e) => {
+  const manageContainer = document.getElementById('manage-dropdown-container');
+  if (manageContainer && !manageContainer.contains(e.target)) {
+    const menu = document.getElementById('manage-dropdown-menu');
+    if (menu) menu.classList.add('hidden');
+  }
+
+  const backupContainer = document.getElementById('backup-dropdown-container');
+  if (backupContainer && !backupContainer.contains(e.target)) {
+    const menu = document.getElementById('backup-dropdown-menu');
+    if (menu) menu.classList.add('hidden');
+  }
+});
 
 // Bootstrap application on window load
 window.addEventListener('DOMContentLoaded', () => {
