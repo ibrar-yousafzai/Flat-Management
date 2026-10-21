@@ -225,23 +225,23 @@ const App = {
 
   renderLoginView() {
     return `
-      <div class="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center p-4">
-        <div class="w-full max-w-md bg-white rounded-3xl p-8 card-shadow space-y-6">
+      <div class="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 card-shadow space-y-6 border border-slate-100">
           <!-- Logo & Header -->
           <div class="text-center space-y-2">
-            <div class="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-2xl mx-auto shadow-lg shadow-indigo-200">
-              <i class="fa-solid fa-building"></i>
+            <div class="w-14 h-14 bg-gradient-to-tr from-blue-700 to-blue-600 text-white rounded-2xl flex items-center justify-center text-2xl mx-auto shadow-md shadow-blue-500/20">
+              <i class="fa-solid fa-building-user"></i>
             </div>
-            <h1 class="text-2xl font-black text-slate-900">Flat Management</h1>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Flat Management</h1>
             <p class="text-xs text-slate-500">Sign in to your administration dashboard or member portal</p>
           </div>
 
           <!-- Login Type Tabs -->
           <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-2xl text-xs font-bold">
-            <button id="tabAdmin" onclick="App.switchLoginTab('admin')" class="py-2.5 rounded-xl bg-white text-indigo-700 shadow-sm transition-all flex items-center justify-center gap-1.5">
+            <button id="tabAdmin" type="button" onclick="App.switchLoginTab('admin')" class="py-2.5 rounded-xl bg-white text-blue-700 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer">
               <i class="fa-solid fa-user-shield"></i> Admin Login
             </button>
-            <button id="tabMember" onclick="App.switchLoginTab('member')" class="py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5">
+            <button id="tabMember" type="button" onclick="App.switchLoginTab('member')" class="py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
               <i class="fa-solid fa-user"></i> Member Portal
             </button>
           </div>
@@ -252,7 +252,7 @@ const App = {
               <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Admin Username</label>
               <div class="relative">
                 <i class="fa-solid fa-user absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="text" id="adminUser" required value="superadmin" placeholder="superadmin" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <input type="text" id="adminUser" required value="superadmin" placeholder="superadmin" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-600 outline-none" />
               </div>
             </div>
 
@@ -260,16 +260,22 @@ const App = {
               <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
               <div class="relative">
                 <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="password" id="adminPass" required value="admin123" placeholder="••••••••" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <input type="password" id="adminPass" required value="admin123" placeholder="••••••••" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-600 outline-none" />
               </div>
             </div>
 
-            <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-md transition-all">
-              Sign In as Admin
+            <button type="submit" class="w-full py-3 bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In as Admin
             </button>
 
-            <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100 text-[11px] text-indigo-900">
-              <strong>Default Demo:</strong> Username: <code class="font-bold">superadmin</code> &bull; Password: <code class="font-bold">admin123</code>
+            <!-- 1-Tap Demo Quick Fill -->
+            <div class="p-3 bg-blue-50/80 rounded-2xl border border-blue-100 flex items-center justify-between text-xs">
+              <div class="text-[11px] text-blue-900">
+                <span class="font-bold">Demo Login:</span> superadmin / admin123
+              </div>
+              <button type="button" onclick="App.fillLoginDemo('admin')" class="px-2.5 py-1 bg-white hover:bg-blue-100 text-blue-800 font-bold text-[10px] rounded-lg border border-blue-200 transition-all cursor-pointer">
+                Fill Demo
+              </button>
             </div>
           </form>
 
@@ -279,7 +285,7 @@ const App = {
               <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Unique Member ID</label>
               <div class="relative">
                 <i class="fa-solid fa-id-card absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="text" id="memberIdInput" required placeholder="e.g. MEM-001 or MEM-002" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-mono uppercase" />
+                <input type="text" id="memberIdInput" required placeholder="e.g. MEM-001 or MEM-002" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none font-mono uppercase" />
               </div>
             </div>
 
@@ -287,16 +293,22 @@ const App = {
               <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
               <div class="relative">
                 <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="password" id="memberPassInput" required placeholder="••••••••" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <input type="password" id="memberPassInput" required placeholder="••••••••" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none" />
               </div>
             </div>
 
-            <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all">
-              Sign In to Member Portal
+            <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In to Member Portal
             </button>
 
-            <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-[11px] text-emerald-950">
-              <strong>Sample Member:</strong> ID: <code class="font-bold">MEM-001</code> &bull; Password: <code class="font-bold">flat123</code> (Murad)
+            <!-- 1-Tap Demo Quick Fill -->
+            <div class="p-3 bg-emerald-50/80 rounded-2xl border border-emerald-100 flex items-center justify-between text-xs">
+              <div class="text-[11px] text-emerald-950">
+                <span class="font-bold">Sample Member:</span> MEM-001 / flat123
+              </div>
+              <button type="button" onclick="App.fillLoginDemo('member')" class="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-lg border border-emerald-200 transition-all cursor-pointer">
+                Fill Demo
+              </button>
             </div>
           </form>
         </div>
@@ -313,13 +325,31 @@ const App = {
     if (tab === 'admin') {
       adminForm.classList.remove('hidden');
       memberForm.classList.add('hidden');
-      tabAdmin.className = 'py-2.5 rounded-xl bg-white text-indigo-700 shadow-sm transition-all flex items-center justify-center gap-1.5';
-      tabMember.className = 'py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5';
+      tabAdmin.className = 'py-2.5 rounded-xl bg-white text-blue-700 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+      tabMember.className = 'py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5 cursor-pointer';
     } else {
       adminForm.classList.add('hidden');
       memberForm.classList.remove('hidden');
-      tabMember.className = 'py-2.5 rounded-xl bg-white text-emerald-700 shadow-sm transition-all flex items-center justify-center gap-1.5';
-      tabAdmin.className = 'py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5';
+      tabMember.className = 'py-2.5 rounded-xl bg-white text-emerald-700 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+      tabAdmin.className = 'py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+    }
+  },
+
+  fillLoginDemo(type) {
+    if (type === 'admin') {
+      this.switchLoginTab('admin');
+      const userEl = document.getElementById('adminUser');
+      const passEl = document.getElementById('adminPass');
+      if (userEl) userEl.value = 'superadmin';
+      if (passEl) passEl.value = 'admin123';
+      this.toast('Filled Super Admin demo credentials', 'info');
+    } else {
+      this.switchLoginTab('member');
+      const memEl = document.getElementById('memberIdInput');
+      const passEl = document.getElementById('memberPassInput');
+      if (memEl) memEl.value = 'MEM-001';
+      if (passEl) passEl.value = 'flat123';
+      this.toast('Filled Sample Member demo credentials', 'info');
     }
   },
 

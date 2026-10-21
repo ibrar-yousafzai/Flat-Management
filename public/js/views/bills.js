@@ -272,8 +272,13 @@ const BillsView = {
                       </td>
 
                       <!-- Net Bills Balance (Carried + Bills - Paid) -->
-                      <td class="py-3 px-3 text-right border-r border-slate-100 font-extrabold ${netPayable > 0 ? 'text-rose-600' : 'text-emerald-600'}">
-                        ${currency} ${netPayable.toLocaleString()}
+                      <td class="py-3 px-3 text-right border-r border-slate-100">
+                        <div class="font-extrabold ${netPayable > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                          ${currency} ${netPayable.toLocaleString()}
+                        </div>
+                        <span class="inline-block text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase ${netPayable <= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                          ${netPayable <= 0 ? 'Paid ✓' : 'Unpaid'}
+                        </span>
                       </td>
 
                       <!-- Separate Weekly Food Mess status -->
@@ -281,13 +286,20 @@ const BillsView = {
                         ${foodTotal > 0 ? `${currency} ${foodTotal.toLocaleString()}` : '<span class="text-slate-300">-</span>'}
                       </td>
 
-                      <!-- Quick WhatsApp & PDF buttons -->
+                      <!-- Quick WhatsApp, Pay & PDF buttons -->
                       <td class="py-3 px-3 text-center no-print">
                         <div class="flex items-center justify-center gap-1">
-                          <button onclick="BillsView.openWhatsApp(${row.member.id})" title="Send WhatsApp Invoice" class="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-all">
+                          ${netPayable > 0 ? `
+                            <button onclick="BillsView.quickRecordPay(${row.member.id}, ${netPayable})" title="Record Payment for ${row.member.name}" class="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold transition-all shadow-2xs active:scale-95 cursor-pointer flex items-center gap-1">
+                              <i class="fa-solid fa-hand-holding-dollar"></i> Pay
+                            </button>
+                          ` : `
+                            <span class="text-[10px] font-bold text-emerald-700 px-1.5 py-0.5 bg-emerald-50 border border-emerald-200 rounded-lg">Cleared</span>
+                          `}
+                          <button onclick="BillsView.openWhatsApp(${row.member.id})" title="Send WhatsApp Invoice" class="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-all cursor-pointer">
                             <i class="fa-brands fa-whatsapp text-sm"></i>
                           </button>
-                          <button onclick="BillsView.openInvoice(${row.member.id})" title="View / Print PDF" class="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-all">
+                          <button onclick="BillsView.openInvoice(${row.member.id})" title="View / Print PDF" class="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-all cursor-pointer">
                             <i class="fa-solid fa-file-pdf text-sm"></i>
                           </button>
                         </div>
@@ -329,6 +341,9 @@ const BillsView = {
                       <div class="text-base font-black ${netPayable > 0 ? 'text-rose-600' : 'text-emerald-600'}">
                         ${currency} ${netPayable.toLocaleString()}
                       </div>
+                      <span class="inline-block text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase ${netPayable <= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                        ${netPayable <= 0 ? 'Paid ✓' : 'Unpaid'}
+                      </span>
                     </div>
                   </div>
 
@@ -371,11 +386,16 @@ const BillsView = {
 
                   <!-- Mobile Actions -->
                   <div class="flex items-center gap-2 pt-1 border-t border-slate-100">
+                    ${netPayable > 0 ? `
+                      <button onclick="BillsView.quickRecordPay(${row.member.id}, ${netPayable})" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-hand-holding-dollar"></i> Pay
+                      </button>
+                    ` : ''}
                     <button onclick="BillsView.openWhatsApp(${row.member.id})" class="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
                       <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i> WhatsApp
                     </button>
-                    <button onclick="BillsView.openInvoice(${row.member.id})" class="flex-1 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
-                      <i class="fa-solid fa-file-invoice text-indigo-600"></i> PDF Bill
+                    <button onclick="BillsView.openInvoice(${row.member.id})" class="flex-1 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+                      <i class="fa-solid fa-file-invoice text-blue-600"></i> PDF Bill
                     </button>
                   </div>
                 </div>
@@ -1211,5 +1231,14 @@ const BillsView = {
 
   async openInvoice(memberId) {
     App.openInvoiceModal(memberId, this.selectedMonth);
+  },
+
+  async quickRecordPay(memberId, defaultAmount) {
+    try {
+      const members = await API.get('/api/members?status=Active');
+      PaymentsView.openRecordPaymentModal(members, memberId, defaultAmount, 'bills');
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
   }
 };

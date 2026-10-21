@@ -483,12 +483,15 @@ const PaymentsView = {
     }
   },
 
-  openRecordPaymentModal(members) {
+  openRecordPaymentModal(members, defaultMemberId = null, defaultAmount = null, defaultCategory = 'bills') {
     const today = new Date().toISOString().slice(0, 10);
     App.showModal(`
       <div class="space-y-4">
         <div class="flex items-center justify-between border-b pb-3">
-          <h3 class="text-lg font-bold text-slate-800">Direct Record Payment</h3>
+          <div>
+            <h3 class="text-lg font-bold text-slate-800">Direct Record Payment</h3>
+            <p class="text-xs text-slate-500">Record cash or bank payment received directly from member</p>
+          </div>
           <button onclick="App.closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <form onsubmit="PaymentsView.submitRecordPayment(event)" class="space-y-3.5">
@@ -497,14 +500,14 @@ const PaymentsView = {
               <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Select Member *</label>
               <select id="recMemId" required class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
                 <option value="">-- Choose Member --</option>
-                ${members.map(m => `<option value="${m.id}">${m.name} (${m.unique_id})</option>`).join('')}
+                ${members.map(m => `<option value="${m.id}" ${defaultMemberId && Number(m.id) === Number(defaultMemberId) ? 'selected' : ''}>${m.name} (${m.unique_id})</option>`).join('')}
               </select>
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Payment Category *</label>
               <select id="recPaymentFor" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold">
-                <option value="bills">🏢 Monthly Flat Bills / Rent</option>
-                <option value="food">🍲 Weekly Food Mess</option>
+                <option value="bills" ${defaultCategory === 'bills' ? 'selected' : ''}>🏢 Monthly Flat Bills / Rent</option>
+                <option value="food" ${defaultCategory === 'food' ? 'selected' : ''}>🍲 Weekly Food Mess</option>
               </select>
             </div>
           </div>
@@ -512,7 +515,7 @@ const PaymentsView = {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Amount Paid (Rs.) *</label>
-              <input type="number" id="recAmount" required min="1" step="any" placeholder="e.g. 5000" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <input type="number" id="recAmount" required min="1" step="any" value="${defaultAmount ? Math.max(1, Math.round(defaultAmount)) : ''}" placeholder="e.g. 5000" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" />
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Payment Date *</label>

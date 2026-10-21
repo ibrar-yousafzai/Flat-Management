@@ -19,20 +19,31 @@ router.get('/', (req, res) => {
 
     const enriched = entries.map(entry => {
       const splits = db.prepare(`
-        SELECT fs.*, m.name as member_name, m.unique_id, m.whatsapp
+        SELECT fs.*, m.name as member_name, m.unique_id, m.whatsapp, m.type as member_type, r.name as room_name
         FROM food_splits fs
         JOIN members m ON fs.member_id = m.id
+        LEFT JOIN rooms r ON m.room_id = r.id
         WHERE fs.food_id = ?
         ORDER BY m.name ASC
       `).all(entry.id);
 
       const totalMembers = splits.length;
       const perPerson = totalMembers > 0 ? Math.round((entry.total_amount / totalMembers) * 100) / 100 : 0;
+      
+      const paidSplits = splits.filter(s => s.is_paid === 1);
+      const paidCount = paidSplits.length;
+      const unpaidCount = totalMembers - paidCount;
+      const paidAmount = paidSplits.reduce((acc, s) => acc + Number(s.amount || 0), 0);
+      const unpaidAmount = Math.max(0, entry.total_amount - paidAmount);
 
       return {
         ...entry,
         per_person: perPerson,
         member_count: totalMembers,
+        paid_count: paidCount,
+        unpaid_count: unpaidCount,
+        paid_amount: paidAmount,
+        unpaid_amount: unpaidAmount,
         members: splits
       };
     });
@@ -213,6 +224,72 @@ router.delete('/:id', (req, res) => {
     logAudit('admin', null, actorName, 'Deleted Food Expense', `Deleted food entry "${current.title}" (${current.date})`);
 
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Toggle member paid status for a specific weekly food split
+router.patch('/splits/:id/toggle-paid', (req, res) => {
+  try {
+    const { id } = req.params;
+    const split = db.prepare(`
+      SELECT fs.*, m.name as member_name, wf.title as food_title, wf.date as food_date
+      FROM food_splits fs
+      JOIN members m ON fs.member_id = m.id
+      JOIN weekly_food wf ON fs.food_id = wf.id
+      WHERE fs.id = ?
+    `).get(id);
+
+    if (!split) {
+      return res.status(404).json({ error: 'Food split not found' });
+    }
+
+    const newPaid = split.is_paid === 1 ? 0 : 1;
+    const paidAt = newPaid === 1 ? new Date().toISOString() : null;
+
+    db.prepare(`
+      UPDATE food_splits
+      SET is_paid = ?, paid_at = ?
+      WHERE id = ?
+    `).run(newPaid, paidAt, id);
+
+    const actorName = req.body?.actor_name || req.user?.name || 'Admin';
+    logAudit('admin', split.member_id, actorName, newPaid === 1 ? 'Marked Food Paid' : 'Marked Food Unpaid', `${split.member_name} marked ${newPaid === 1 ? 'PAID' : 'UNPAID'} for "${split.food_title}" (Rs. ${split.amount})`);
+
+    res.json({
+      success: true,
+      split_id: id,
+      is_paid: newPaid,
+      paid_at: paidAt,
+      member_name: split.member_name,
+      amount: split.amount
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Mark all members as paid for a weekly food batch
+router.post('/:id/mark-all-paid', (req, res) => {
+  try {
+    const { id } = req.params;
+    const current = db.prepare(`SELECT * FROM weekly_food WHERE id = ?`).get(id);
+    if (!current) {
+      return res.status(404).json({ error: 'Food entry not found' });
+    }
+
+    const now = new Date().toISOString();
+    db.prepare(`
+      UPDATE food_splits
+      SET is_paid = 1, paid_at = ?
+      WHERE food_id = ? AND is_paid != 1
+    `).run(now, id);
+
+    const actorName = req.body?.actor_name || req.user?.name || 'Admin';
+    logAudit('admin', null, actorName, 'Marked All Food Paid', `Marked all members as PAID for "${current.title}"`);
+
+    res.json({ success: true, message: 'All members marked as paid' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

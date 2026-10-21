@@ -173,8 +173,15 @@ const FoodView = {
             </div>
             ${visibleEntries.length > 0 ? visibleEntries.map(entry => {
               const customMembersCount = entry.members.filter(m => m.is_custom).length;
+              const paidCount = entry.paid_count || 0;
+              const unpaidCount = entry.unpaid_count !== undefined ? entry.unpaid_count : (entry.member_count - paidCount);
+              const paidAmount = entry.paid_amount || 0;
+              const unpaidAmount = entry.unpaid_amount !== undefined ? entry.unpaid_amount : Math.max(0, entry.total_amount - paidAmount);
+              const percentPaid = entry.member_count > 0 ? Math.round((paidCount / entry.member_count) * 100) : 0;
+
               return `
-              <div class="bg-white rounded-2xl border border-slate-200 card-shadow p-5 hover:border-amber-200 transition-all">
+              <div class="bg-white rounded-3xl border border-slate-200 card-shadow p-5 hover:border-amber-300 transition-all space-y-4">
+                <!-- Batch Top Row -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                   <div>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -183,39 +190,80 @@ const FoodView = {
                       </span>
                       <h3 class="font-bold text-slate-800 text-sm">${entry.title}</h3>
                       ${entry.week_label ? `<span class="text-xs text-slate-400 font-medium">(${entry.week_label})</span>` : ''}
-                      ${customMembersCount > 0 ? `<span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-300"><i class="fa-solid fa-user-clock mr-1"></i>${customMembersCount} Mid-Week ${customMembersCount === 1 ? 'Override' : 'Overrides'}</span>` : ''}
+                      ${customMembersCount > 0 ? `<span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-300"><i class="fa-solid fa-user-clock mr-1"></i>${customMembersCount} Mid-Week</span>` : ''}
                     </div>
                     ${entry.notes ? `<p class="text-xs text-slate-500 mt-1">${entry.notes}</p>` : ''}
                   </div>
                   
                   <div class="flex items-center gap-2">
-                    <div class="text-right mr-2">
-                      <div class="text-lg font-bold text-slate-800">${currency} ${entry.total_amount.toLocaleString()}</div>
-                      <div class="text-[11px] text-emerald-700 font-semibold">${currency} ${entry.per_person.toLocaleString()} avg / person (${entry.member_count} members)</div>
+                    <div class="text-right mr-1">
+                      <div class="text-base sm:text-lg font-black text-slate-900">${currency} ${entry.total_amount.toLocaleString()}</div>
+                      <div class="text-[10px] text-slate-500 font-bold">${currency} ${entry.per_person.toLocaleString()} avg / person (${entry.member_count} members)</div>
                     </div>
-                    <button onclick="FoodView.openEditModalById(${entry.id})" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-all" title="Edit Food Entry">
-                      <i class="fa-regular fa-pen-to-square text-sm"></i>
+                    ${unpaidCount > 0 ? `
+                      <button onclick="FoodView.markAllPaid(${entry.id})" class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-[10px] font-bold transition-all whitespace-nowrap cursor-pointer" title="Mark all members paid for this week">
+                        <i class="fa-solid fa-check-double mr-1"></i>All Paid
+                      </button>
+                    ` : ''}
+                    <button onclick="FoodView.openEditModalById(${entry.id})" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 flex items-center justify-center transition-all text-xs" title="Edit Batch">
+                      <i class="fa-regular fa-pen-to-square"></i>
                     </button>
-                    <button onclick="FoodView.deleteEntry(${entry.id}, '${entry.title.replace(/'/g, "\\'")}')" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete Entry">
-                      <i class="fa-regular fa-trash-can text-sm"></i>
+                    <button onclick="FoodView.deleteEntry(${entry.id}, '${entry.title.replace(/'/g, "\\'")}')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-all text-xs" title="Delete Batch">
+                      <i class="fa-regular fa-trash-can"></i>
                     </button>
                   </div>
                 </div>
 
-                <!-- Participating Members Chips with Custom Flag -->
-                <div class="pt-3">
-                  <div class="flex items-center justify-between mb-2">
-                    <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Member Shares for this Week</p>
-                    <span class="text-[11px] text-slate-400">${entry.members.length} members</span>
+                <!-- Collection Progress Bar -->
+                <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
+                  <div class="flex items-center justify-between text-xs font-bold">
+                    <span class="text-emerald-700 flex items-center gap-1">
+                      <i class="fa-solid fa-circle-check"></i>
+                      <span>${paidCount} / ${entry.member_count} Paid (${currency} ${paidAmount.toLocaleString()})</span>
+                    </span>
+                    <span class="${unpaidCount > 0 ? 'text-rose-600' : 'text-slate-400'}">
+                      ${unpaidCount > 0 ? `${unpaidCount} Unpaid (${currency} ${unpaidAmount.toLocaleString()})` : 'All Cleared ✓'}
+                    </span>
                   </div>
-                  <div class="flex flex-wrap gap-1.5">
+                  <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style="width: ${percentPaid}%"></div>
+                  </div>
+                </div>
+
+                <!-- Participating Members with 1-Tap Paid Toggle -->
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Member Dues & Payment Status</p>
+                    <span class="text-[10px] text-slate-500 font-bold">Tap to toggle Paid / Unpaid</span>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     ${entry.members.map(m => `
-                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${m.is_custom ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-700'} border text-xs font-medium">
-                        <i class="fa-solid fa-check text-emerald-500 text-[10px]"></i>
-                        <span>${m.member_name}</span>
-                        <span class="font-mono ${m.is_custom ? 'text-amber-800' : 'text-slate-500'}">(${currency} ${Number(m.amount).toLocaleString()})</span>
-                        ${m.is_custom ? '<span class="text-[9px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.2 rounded">Mid-Week</span>' : ''}
-                      </span>
+                      <div class="p-2.5 rounded-2xl border ${m.is_paid === 1 ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/40 border-rose-200'} flex items-center justify-between gap-2 transition-all">
+                        <div class="min-w-0">
+                          <div class="font-bold text-slate-800 text-xs truncate flex items-center gap-1">
+                            <span>${m.member_name}</span>
+                            ${m.is_custom ? '<span class="text-[9px] bg-amber-200 text-amber-900 font-bold px-1 rounded">Custom</span>' : ''}
+                          </div>
+                          <div class="text-[10px] text-slate-500 font-mono">
+                            ${currency} ${Number(m.amount).toLocaleString()} &bull; ${m.room_name || 'Outside'}
+                          </div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 shrink-0">
+                          ${m.is_paid === 1 ? `
+                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700 transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Paid. Tap to change back to Unpaid">
+                              <i class="fa-solid fa-check text-[9px]"></i> PAID
+                            </button>
+                          ` : `
+                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-600 text-white shadow-2xs hover:bg-rose-700 transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Unpaid. Tap to mark as Paid">
+                              <i class="fa-solid fa-hand-holding-dollar text-[9px]"></i> PAY
+                            </button>
+                            <button onclick="FoodView.sendSingleMemberWhatsApp('${m.member_name.replace(/'/g, "\\'")}', '${m.whatsapp || ''}', ${m.amount}, '${entry.title.replace(/'/g, "\\'")}', '${entry.date}')" class="w-6 h-6 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center text-[10px] transition-all cursor-pointer active:scale-95" title="Send WhatsApp reminder for Rs. ${m.amount}">
+                              <i class="fa-brands fa-whatsapp"></i>
+                            </button>
+                          `}
+                        </div>
+                      </div>
                     `).join('')}
                   </div>
                 </div>
@@ -1197,5 +1245,46 @@ const FoodView = {
     }).catch(() => {
       prompt('Copy message text:', msg);
     });
+  },
+
+  async toggleMemberPaid(splitId) {
+    try {
+      const res = await API.patch(`/api/food/splits/${splitId}/toggle-paid`);
+      const statusText = res.is_paid === 1 ? 'PAID' : 'UNPAID';
+      App.toast(`${res.member_name} marked ${statusText}`, 'success');
+      await App.refresh();
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  async markAllPaid(foodId) {
+    if (!confirm('Mark all participating members as PAID for this weekly food batch?')) return;
+    try {
+      const res = await API.post(`/api/food/${foodId}/mark-all-paid`);
+      App.toast(res.message || 'All members marked as paid', 'success');
+      await App.refresh();
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  },
+
+  sendSingleMemberWhatsApp(name, phone, amount, title, date) {
+    const flatName = (this.cachedSettings && this.cachedSettings.flat_name) || 'Flat Management';
+    const text = `*🍲 Food Mess Payment Reminder*\n` +
+      `*Flat:* ${flatName}\n` +
+      `*Batch:* ${title} (${date})\n\n` +
+      `Assalam-o-Alaikum *${name}*,\n\n` +
+      `Your share of *Rs. ${Number(amount).toLocaleString()}* for weekly mess groceries (${title}) is currently unpaid.\n` +
+      `Since food supplies are bought week-to-week, please clear your share at your earliest so mess groceries continue uninterrupted.\n\n` +
+      `Thank you!`;
+    const cleanPhone = this.cleanPhoneNumber(phone);
+    if (!cleanPhone) {
+      this.copyTextToClipboard(encodeURIComponent(text), `Copied reminder for ${name}! Please paste into WhatsApp.`);
+      return;
+    }
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    App.toast(`Opened WhatsApp chat for ${name}!`, 'success');
   }
 };

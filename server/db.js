@@ -298,6 +298,12 @@ function initDatabase() {
   try {
     db.prepare(`ALTER TABLE members ADD COLUMN settled_at DATETIME`).run();
   } catch (e) {}
+  try {
+    db.prepare(`ALTER TABLE food_splits ADD COLUMN is_paid INTEGER DEFAULT 0`).run();
+  } catch (e) {}
+  try {
+    db.prepare(`ALTER TABLE food_splits ADD COLUMN paid_at DATETIME`).run();
+  } catch (e) {}
 
   // Default settings
   const defaultSettings = [
