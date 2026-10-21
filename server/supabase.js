@@ -6,11 +6,23 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABAS
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: {
-    persistSession: false
+const effectiveKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+let supabase = null;
+
+if (effectiveKey) {
+  try {
+    supabase = createClient(SUPABASE_URL, effectiveKey, {
+      auth: {
+        persistSession: false
+      }
+    });
+    console.log('✅ Supabase client initialized successfully');
+  } catch (err) {
+    console.warn('⚠️ Supabase client initialization warning:', err.message);
   }
-});
+} else {
+  console.warn('⚠️ Supabase key not set in environment variables. Running in local standalone mode.');
+}
 
 // Ensure local tables have supabase_id column for 1:1 mapping
 function initSupabaseSchema() {
@@ -24,6 +36,10 @@ initSupabaseSchema();
 
 // Full Synchronization from Supabase Cloud to Local State
 async function syncFromSupabase() {
+  if (!supabase) {
+    console.log('ℹ️ Supabase sync skipped: No credentials provided in environment.');
+    return { success: false, message: 'Supabase environment variables not configured' };
+  }
   try {
     console.log('🔄 Syncing with Supabase Cloud Database...');
     const [
@@ -183,6 +199,7 @@ async function syncFromSupabase() {
 
 // Push New Member to Supabase Cloud
 async function pushMemberToSupabase(member) {
+  if (!supabase) return null;
   try {
     const { data, error } = await supabase.from('members').insert({
       member_code: member.unique_id,
@@ -215,8 +232,8 @@ async function pushMemberToSupabase(member) {
 
 // Delete Member from Supabase Cloud
 async function deleteMemberFromSupabase(supabaseId) {
+  if (!supabase || !supabaseId) return;
   try {
-    if (!supabaseId) return;
     await supabase.from('bill_shares').delete().eq('member_id', supabaseId);
     await supabase.from('member_periods').delete().eq('member_id', supabaseId);
     await supabase.from('payments').delete().eq('member_id', supabaseId);
@@ -228,6 +245,7 @@ async function deleteMemberFromSupabase(supabaseId) {
 
 // Push New Bill & Splits to Supabase Cloud
 async function pushBillToSupabase(bill, splits = []) {
+  if (!supabase) return null;
   try {
     const [year, month] = (bill.month || '2026-10').split('-').map(Number);
     let { data: monthRow } = await supabase.from('months').select('id').eq('year', year).eq('month', month).maybeSingle();
@@ -273,8 +291,8 @@ async function pushBillToSupabase(bill, splits = []) {
 
 // Delete Bill from Supabase Cloud
 async function deleteBillFromSupabase(supabaseId) {
+  if (!supabase || !supabaseId) return;
   try {
-    if (!supabaseId) return;
     await supabase.from('bill_shares').delete().eq('bill_id', supabaseId);
     await supabase.from('bills').delete().eq('id', supabaseId);
   } catch (err) {
@@ -284,6 +302,7 @@ async function deleteBillFromSupabase(supabaseId) {
 
 // Push Payment to Supabase Cloud
 async function pushPaymentToSupabase(payment) {
+  if (!supabase) return null;
   try {
     const { data, error } = await supabase.from('payments').insert({
       member_id: payment.supabase_member_id,

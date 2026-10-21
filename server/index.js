@@ -36,6 +36,15 @@ app.use('/api/audit', require('./routes/audit'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/import', require('./routes/import'));
 
+// Health Check Endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    isVercel: Boolean(process.env.VERCEL),
+    time: new Date().toISOString()
+  });
+});
+
 // Cloud Sync endpoint
 app.post('/api/sync-supabase', async (req, res) => {
   const result = await syncFromSupabase();

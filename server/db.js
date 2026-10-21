@@ -1,12 +1,21 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 
-const dbPath = path.join(__dirname, 'flat_management.db');
-const db = new Database(dbPath);
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT);
+const dbDir = isServerless ? '/tmp' : __dirname;
+const dbPath = path.join(dbDir, 'flat_management.db');
 
-// Enable WAL mode for high performance and concurrent reads/writes
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+let db;
+try {
+  db = new Database(dbPath);
+  if (!isServerless) {
+    try { db.pragma('journal_mode = WAL'); } catch (e) {}
+  }
+  try { db.pragma('foreign_keys = ON'); } catch (e) {}
+} catch (err) {
+  console.error('Database connection error:', err);
+}
 
 function initDatabase() {
   db.exec(`
