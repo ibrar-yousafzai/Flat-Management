@@ -23,76 +23,72 @@ const FoodView = {
       const monthDisplay = isNaN(monthDate.getTime()) ? this.currentMonth : monthDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
       return `
-        <div class="space-y-6">
-          <!-- Header -->
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 card-shadow">
-            <div>
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 mb-1">
-                <i class="fa-solid fa-calendar-week text-amber-600"></i> Separate Week-to-Week Ledger (Not counted in monthly flat bills)
-              </span>
-              <h1 class="text-2xl font-bold text-slate-800">Weekly Food & Grocery Mess</h1>
-              <p class="text-sm text-slate-500 mt-0.5">
-                Calculate per-head food expenses, handle mid-week arrivals with custom shares, and settle dues week-by-week.
-              </p>
-            </div>
-            
-            <div class="flex flex-wrap items-center gap-2">
-              <!-- Month Navigation Controls -->
-              <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-                <button onclick="FoodView.prevMonth()" title="Previous Month" class="px-2.5 py-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-lg text-xs font-bold transition-all">
-                  <i class="fa-solid fa-chevron-left"></i>
-                </button>
-                <input type="month" value="${this.currentMonth}" onchange="FoodView.changeMonth(this.value)" class="text-xs font-bold bg-white px-2.5 py-1.5 rounded-lg border border-slate-300 outline-none cursor-pointer" />
-                <button onclick="FoodView.nextMonth()" title="Next Month" class="px-2.5 py-1.5 hover:bg-white text-slate-600 hover:text-slate-900 rounded-lg text-xs font-bold transition-all">
-                  <i class="fa-solid fa-chevron-right"></i>
-                </button>
-                <button onclick="FoodView.goToCurrentMonth()" title="Jump to Current Month" class="ml-1 px-2 py-1.5 hover:bg-white text-slate-500 hover:text-amber-700 rounded-lg text-[11px] font-semibold transition-all">
-                  Current
-                </button>
-              </div>
-
-              <button onclick="FoodView.openFoodReminderModal()" class="px-3.5 py-2 bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                <i class="fa-solid fa-bullhorn text-xs"></i> Send Reminders
+        <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
+          <!-- Top Breadcrumb & Action Toolbar -->
+          <div class="flex items-center justify-between pb-1">
+            <button onclick="App.goBack()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs transition-all active:scale-95">
+              <i class="fa-solid fa-arrow-left text-slate-600"></i>
+              <span>Back to Dashboard</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <button onclick="FoodView.openFoodReminderModal()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
+                <i class="fa-brands fa-whatsapp text-xs"></i> <span>Remind</span>
               </button>
-
-              <button onclick="FoodView.openCreateModal()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                <i class="fa-solid fa-plus"></i> Record Weekly Food
+              <button onclick="FoodView.openCreateModal()" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
+                <i class="fa-solid fa-plus text-xs"></i> <span>Add Batch</span>
               </button>
             </div>
           </div>
 
-          <!-- Total Food Summary Card -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-white p-5 rounded-2xl border border-slate-200 card-shadow flex items-center justify-between">
+          <!-- Section Banner Card -->
+          <div class="bg-gradient-to-r from-amber-600 via-amber-700 to-orange-700 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+            <div class="flex items-center justify-between relative z-10">
               <div>
-                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Weekly Mess Dues (${monthDisplay})</p>
-                <p class="text-2xl font-bold text-amber-900 mt-1">${currency} ${totalFoodMonth.toLocaleString()}</p>
-                <p class="text-[11px] text-slate-500 mt-0.5">Kept separate from flat rent bills</p>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30 mb-1">
+                  <i class="fa-solid fa-utensils"></i> Weekly Mess Ledger
+                </span>
+                <h1 class="text-lg sm:text-xl font-black tracking-tight">Weekly Food & Grocery</h1>
+                <p class="text-xs text-amber-100 mt-0.5">Settle dues week-by-week independently from monthly flat bills</p>
               </div>
-              <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
-                <i class="fa-solid fa-utensils"></i>
+              <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-bowl-food"></i>
               </div>
             </div>
-            <div class="bg-white p-5 rounded-2xl border border-slate-200 card-shadow flex items-center justify-between">
-              <div>
-                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Weekly Batches</p>
-                <p class="text-2xl font-bold text-indigo-600 mt-1">${entries.length} ${entries.length === 1 ? 'Week' : 'Weeks'}</p>
-                <p class="text-[11px] text-slate-500 mt-0.5">Week-by-week settlements</p>
-              </div>
-              <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
-                <i class="fa-solid fa-calendar-week"></i>
-              </div>
+          </div>
+
+          <!-- 3-Metric Summary Cards (Matching Dashboard Peach Style) -->
+          <div class="grid grid-cols-3 gap-2">
+            <div class="bg-[#FFF7ED] border border-[#FED7AA] p-3 rounded-2xl text-center shadow-2xs">
+              <span class="text-[10px] font-bold text-amber-800 uppercase block">Total Mess</span>
+              <span class="text-sm sm:text-base font-black text-amber-950 block mt-0.5">${currency} ${totalFoodMonth.toLocaleString()}</span>
+              <span class="text-[9px] text-amber-700 block">${monthDisplay}</span>
             </div>
-            <div class="bg-white p-5 rounded-2xl border border-slate-200 card-shadow flex items-center justify-between">
-              <div>
-                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Mess Members</p>
-                <p class="text-2xl font-bold text-emerald-600 mt-1">${members.length} Members</p>
-                <p class="text-[11px] text-slate-500 mt-0.5">Supports mid-week joiner overrides</p>
-              </div>
-              <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
-                <i class="fa-solid fa-users"></i>
-              </div>
+            <div class="bg-blue-50/70 border border-blue-200 p-3 rounded-2xl text-center shadow-2xs">
+              <span class="text-[10px] font-bold text-blue-800 uppercase block">Batches</span>
+              <span class="text-sm sm:text-base font-black text-blue-950 block mt-0.5">${entries.length} ${entries.length === 1 ? 'Week' : 'Weeks'}</span>
+              <span class="text-[9px] text-blue-600 block">Recorded</span>
             </div>
+            <div class="bg-emerald-50/70 border border-emerald-200 p-3 rounded-2xl text-center shadow-2xs">
+              <span class="text-[10px] font-bold text-emerald-800 uppercase block">Mess Members</span>
+              <span class="text-sm sm:text-base font-black text-emerald-950 block mt-0.5">${members.length} Active</span>
+              <span class="text-[9px] text-emerald-700 block">Participating</span>
+            </div>
+          </div>
+
+          <!-- Month Selector Toolbar -->
+          <div class="bg-white p-3 rounded-2xl border border-slate-200 card-shadow flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <button onclick="FoodView.prevMonth()" title="Previous Month" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold transition-all">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <input type="month" value="${this.currentMonth}" onchange="FoodView.changeMonth(this.value)" class="text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 outline-none cursor-pointer" />
+              <button onclick="FoodView.nextMonth()" title="Next Month" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold transition-all">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+            <button onclick="FoodView.goToCurrentMonth()" class="px-3 py-1.5 bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-900 rounded-xl text-xs font-bold transition-all">
+              Current Month
+            </button>
           </div>
 
           <!-- Food Entries List -->

@@ -24,15 +24,35 @@ const ReportsView = {
       const availableMonths = monthsData.months || ['2026-10'];
 
       return `
-        <div class="space-y-6">
-          <!-- Header (Hidden on Print) -->
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 card-shadow no-print">
-            <div>
-              <h1 class="text-xl sm:text-2xl font-bold text-slate-800">${isMember ? 'My Official Statement & Invoices' : 'Statements, Invoicing & Master PDF'}</h1>
-              <p class="text-xs text-slate-500 mt-0.5">
-                ${isMember ? 'Your private flat bills, weekly food mess ledger & receipts' : 'Generate member private invoices or Master Consolidated PDF Statement'}
-              </p>
+        <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
+          <!-- Top Breadcrumb & Action Toolbar (Hidden on Print) -->
+          <div class="flex items-center justify-between pb-1 no-print">
+            <button onclick="App.goBack()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs transition-all active:scale-95">
+              <i class="fa-solid fa-arrow-left text-slate-600"></i>
+              <span>Back to Dashboard</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <button onclick="window.print()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
+                <i class="fa-solid fa-print text-xs"></i> <span>Print / PDF</span>
+              </button>
             </div>
+          </div>
+
+          <!-- Section Banner Card (Hidden on Print) -->
+          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden no-print">
+            <div class="flex items-center justify-between relative z-10">
+              <div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30 mb-1">
+                  <i class="fa-solid fa-file-pdf"></i> PDF & Statements
+                </span>
+                <h1 class="text-lg sm:text-xl font-black tracking-tight">${isMember ? 'My Official Statement' : 'Statements & Reports'}</h1>
+                <p class="text-xs text-blue-100 mt-0.5">${isMember ? 'Private bills, food ledger & receipts' : 'Generate member private invoices or Master Consolidated Statement'}</p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-file-invoice"></i>
+              </div>
+            </div>
+          </div>
 
             <!-- Controls -->
             <div class="flex flex-wrap items-center gap-2">

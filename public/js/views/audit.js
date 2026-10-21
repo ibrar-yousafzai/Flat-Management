@@ -8,16 +8,32 @@ const AuditView = {
       const visibleLogs = logs.slice(0, this.visibleLimit || 6);
 
       return `
-        <div class="space-y-6 max-w-5xl mx-auto">
-          <!-- Header -->
-          <div class="flex items-center justify-between bg-white p-6 rounded-2xl border border-slate-200 card-shadow">
-            <div>
-              <h1 class="text-2xl font-bold text-slate-800">Security & Change History Log</h1>
-              <p class="text-sm text-slate-500 mt-0.5">Immutable audit trail of all changes made across the flat management system</p>
-            </div>
-            <button onclick="App.refresh()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5">
-              <i class="fa-solid fa-arrows-rotate"></i> Refresh Log
+        <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
+          <!-- Top Breadcrumb & Action Toolbar -->
+          <div class="flex items-center justify-between pb-1">
+            <button onclick="App.goBack()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs transition-all active:scale-95">
+              <i class="fa-solid fa-arrow-left text-slate-600"></i>
+              <span>Back to Dashboard</span>
             </button>
+            <button onclick="App.refresh()" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-arrows-rotate text-xs"></i> <span>Refresh</span>
+            </button>
+          </div>
+
+          <!-- Section Banner Card -->
+          <div class="bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+            <div class="flex items-center justify-between relative z-10">
+              <div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30 mb-1">
+                  <i class="fa-solid fa-shield-halved"></i> Security Trail
+                </span>
+                <h1 class="text-lg sm:text-xl font-black tracking-tight">Security & Audit History</h1>
+                <p class="text-xs text-slate-300 mt-0.5">Immutable audit trail of all changes made across the system</p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+              </div>
+            </div>
           </div>
 
           <!-- Logs Table -->

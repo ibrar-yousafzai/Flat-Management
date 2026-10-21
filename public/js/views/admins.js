@@ -6,23 +6,38 @@ const AdminsView = {
       const isSuperAdmin = App.currentUser?.role === 'super_admin';
 
       return `
-        <div class="space-y-6 max-w-5xl mx-auto">
-          <!-- Header -->
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 card-shadow">
-            <div>
-              <h1 class="text-2xl font-bold text-slate-800">Admin Roles & Permissions</h1>
-              <p class="text-sm text-slate-500 mt-0.5">One Super Admin with ability to delegate specific features to sub-admins</p>
-            </div>
-            
+        <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
+          <!-- Top Breadcrumb & Action Toolbar -->
+          <div class="flex items-center justify-between pb-1">
+            <button onclick="App.goBack()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs transition-all active:scale-95">
+              <i class="fa-solid fa-arrow-left text-slate-600"></i>
+              <span>Back to Dashboard</span>
+            </button>
             ${isSuperAdmin ? `
-              <button onclick="AdminsView.openCreateModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                <i class="fa-solid fa-user-shield"></i> Add Sub-Admin
+              <button onclick="AdminsView.openCreateModal()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
+                <i class="fa-solid fa-user-shield text-xs"></i> <span>Add Sub-Admin</span>
               </button>
             ` : ''}
           </div>
 
+          <!-- Section Banner Card -->
+          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+            <div class="flex items-center justify-between relative z-10">
+              <div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30 mb-1">
+                  <i class="fa-solid fa-user-gear"></i> Access Control
+                </span>
+                <h1 class="text-lg sm:text-xl font-black tracking-tight">Admin Roles & Permissions</h1>
+                <p class="text-xs text-blue-100 mt-0.5">Manage sub-admins and delegate food, bills, or rooms permissions</p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-shield-halved"></i>
+              </div>
+            </div>
+          </div>
+
           <!-- Admins Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             ${admins.map(a => `
               <div class="bg-white rounded-2xl border ${a.role === 'super_admin' ? 'border-indigo-300 ring-2 ring-indigo-50' : 'border-slate-200'} card-shadow p-6 space-y-4">
                 <div class="flex items-start justify-between">

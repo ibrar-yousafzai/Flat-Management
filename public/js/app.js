@@ -97,11 +97,11 @@ const App = {
         <!-- Main Top Navbar -->
         ${this.renderNavbar()}
 
-        <!-- Main Body Content (With safe bottom padding on mobile screens) -->
-        <main class="flex-1 w-full max-w-[1750px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 md:pb-6">
+        <!-- Main Body Content (Consistent Container Matching Screenshot Style) -->
+        <main class="flex-1 w-full max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 md:pb-8">
           <div id="view-content" class="fade-in">
             <!-- Dynamic View Rendered Here -->
-            <div class="p-8 text-center"><i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-600"></i></div>
+            <div class="p-8 text-center"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-600"></i></div>
           </div>
         </main>
 
@@ -159,16 +159,45 @@ const App = {
     const isSuperAdmin = this.currentUser?.role === 'super_admin';
     const isFoodManagerOnly = !isMember && !isSuperAdmin && this.currentUser?.can_manage_food && !this.currentUser?.can_manage_bills && !this.currentUser?.can_manage_rooms;
     const userName = (this.currentUser?.name || 'User').toLowerCase();
+    const isHome = this.currentView === 'dashboard' || this.currentView === 'portal';
+
+    const viewTitles = {
+      dashboard: 'Dashboard',
+      portal: 'Member Portal',
+      food: 'Weekly Food Mess',
+      bills: 'Bills & Utilities',
+      members: 'Members Directory',
+      rooms: 'Rooms & Rents',
+      payments: 'Payments & Ledger',
+      reports: 'Reports & Statements',
+      admins: 'Admin Roles & Access',
+      settings: 'Flat Settings',
+      audit: 'Security & Audit Log'
+    };
+    const currentTitle = viewTitles[this.currentView] || 'Flat Management';
 
     return `
       <header class="bg-white border-b border-slate-200 sticky top-0 z-30 card-shadow no-print">
-        <div class="w-full max-w-xl mx-auto px-4 sm:px-6">
+        <div class="w-full max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto px-4 sm:px-6">
           <div class="flex items-center justify-between h-14 sm:h-16">
-            <!-- Left: Oval User Profile Pill (Matching User Screenshot) -->
-            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 bg-white text-xs font-bold text-slate-800 shadow-2xs hover:bg-slate-50 cursor-pointer transition-all" onclick="App.openProfileModal()">
-              <i class="fa-regular fa-user-circle text-base text-slate-700"></i>
-              <span class="truncate max-w-[120px] sm:max-w-none font-bold">${userName}</span>
-            </div>
+            ${isHome ? `
+              <!-- Left: Oval User Profile Pill (Matching User Screenshot) -->
+              <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 bg-white text-xs font-bold text-slate-800 shadow-2xs hover:bg-slate-50 cursor-pointer transition-all" onclick="App.openProfileModal()">
+                <i class="fa-regular fa-user-circle text-base text-slate-700"></i>
+                <span class="truncate max-w-[120px] sm:max-w-none font-bold">${userName}</span>
+              </div>
+            ` : `
+              <!-- Left: Prominent Back Button & Section Title -->
+              <div class="flex items-center gap-2.5 cursor-pointer" onclick="App.goBack()">
+                <button onclick="event.stopPropagation(); App.goBack();" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-800 flex items-center justify-center transition-all text-sm shadow-2xs cursor-pointer active:scale-95" title="Back to Dashboard">
+                  <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="min-w-0">
+                  <h2 class="text-sm font-black text-slate-900 leading-tight truncate">${currentTitle}</h2>
+                  <span class="text-[10px] text-blue-600 font-bold block leading-none mt-0.5">← Back to Dashboard</span>
+                </div>
+              </div>
+            `}
 
             <!-- Right: Search, Notification Bell with Red Badge, Menu Hamburger -->
             <div class="flex items-center gap-2">
@@ -348,8 +377,23 @@ const App = {
   },
 
   navigate(view) {
-    this.currentView = view;
+    if (this.currentView !== view) {
+      if (!this.viewHistory) this.viewHistory = [];
+      this.viewHistory.push(this.currentView);
+      this.currentView = view;
+      this.render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  },
+
+  goBack() {
+    if (this.viewHistory && this.viewHistory.length > 0) {
+      this.currentView = this.viewHistory.pop();
+    } else {
+      this.currentView = (this.userType === 'member') ? 'portal' : 'dashboard';
+    }
     this.render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   },
 
   refresh() {
@@ -362,12 +406,12 @@ const App = {
     if (!modalEl) {
       modalEl = document.createElement('div');
       modalEl.id = 'global-modal';
-      modalEl.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 modal-backdrop';
+      modalEl.className = 'fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 modal-backdrop';
       document.body.appendChild(modalEl);
     }
 
     modalEl.innerHTML = `
-      <div class="bg-white rounded-3xl max-w-lg w-full p-6 card-shadow relative animate-in fade-in zoom-in-95 duration-150">
+      <div class="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto p-5 sm:p-6 card-shadow relative animate-in fade-in zoom-in-95 duration-150">
         ${contentHtml}
       </div>
     `;

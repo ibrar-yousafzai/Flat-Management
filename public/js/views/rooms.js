@@ -13,27 +13,36 @@ const RoomsView = {
       const visibleRooms = rooms.slice(0, this.visibleLimit || 6);
 
       return `
-        <div class="space-y-6">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 card-shadow">
-            <div>
-              <h1 class="text-2xl font-bold text-slate-800">Rooms Management</h1>
-              <p class="text-sm text-slate-500 mt-0.5">Fixed rent per room is automatically split equally among occupants</p>
-            </div>
-            <button onclick="RoomsView.openCreateModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-sm transition-all flex items-center gap-2">
-              <i class="fa-solid fa-plus"></i> Add New Room
+        <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
+          <!-- Top Breadcrumb & Action Toolbar -->
+          <div class="flex items-center justify-between pb-1">
+            <button onclick="App.goBack()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs transition-all active:scale-95">
+              <i class="fa-solid fa-arrow-left text-slate-600"></i>
+              <span>Back to Dashboard</span>
+            </button>
+            <button onclick="RoomsView.openCreateModal()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-plus text-xs"></i> <span>Add Room</span>
             </button>
           </div>
 
-          <!-- Info Box on Freeze Rule -->
-          <div class="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-start gap-3">
-            <i class="fa-solid fa-circle-info text-blue-500 text-base mt-0.5"></i>
-            <div>
-              <strong class="font-semibold">Future-Safe Billing:</strong> Editing a room's fixed rent or occupants only applies to future months. Historical bills already calculated and locked for past months will never change.
+          <!-- Section Banner Card -->
+          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+            <div class="flex items-center justify-between relative z-10">
+              <div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30 mb-1">
+                  <i class="fa-solid fa-door-open"></i> Space & Capacity
+                </span>
+                <h1 class="text-lg sm:text-xl font-black tracking-tight">Rooms & Rents</h1>
+                <p class="text-xs text-blue-100 mt-0.5">Fixed rent per room is split equally among occupants</p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-bed"></i>
+              </div>
             </div>
           </div>
 
           <!-- Rooms Cards Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             ${visibleRooms.map(room => `
               <div class="bg-white rounded-2xl border border-slate-200 card-shadow overflow-hidden flex flex-col justify-between">
                 <div class="p-6">

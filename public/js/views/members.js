@@ -26,34 +26,50 @@ const MembersView = {
       const visibleMembers = filtered.slice(0, this.visibleLimit || 6);
 
       return `
-        <div class="space-y-6">
-          <!-- Header -->
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 card-shadow">
-            <div>
-              <h1 class="text-2xl font-bold text-slate-800">Members Management</h1>
-              <p class="text-sm text-slate-500 mt-0.5">Track active & former flat members, security deposits, room rent assignments, and departure settlements.</p>
-            </div>
-            <button onclick="MembersView.openCreateModal(${JSON.stringify(rooms).replace(/"/g, '&quot;')})" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-sm transition-all flex items-center gap-2">
-              <i class="fa-solid fa-user-plus"></i> Add New Member
+        <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
+          <!-- Top Breadcrumb & Action Toolbar -->
+          <div class="flex items-center justify-between pb-1">
+            <button onclick="App.goBack()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs transition-all active:scale-95">
+              <i class="fa-solid fa-arrow-left text-slate-600"></i>
+              <span>Back to Dashboard</span>
+            </button>
+            <button onclick="MembersView.openCreateModal(${JSON.stringify(rooms).replace(/"/g, '&quot;')})" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-user-plus text-xs"></i> <span>Add Member</span>
             </button>
           </div>
 
+          <!-- Section Banner Card -->
+          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+            <div class="flex items-center justify-between relative z-10">
+              <div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30 mb-1">
+                  <i class="fa-solid fa-users"></i> Directory
+                </span>
+                <h1 class="text-lg sm:text-xl font-black tracking-tight">Members Management</h1>
+                <p class="text-xs text-blue-100 mt-0.5">Track active & former flat members, security deposits, and rooms</p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-id-card"></i>
+              </div>
+            </div>
+          </div>
+
           <!-- Tabs & Search Toolbar -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 card-shadow">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 card-shadow">
             <!-- Tabs -->
-            <div class="flex items-center gap-2">
-              <button onclick="MembersView.switchTab('Active')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all ${this.currentTab === 'Active' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
-                Active Members (${members.filter(m => m.status === 'Active').length})
+            <div class="flex items-center gap-1.5">
+              <button onclick="MembersView.switchTab('Active')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${this.currentTab === 'Active' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                Active (${members.filter(m => m.status === 'Active').length})
               </button>
-              <button onclick="MembersView.switchTab('Former')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all ${this.currentTab === 'Former' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
-                Former Members (${members.filter(m => m.status === 'Former').length})
+              <button onclick="MembersView.switchTab('Former')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${this.currentTab === 'Former' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                Former (${members.filter(m => m.status === 'Former').length})
               </button>
             </div>
 
             <!-- Search box -->
-            <div class="relative w-full sm:w-72">
-              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-              <input type="text" placeholder="Search by name, ID or phone..." value="${this.searchQuery}" oninput="MembersView.onSearch(this.value)" class="w-full pl-9 pr-4 py-2 text-xs border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <div class="relative w-full sm:w-64">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-2.5 text-slate-400 text-xs"></i>
+              <input type="text" placeholder="Search member name, ID..." value="${this.searchQuery}" oninput="MembersView.onSearch(this.value)" class="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
           </div>
 

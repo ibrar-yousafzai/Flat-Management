@@ -23,56 +23,66 @@ const BillsView = {
       const availableMonths = monthsData.months || ['2024-02', '2024-03', '2024-04', '2024-05', '2024-06', '2024-07', '2024-08', '2024-09', '2024-10'];
 
       return `
-        <div class="space-y-6">
-          <!-- Header & Month Selector Toolbar -->
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 card-shadow">
-            <div>
-              <div class="flex items-center gap-2 mb-1">
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${billsData.month_status === 'closed' ? 'bg-purple-50 text-purple-700 border border-purple-200' : (isConfirmed ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200')}">
-                  <i class="fa-solid ${billsData.month_status === 'closed' ? 'fa-lock text-purple-500' : (isConfirmed ? 'fa-circle-check text-emerald-500' : 'fa-pen-to-square text-amber-500')}"></i>
-                  ${billsData.month_status === 'closed' ? 'Month Closed & Rolled Over' : (isConfirmed ? 'Month Confirmed & Published' : 'Draft Mode (In Progress)')}
+        <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
+          <!-- Top Breadcrumb & Action Toolbar -->
+          <div class="flex items-center justify-between pb-1">
+            <button onclick="App.goBack()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs transition-all active:scale-95">
+              <i class="fa-solid fa-arrow-left text-slate-600"></i>
+              <span>Back to Dashboard</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <button onclick="BillsView.openCreateBillModal(${JSON.stringify(rooms).replace(/"/g, '&quot;')}, ${JSON.stringify(members).replace(/"/g, '&quot;')})" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
+                <i class="fa-solid fa-plus text-xs"></i> <span>Add Bill</span>
+              </button>
+              <button onclick="BillsView.openBatchWhatsAppModal()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
+                <i class="fa-brands fa-whatsapp text-xs"></i> <span>WhatsApp</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Section Banner Card -->
+          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+            <div class="flex items-center justify-between relative z-10">
+              <div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${billsData.month_status === 'closed' ? 'bg-purple-500/30 text-purple-200 border border-purple-400/40' : (isConfirmed ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40' : 'bg-amber-500/30 text-amber-200 border border-amber-400/40')} mb-1">
+                  <i class="fa-solid ${billsData.month_status === 'closed' ? 'fa-lock' : (isConfirmed ? 'fa-circle-check' : 'fa-pen-to-square')}"></i>
+                  ${billsData.month_status === 'closed' ? 'Month Closed & Rolled Over' : (isConfirmed ? 'Confirmed & Published' : 'Draft Mode')}
                 </span>
-                ${isConfirmed && billsData.confirmed_by ? `<span class="text-[11px] text-slate-400">Confirmed by ${billsData.confirmed_by}</span>` : ''}
+                <h1 class="text-lg sm:text-xl font-black tracking-tight">Monthly Bills & Splits</h1>
+                <p class="text-xs text-blue-100 mt-0.5">Manage room rents, utility bills, and automatic per-head share splits</p>
               </div>
-              <h1 class="text-2xl font-bold text-slate-800">Monthly Bills & Expense Splits</h1>
-              <p class="text-sm text-slate-500 mt-0.5">Add bills one by one. Confirm when done to store and publish to members. Re-edit anytime.</p>
+              <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Month Selector Toolbar -->
+          <div class="bg-white p-3 rounded-2xl border border-slate-200 card-shadow flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-500 uppercase">Month:</span>
+              <select onchange="BillsView.changeMonth(this.value)" class="text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 outline-none">
+                ${availableMonths.map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${m}</option>`).join('')}
+              </select>
             </div>
             
-            <!-- Controls -->
-            <div class="flex flex-wrap items-center gap-2">
-              <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-                <label class="text-xs font-bold text-slate-600 px-2 uppercase">Month:</label>
-                <select onchange="BillsView.changeMonth(this.value)" class="text-xs font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-300 outline-none">
-                  ${availableMonths.map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${m}</option>`).join('')}
-                </select>
-              </div>
-
-              <button onclick="BillsView.autoGenerateRent()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Fill Rent
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button onclick="BillsView.autoGenerateRent()" class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1">
+                <i class="fa-solid fa-wand-magic-sparkles text-xs"></i> Auto-Fill Rent
               </button>
-
-              <button onclick="BillsView.openCreateBillModal(${JSON.stringify(rooms).replace(/"/g, '&quot;')}, ${JSON.stringify(members).replace(/"/g, '&quot;')})" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                <i class="fa-solid fa-plus"></i> Add One-by-One Bill
+              <button onclick="BillsView.promptBatchEmailModal()" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1">
+                <i class="fa-solid fa-envelope text-xs"></i> Email
               </button>
-
-              <button onclick="BillsView.promptBatchEmailModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                <i class="fa-solid fa-paper-plane text-xs"></i> Send Invoices (Email)
+              <button onclick="BillsView.promptDeleteMonth()" class="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-all" title="Delete Month">
+                <i class="fa-regular fa-trash-can text-xs"></i>
               </button>
-
-              <button onclick="BillsView.openBatchWhatsAppModal()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp Bills (One by One)
-              </button>
-
-              <button onclick="BillsView.promptDeleteMonth()" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-xl shadow-xs transition-all flex items-center gap-1.5" title="Delete or Reset This Month's Bills">
-                <i class="fa-regular fa-trash-can text-xs"></i> Delete Month
-              </button>
-
               ${isConfirmed ? `
-                <button onclick="BillsView.closeAndAdvanceMonth()" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                  <i class="fa-solid fa-forward-step"></i> Close & Rollover to Next Month
+                <button onclick="BillsView.closeAndAdvanceMonth()" class="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1">
+                  <i class="fa-solid fa-forward-step text-xs"></i> Rollover
                 </button>
               ` : ''}
             </div>
+          </div>
           </div>
 
           <!-- DRAFT vs CONFIRMED ACTION BANNER -->
