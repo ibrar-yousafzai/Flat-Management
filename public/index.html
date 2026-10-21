@@ -15,18 +15,45 @@
   <link rel="apple-touch-icon" href="/icons/icon.svg">
   <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
 
-  <!-- Tailwind CSS -->
+  <!-- Early Dark / Light Mode Theme Initializer (Prevents white flash) -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('flat_theme');
+      if (savedTheme === 'dark' || (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    })();
+  </script>
+
+  <!-- Tailwind CSS with Claude AI Editorial Palette -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
             sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            claude: {
+              50: '#FDFBF7',
+              100: '#F7F4EC',
+              200: '#EDE7D9',
+              300: '#DFD5BF',
+              400: '#CDBFA0',
+              500: '#D97706',
+              600: '#C25E2E',
+              700: '#A3481D',
+              800: '#7E3412',
+              900: '#542009',
+            }
           }
         }
       }
-    }
+    };
   </script>
 
   <!-- Google Fonts: Inter -->

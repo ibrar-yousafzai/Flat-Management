@@ -2,6 +2,7 @@
 const FoodView = {
   currentMonth: new Date().toISOString().slice(0, 7),
   activeMembersCache: [],
+  visibleLimit: 6,
 
   async render() {
     try {
@@ -14,6 +15,7 @@ const FoodView = {
       this.activeMembersCache = members;
       const currency = settings.currency_symbol || 'Rs.';
       const totalFoodMonth = entries.reduce((acc, e) => acc + Number(e.total_amount || 0), 0);
+      const visibleEntries = entries.slice(0, this.visibleLimit || 6);
 
       // Format month for display (e.g. October 2026)
       const [yearStr, monthStr] = this.currentMonth.split('-');
@@ -95,7 +97,7 @@ const FoodView = {
 
           <!-- Food Entries List -->
           <div class="space-y-4">
-            ${entries.length > 0 ? entries.map(entry => {
+            ${visibleEntries.length > 0 ? visibleEntries.map(entry => {
               const customMembersCount = entry.members.filter(m => m.is_custom).length;
               return `
               <div class="bg-white rounded-2xl border border-slate-200 card-shadow p-5 hover:border-amber-200 transition-all">
@@ -159,6 +161,28 @@ const FoodView = {
                 </button>
               </div>
             `}
+
+            <!-- Food Entries Show More / Pagination Toolbar -->
+            ${entries.length > 6 ? `
+              <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <span class="text-slate-500 font-medium">Showing ${Math.min(this.visibleLimit || 6, entries.length)} of ${entries.length} weekly batches</span>
+                <div class="flex items-center gap-2">
+                  ${(this.visibleLimit || 6) < entries.length ? `
+                    <button onclick="FoodView.showMore()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5">
+                      <i class="fa-solid fa-chevron-down text-xs"></i> Show More (+6)
+                    </button>
+                    <button onclick="FoodView.showAll()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold rounded-xl transition-all">
+                      Show All
+                    </button>
+                  ` : ''}
+                  ${(this.visibleLimit || 6) > 6 ? `
+                    <button onclick="FoodView.showLess()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 font-semibold rounded-xl transition-all">
+                      Show Less
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            ` : ''}
           </div>
         </div>
       `;
@@ -167,10 +191,26 @@ const FoodView = {
     }
   },
 
+  showMore() {
+    this.visibleLimit = (this.visibleLimit || 6) + 6;
+    App.refresh();
+  },
+
+  showAll() {
+    this.visibleLimit = 9999;
+    App.refresh();
+  },
+
+  showLess() {
+    this.visibleLimit = 6;
+    App.refresh();
+  },
+
   // Month navigation helpers
   changeMonth(month) {
     if (!month) return;
     this.currentMonth = month;
+    this.visibleLimit = 6;
     App.refresh();
   },
 

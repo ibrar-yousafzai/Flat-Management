@@ -2,6 +2,7 @@
 const MembersView = {
   currentTab: 'Active', // 'Active' or 'Former'
   searchQuery: '',
+  visibleLimit: 6,
 
   async render() {
     try {
@@ -21,6 +22,8 @@ const MembersView = {
           (m.whatsapp && m.whatsapp.includes(this.searchQuery));
         return matchesTab && matchesSearch;
       });
+
+      const visibleMembers = filtered.slice(0, this.visibleLimit || 6);
 
       return `
         <div class="space-y-6">
@@ -71,7 +74,7 @@ const MembersView = {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                  ${filtered.length > 0 ? filtered.map(m => {
+                  ${visibleMembers.length > 0 ? visibleMembers.map(m => {
                     const isOwed = (m.outstanding_balance || 0) > 0;
                     return `
                       <tr class="table-row-hover transition-colors">
@@ -175,7 +178,7 @@ const MembersView = {
 
             <!-- Dedicated Mobile Member Cards (Clean Touch-Optimized Layout) -->
             <div class="md:hidden divide-y divide-slate-100">
-              ${filtered.length > 0 ? filtered.map(m => {
+              ${visibleMembers.length > 0 ? visibleMembers.map(m => {
                 const isOwed = (m.outstanding_balance || 0) > 0;
                 return `
                   <div class="p-4 space-y-3">
@@ -245,7 +248,30 @@ const MembersView = {
                 </div>
               `}
             </div>
-          </div>
+
+            <!-- Pagination / Show More Toolbar (Fast & Clean) -->
+            ${filtered.length > 6 ? `
+              <div class="p-3.5 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div class="text-slate-500 font-medium text-center sm:text-left">
+                  Showing <span class="font-bold text-slate-800">${Math.min(this.visibleLimit || 6, filtered.length)}</span> of <span class="font-bold text-slate-800">${filtered.length}</span> members
+                </div>
+                <div class="flex items-center gap-2">
+                  ${(this.visibleLimit || 6) < filtered.length ? `
+                    <button onclick="MembersView.showMore()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5">
+                      <i class="fa-solid fa-chevron-down text-xs"></i> Show More (+6)
+                    </button>
+                    <button onclick="MembersView.showAll()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold rounded-xl transition-all">
+                      Show All (${filtered.length})
+                    </button>
+                  ` : ''}
+                  ${(this.visibleLimit || 6) > 6 ? `
+                    <button onclick="MembersView.showLess()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 font-semibold rounded-xl transition-all flex items-center gap-1">
+                      <i class="fa-solid fa-chevron-up text-xs"></i> Show Less (6)
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            ` : ''}
           </div>
         </div>
       `;
@@ -254,13 +280,30 @@ const MembersView = {
     }
   },
 
+  showMore() {
+    this.visibleLimit = (this.visibleLimit || 6) + 6;
+    App.refresh();
+  },
+
+  showAll() {
+    this.visibleLimit = 9999;
+    App.refresh();
+  },
+
+  showLess() {
+    this.visibleLimit = 6;
+    App.refresh();
+  },
+
   switchTab(tab) {
     this.currentTab = tab;
+    this.visibleLimit = 6;
     App.refresh();
   },
 
   onSearch(query) {
     this.searchQuery = query;
+    this.visibleLimit = 6;
     App.refresh();
   },
 

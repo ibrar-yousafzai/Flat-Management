@@ -1,14 +1,127 @@
-/* Custom styles and mobile/print stylesheet for Flat Management */
+/* Flat Management - Claude AI Theme & Dark/Light Mode Stylesheet */
 
-/* Mobile Safe Areas (iPhone Notch & Home Indicator) */
 :root {
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
+
+  /* Claude AI Day Mode Palette */
+  --bg-app: #FAF9F5;
+  --bg-card: #FFFFFF;
+  --bg-surface: #F3F1EA;
+  --bg-surface-hover: #ECE9E0;
+  --bg-input: #FFFFFF;
+  --border-subtle: #E8E6DF;
+  --border-strong: #D5D2C8;
+  --text-main: #191816;
+  --text-muted: #66635D;
+  --text-subtle: #96938B;
+  --accent-claude: #C25E2E;
+  --accent-hover: #A3481D;
+  --accent-soft: #FBF0EB;
+  --accent-text: #963D16;
+  --card-shadow: 0 4px 20px -2px rgba(25, 24, 22, 0.04), 0 2px 6px -1px rgba(25, 24, 22, 0.02);
+}
+
+/* Claude AI Night / Black Mode Palette */
+html.dark {
+  --bg-app: #131210;
+  --bg-card: #1C1A17;
+  --bg-surface: #24221E;
+  --bg-surface-hover: #2C2A25;
+  --bg-input: #171614;
+  --border-subtle: #2D2B26;
+  --border-strong: #3D3A33;
+  --text-main: #EDECE8;
+  --text-muted: #A8A59D;
+  --text-subtle: #75726B;
+  --accent-claude: #D96E3B;
+  --accent-hover: #E8804E;
+  --accent-soft: #2B1D16;
+  --accent-text: #F3A87D;
+  --card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4), 0 2px 8px -1px rgba(0, 0, 0, 0.3);
 }
 
 body {
   padding-top: var(--sat);
   -webkit-tap-highlight-color: transparent;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Card and Container Theme Rules */
+.bg-slate-50, .bg-slate-100 {
+  background-color: var(--bg-surface) !important;
+}
+
+.bg-white {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main);
+}
+
+.border-slate-200, .border-slate-100, .border-slate-300 {
+  border-color: var(--border-subtle) !important;
+}
+
+.text-slate-900, .text-slate-800, .text-slate-700 {
+  color: var(--text-main) !important;
+}
+
+.text-slate-600, .text-slate-500 {
+  color: var(--text-muted) !important;
+}
+
+.text-slate-400, .text-slate-300 {
+  color: var(--text-subtle) !important;
+}
+
+/* Claude Terracotta Accent & Indigo Remapping */
+.bg-indigo-600 {
+  background-color: var(--accent-claude) !important;
+  color: #FFFFFF !important;
+}
+
+.hover\:bg-indigo-700:hover, .bg-indigo-700 {
+  background-color: var(--accent-hover) !important;
+}
+
+.text-indigo-600, .text-indigo-700, .text-indigo-800, .text-indigo-900 {
+  color: var(--accent-claude) !important;
+}
+
+.bg-indigo-50, .bg-indigo-50\/30, .bg-indigo-50\/50 {
+  background-color: var(--accent-soft) !important;
+}
+
+.border-indigo-200, .border-indigo-100, .border-indigo-300 {
+  border-color: var(--border-strong) !important;
+}
+
+/* Form Controls Adaptations */
+input, select, textarea {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-main) !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-claude) !important;
+  box-shadow: 0 0 0 2px rgba(194, 94, 46, 0.2) !important;
+}
+
+/* Table Rows & Hovers */
+.table-row-hover:hover {
+  background-color: var(--bg-surface-hover) !important;
+}
+
+thead.bg-slate-50 {
+  background-color: var(--bg-surface) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+/* Card Shadow */
+.card-shadow {
+  box-shadow: var(--card-shadow) !important;
 }
 
 /* Mobile Bottom Navigation Bar */
@@ -16,6 +129,32 @@ body {
   padding-bottom: calc(var(--sab) + 0.35rem);
 }
 
+/* Dark Mode Modals & Overlays */
+.modal-backdrop {
+  backdrop-filter: blur(8px);
+  background-color: rgba(14, 13, 11, 0.65) !important;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-subtle);
+}
+
+/* Print Styles */
 @media print {
   body * {
     visibility: hidden;
@@ -36,34 +175,4 @@ body {
   .no-print {
     display: none !important;
   }
-}
-
-/* Glass & Card subtle shadows */
-.card-shadow {
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
-}
-
-.table-row-hover:hover {
-  background-color: #f8fafc;
-}
-
-/* Smooth modal transitions */
-.modal-backdrop {
-  backdrop-filter: blur(4px);
-}
-
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
 }

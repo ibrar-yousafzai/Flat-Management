@@ -2,6 +2,7 @@
 const PaymentsView = {
   activeTab: 'pending', // 'pending' or 'all'
   filterFor: 'all', // 'all', 'bills', 'food'
+  visibleLimit: 6,
 
   async render() {
     try {
@@ -12,8 +13,10 @@ const PaymentsView = {
       ]);
 
       const currency = settings.currency_symbol || 'Rs.';
-      const allPayments = paymentsData.payments;
+      const allPayments = paymentsData.payments || [];
       const pendingList = allPayments.filter(p => p.status === 'pending');
+      const visiblePayments = allPayments.slice(0, this.visibleLimit || 6);
+      const visiblePending = pendingList.slice(0, this.visibleLimit || 6);
 
       return `
         <div class="space-y-6">
@@ -61,7 +64,7 @@ const PaymentsView = {
           <!-- PENDING APPROVALS QUEUE -->
           ${this.activeTab === 'pending' ? `
             <div class="space-y-4">
-              ${pendingList.length > 0 ? pendingList.map(p => `
+              ${visiblePending.length > 0 ? visiblePending.map(p => `
                 <div class="bg-white rounded-2xl border-2 ${p.payment_for === 'food' ? 'border-amber-300' : 'border-indigo-300'} card-shadow p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div class="space-y-1">
                     <div class="flex items-center gap-2">
@@ -109,6 +112,24 @@ const PaymentsView = {
                   <p class="text-xs text-slate-400 mt-1">All member submitted payment claims are currently verified.</p>
                 </div>
               `}
+
+              ${pendingList.length > 6 ? `
+                <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                  <span class="text-slate-500 font-medium">Showing ${Math.min(this.visibleLimit || 6, pendingList.length)} of ${pendingList.length} pending requests</span>
+                  <div class="flex items-center gap-2">
+                    ${(this.visibleLimit || 6) < pendingList.length ? `
+                      <button onclick="PaymentsView.showMore()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-chevron-down text-xs"></i> Show More Pending (+6)
+                      </button>
+                    ` : ''}
+                    ${(this.visibleLimit || 6) > 6 ? `
+                      <button onclick="PaymentsView.showLess()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 font-semibold rounded-xl transition-all">
+                        Show Less
+                      </button>
+                    ` : ''}
+                  </div>
+                </div>
+              ` : ''}
             </div>
           ` : `
             <!-- ALL PAYMENTS TABLE -->
@@ -127,7 +148,7 @@ const PaymentsView = {
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-100">
-                    ${allPayments.length > 0 ? allPayments.map(p => `
+                    ${visiblePayments.length > 0 ? visiblePayments.map(p => `
                       <tr class="table-row-hover">
                         <td class="py-3 px-4">
                           <div class="font-semibold text-slate-800">${p.payment_date}</div>
@@ -176,6 +197,30 @@ const PaymentsView = {
                   </tbody>
                 </table>
               </div>
+
+              <!-- All Payments Pagination / Show More Toolbar -->
+              ${allPayments.length > 6 ? `
+                <div class="p-3.5 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                  <div class="text-slate-500 font-medium text-center sm:text-left">
+                    Showing <span class="font-bold text-slate-800">${Math.min(this.visibleLimit || 6, allPayments.length)}</span> of <span class="font-bold text-slate-800">${allPayments.length}</span> payments
+                  </div>
+                  <div class="flex items-center gap-2">
+                    ${(this.visibleLimit || 6) < allPayments.length ? `
+                      <button onclick="PaymentsView.showMore()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-chevron-down text-xs"></i> Show More (+6)
+                      </button>
+                      <button onclick="PaymentsView.showAll()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold rounded-xl transition-all">
+                        Show All (${allPayments.length})
+                      </button>
+                    ` : ''}
+                    ${(this.visibleLimit || 6) > 6 ? `
+                      <button onclick="PaymentsView.showLess()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 font-semibold rounded-xl transition-all flex items-center gap-1">
+                        <i class="fa-solid fa-chevron-up text-xs"></i> Show Less (6)
+                      </button>
+                    ` : ''}
+                  </div>
+                </div>
+              ` : ''}
             </div>
           `}
         </div>
@@ -185,13 +230,30 @@ const PaymentsView = {
     }
   },
 
+  showMore() {
+    this.visibleLimit = (this.visibleLimit || 6) + 6;
+    App.refresh();
+  },
+
+  showAll() {
+    this.visibleLimit = 9999;
+    App.refresh();
+  },
+
+  showLess() {
+    this.visibleLimit = 6;
+    App.refresh();
+  },
+
   switchTab(tab) {
     this.activeTab = tab;
+    this.visibleLimit = 6;
     App.refresh();
   },
 
   setFilterFor(forType) {
     this.filterFor = forType;
+    this.visibleLimit = 6;
     App.refresh();
   },
 

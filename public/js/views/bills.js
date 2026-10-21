@@ -1,6 +1,8 @@
 // Monthly Bills & Matrix Split View
 const BillsView = {
   selectedMonth: new Date().toISOString().slice(0, 7),
+  visibleMembersLimit: 6,
+  visibleBillsLimit: 6,
 
   async render() {
     try {
@@ -13,8 +15,10 @@ const BillsView = {
       ]);
 
       const currency = settings.currency_symbol || 'Rs.';
-      const bills = billsData.bills;
-      const matrix = billsData.matrix;
+      const bills = billsData.bills || [];
+      const matrix = billsData.matrix || [];
+      const visibleMatrix = matrix.slice(0, this.visibleMembersLimit || 6);
+      const visibleBills = bills.slice(0, this.visibleBillsLimit || 6);
       const isConfirmed = billsData.month_status === 'confirmed' || billsData.month_status === 'closed';
       const availableMonths = monthsData.months || ['2024-02', '2024-03', '2024-04', '2024-05', '2024-06', '2024-07', '2024-08', '2024-09', '2024-10'];
 
@@ -171,7 +175,7 @@ const BillsView = {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                  ${matrix && matrix.length > 0 ? matrix.map(row => `
+                  ${visibleMatrix && visibleMatrix.length > 0 ? visibleMatrix.map(row => `
                     <tr class="table-row-hover">
                       <!-- Member & Room -->
                       <td class="py-3 px-3 border-r border-slate-100">
@@ -242,7 +246,7 @@ const BillsView = {
 
             <!-- Mobile Member Split Cards (Small screen optimized) -->
             <div class="md:hidden divide-y divide-slate-100">
-              ${matrix && matrix.length > 0 ? matrix.map(row => `
+              ${visibleMatrix && visibleMatrix.length > 0 ? visibleMatrix.map(row => `
                 <div class="p-4 space-y-3">
                   <!-- Header -->
                   <div class="flex items-start justify-between">
@@ -314,14 +318,41 @@ const BillsView = {
                 </div>
               `}
             </div>
+
+            <!-- Members Split Pagination / Show More Toolbar (Fast & Clean) -->
+            ${matrix && matrix.length > 6 ? `
+              <div class="p-3.5 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div class="text-slate-500 font-medium text-center sm:text-left">
+                  Showing <span class="font-bold text-slate-800">${Math.min(this.visibleMembersLimit || 6, matrix.length)}</span> of <span class="font-bold text-slate-800">${matrix.length}</span> members
+                </div>
+                <div class="flex items-center gap-2">
+                  ${(this.visibleMembersLimit || 6) < matrix.length ? `
+                    <button onclick="BillsView.showMoreMembers()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5">
+                      <i class="fa-solid fa-chevron-down text-xs"></i> Show More (+6)
+                    </button>
+                    <button onclick="BillsView.showAllMembers()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold rounded-xl transition-all">
+                      Show All (${matrix.length})
+                    </button>
+                  ` : ''}
+                  ${(this.visibleMembersLimit || 6) > 6 ? `
+                    <button onclick="BillsView.showLessMembers()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 font-semibold rounded-xl transition-all flex items-center gap-1">
+                      <i class="fa-solid fa-chevron-up text-xs"></i> Show Less (6)
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            ` : ''}
           </div>
 
           <!-- Individual Bills List & Management -->
           <div class="bg-white rounded-2xl border border-slate-200 card-shadow p-6">
-            <h3 class="text-sm font-bold text-slate-800 mb-3">Bills List for ${this.selectedMonth}</h3>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-bold text-slate-800">Bills List for ${this.selectedMonth}</h3>
+              <span class="text-xs text-slate-400 font-medium">${bills.length} total bills</span>
+            </div>
             ${bills.length > 0 ? `
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                ${bills.map(b => `
+                ${visibleBills.map(b => `
                   <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
                     <div>
                       <div class="font-bold text-slate-800 text-xs">${b.title}</div>
@@ -343,6 +374,24 @@ const BillsView = {
                   </div>
                 `).join('')}
               </div>
+
+              <!-- Bills Load More -->
+              ${bills.length > 6 ? `
+                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span class="text-slate-500">Showing ${Math.min(this.visibleBillsLimit || 6, bills.length)} of ${bills.length} bills</span>
+                  <div class="flex items-center gap-2">
+                    ${(this.visibleBillsLimit || 6) < bills.length ? `
+                      <button onclick="BillsView.showMoreBills()" class="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl transition-all">
+                        Show More Bills (+6)
+                      </button>
+                    ` : `
+                      <button onclick="BillsView.showLessBills()" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl transition-all">
+                        Show Less Bills
+                      </button>
+                    `}
+                  </div>
+                </div>
+              ` : ''}
             ` : '<p class="text-xs text-slate-400">No bills added yet for this month. Click "Auto-Fill Rent" or "Add One-by-One Bill" above.</p>'}
           </div>
         </div>
@@ -352,8 +401,35 @@ const BillsView = {
     }
   },
 
+  showMoreMembers() {
+    this.visibleMembersLimit = (this.visibleMembersLimit || 6) + 6;
+    App.refresh();
+  },
+
+  showAllMembers() {
+    this.visibleMembersLimit = 9999;
+    App.refresh();
+  },
+
+  showLessMembers() {
+    this.visibleMembersLimit = 6;
+    App.refresh();
+  },
+
+  showMoreBills() {
+    this.visibleBillsLimit = (this.visibleBillsLimit || 6) + 6;
+    App.refresh();
+  },
+
+  showLessBills() {
+    this.visibleBillsLimit = 6;
+    App.refresh();
+  },
+
   changeMonth(month) {
     this.selectedMonth = month;
+    this.visibleMembersLimit = 6;
+    this.visibleBillsLimit = 6;
     App.refresh();
   },
 

@@ -2,6 +2,7 @@
 const ReportsView = {
   selectedMonth: new Date().toISOString().slice(0, 7),
   selectedMemberId: 'all',
+  visibleLimit: 6,
 
   async render() {
     try {
@@ -267,6 +268,28 @@ const ReportsView = {
           </table>
         </div>
 
+        <!-- Master Statement Pagination / Show More Toolbar (Hidden on Print) -->
+        ${rows.length > 6 ? `
+          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs no-print">
+            <span class="text-slate-500 font-medium">Showing ${Math.min(this.visibleLimit || 6, rows.length)} of ${rows.length} members</span>
+            <div class="flex items-center gap-2">
+              ${(this.visibleLimit || 6) < rows.length ? `
+                <button onclick="ReportsView.showMore()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5">
+                  <i class="fa-solid fa-chevron-down text-xs"></i> Show More (+6)
+                </button>
+                <button onclick="ReportsView.showAll()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold rounded-xl transition-all">
+                  Show All (${rows.length})
+                </button>
+              ` : ''}
+              ${(this.visibleLimit || 6) > 6 ? `
+                <button onclick="ReportsView.showLess()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 font-semibold rounded-xl transition-all flex items-center gap-1">
+                  <i class="fa-solid fa-chevron-up text-xs"></i> Show Less (6)
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        ` : ''}
+
         <!-- SECTION 2: WEEKLY FOOD MESS (SEPARATE WEEK-TO-WEEK) -->
         <div class="border border-amber-200 rounded-2xl p-5 bg-amber-50/20 space-y-3">
           <div class="flex items-center justify-between border-b border-amber-200 pb-2">
@@ -404,6 +427,7 @@ const ReportsView = {
   async renderConsolidatedView(currency, settings) {
     const data = await API.get(`/api/reports/month-consolidated/${this.selectedMonth}`);
     const rows = data.rows || [];
+    const visibleRows = rows.slice(0, this.visibleLimit || 6);
     const t = data.totals || {};
 
     return `
@@ -479,7 +503,7 @@ const ReportsView = {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 font-medium">
-              ${rows.map(r => `
+              ${visibleRows.map(r => `
                 <tr class="table-row-hover">
                   <td class="py-2.5 px-3 border-r border-slate-100">
                     <span class="font-bold text-slate-900">${r.member.name}</span>
@@ -544,5 +568,20 @@ const ReportsView = {
         </div>
       </div>
     `;
+  },
+
+  showMore() {
+    this.visibleLimit = (this.visibleLimit || 6) + 6;
+    App.refresh();
+  },
+
+  showAll() {
+    this.visibleLimit = 9999;
+    App.refresh();
+  },
+
+  showLess() {
+    this.visibleLimit = 6;
+    App.refresh();
   }
 };

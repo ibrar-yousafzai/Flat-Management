@@ -5,6 +5,8 @@ const App = {
   currentUser: null,
 
   init() {
+    this.initTheme();
+
     // Restore session from localStorage if present
     const savedType = localStorage.getItem('flat_userType');
     const savedUser = localStorage.getItem('flat_currentUser');
@@ -20,6 +22,35 @@ const App = {
     }
 
     this.render();
+  },
+
+  // Claude AI Theme & Dark / Light Mood Engine
+  initTheme() {
+    const saved = localStorage.getItem('flat_theme');
+    const isDark = saved === 'dark' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  },
+
+  toggleTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+    if (isDark) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('flat_theme', 'light');
+      this.toast('☀️ Day Mode activated (Claude Editorial)', 'info');
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('flat_theme', 'dark');
+      this.toast('🌙 Night Mode activated (Black Velvet)', 'info');
+    }
+    this.refresh();
+  },
+
+  isDarkMode() {
+    return document.documentElement.classList.contains('dark');
   },
 
   // Inactivity timeout protection for shared phones
@@ -216,8 +247,14 @@ const App = {
               `)}
             </nav>
 
-            <!-- User Info & Logout -->
-            <div class="flex items-center gap-2 sm:gap-3">
+            <!-- User Info, Theme Toggle & Logout -->
+            <div class="flex items-center gap-1.5 sm:gap-2.5">
+              <!-- Day / Night Mode Switcher -->
+              <button onclick="App.toggleTheme()" title="Switch Day / Night Mood" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-600 border border-slate-200 flex items-center justify-center transition-all text-xs">
+                <i class="fa-solid fa-moon text-amber-500 dark:hidden"></i>
+                <i class="fa-solid fa-sun text-amber-400 hidden dark:inline"></i>
+              </button>
+
               <div class="text-right hidden sm:block">
                 <span class="text-xs font-bold text-slate-800 block">${this.currentUser.name}</span>
                 <span class="text-[10px] text-slate-400 font-mono block">
@@ -624,6 +661,17 @@ const App = {
             </button>
           ` : ''}
         </div>
+
+        <!-- Day / Night Mood Switcher Row -->
+        <button onclick="App.toggleTheme(); App.closeModal();" class="w-full p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition-all flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <i class="fa-solid ${this.isDarkMode() ? 'fa-sun text-amber-400' : 'fa-moon text-amber-500'} text-base"></i>
+            <span class="font-bold text-xs">${this.isDarkMode() ? 'Night Mode (Black Velvet)' : 'Day Mode (Claude Editorial)'}</span>
+          </div>
+          <span class="text-[10px] px-2.5 py-1 rounded-full font-bold bg-slate-200 text-slate-700">
+            Switch to ${this.isDarkMode() ? 'Day ☀️' : 'Night 🌙'}
+          </span>
+        </button>
 
         <!-- App & Session Actions -->
         <div class="pt-2 border-t border-slate-100 flex items-center gap-2">

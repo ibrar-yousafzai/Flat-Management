@@ -1,5 +1,7 @@
 // Member Self-Service Portal View
 const PortalView = {
+  visiblePaymentsLimit: 6,
+
   async render() {
     const member = App.currentUser;
     if (!member || App.userType !== 'member') {
@@ -249,7 +251,7 @@ const PortalView = {
             </div>
 
             <div class="divide-y divide-slate-100">
-              ${data.payments.length > 0 ? data.payments.map(p => `
+              ${(data.payments || []).slice(0, this.visiblePaymentsLimit || 6).length > 0 ? (data.payments || []).slice(0, this.visiblePaymentsLimit || 6).map(p => `
                 <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 transition-colors">
                   <div>
                     <div class="flex items-center gap-2">
@@ -296,12 +298,49 @@ const PortalView = {
                 </div>
               `}
             </div>
+
+            <!-- Portal Payments Pagination / Show More -->
+            ${data.payments && data.payments.length > 6 ? `
+              <div class="p-3.5 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <span class="text-slate-500 font-medium">Showing ${Math.min(this.visiblePaymentsLimit || 6, data.payments.length)} of ${data.payments.length} submissions</span>
+                <div class="flex items-center gap-2">
+                  ${(this.visiblePaymentsLimit || 6) < data.payments.length ? `
+                    <button onclick="PortalView.showMorePayments()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5">
+                      <i class="fa-solid fa-chevron-down text-xs"></i> Show More (+6)
+                    </button>
+                    <button onclick="PortalView.showAllPayments()" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold rounded-xl transition-all">
+                      Show All
+                    </button>
+                  ` : ''}
+                  ${(this.visiblePaymentsLimit || 6) > 6 ? `
+                    <button onclick="PortalView.showLessPayments()" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 font-semibold rounded-xl transition-all">
+                      Show Less (6)
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            ` : ''}
           </div>
         </div>
       `;
     } catch (err) {
       return `<div class="p-6 bg-red-50 text-red-700 rounded-xl">Error loading your portal: ${err.message}</div>`;
     }
+  },
+
+  showMorePayments() {
+    this.visiblePaymentsLimit = (this.visiblePaymentsLimit || 6) + 6;
+    App.refresh();
+  },
+
+  showAllPayments() {
+    this.visiblePaymentsLimit = 9999;
+    App.refresh();
+  },
+
+  showLessPayments() {
+    this.visiblePaymentsLimit = 6;
+    App.refresh();
   },
 
   // Modal for Download My Full Statement (PDF / Ledger)

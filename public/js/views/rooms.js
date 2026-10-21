@@ -1,5 +1,7 @@
 // Rooms View
 const RoomsView = {
+  visibleLimit: 6,
+
   async render() {
     try {
       const [rooms, settings] = await Promise.all([
@@ -8,6 +10,7 @@ const RoomsView = {
       ]);
 
       const currency = settings.currency_symbol || 'Rs.';
+      const visibleRooms = rooms.slice(0, this.visibleLimit || 6);
 
       return `
         <div class="space-y-6">
@@ -31,7 +34,7 @@ const RoomsView = {
 
           <!-- Rooms Cards Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            ${rooms.map(room => `
+            ${visibleRooms.map(room => `
               <div class="bg-white rounded-2xl border border-slate-200 card-shadow overflow-hidden flex flex-col justify-between">
                 <div class="p-6">
                   <div class="flex items-start justify-between">
@@ -90,11 +93,48 @@ const RoomsView = {
               </div>
             `).join('')}
           </div>
+
+          <!-- Rooms Pagination / Show More Toolbar -->
+          ${rooms.length > 6 ? `
+            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <span class="text-slate-500 font-medium">Showing ${Math.min(this.visibleLimit || 6, rooms.length)} of ${rooms.length} rooms</span>
+              <div class="flex items-center gap-2">
+                ${(this.visibleLimit || 6) < rooms.length ? `
+                  <button onclick="RoomsView.showMore()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-chevron-down text-xs"></i> Show More (+6)
+                  </button>
+                  <button onclick="RoomsView.showAll()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold rounded-xl transition-all">
+                    Show All
+                  </button>
+                ` : ''}
+                ${(this.visibleLimit || 6) > 6 ? `
+                  <button onclick="RoomsView.showLess()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 font-semibold rounded-xl transition-all">
+                    Show Less
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          ` : ''}
         </div>
       `;
     } catch (err) {
       return `<div class="p-6 bg-red-50 text-red-700 rounded-xl">Error loading rooms: ${err.message}</div>`;
     }
+  },
+
+  showMore() {
+    this.visibleLimit = (this.visibleLimit || 6) + 6;
+    App.refresh();
+  },
+
+  showAll() {
+    this.visibleLimit = 9999;
+    App.refresh();
+  },
+
+  showLess() {
+    this.visibleLimit = 6;
+    App.refresh();
   },
 
   openCreateModal() {
