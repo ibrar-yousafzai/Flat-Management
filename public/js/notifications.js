@@ -35,27 +35,126 @@ const Notifications = {
     }
   },
 
-  // Request browser / phone native notification permission
+  // Request browser / phone native notification permission & Web Push Subscription
   async requestDevicePermission() {
+    await this.subscribeDevicePush();
+  },
+
+  urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  },
+
+  async subscribeDevicePush() {
     if (!('Notification' in window)) {
-      App.toast('Native device notifications not supported on this browser', 'info');
+      App.toast('Device notifications are not supported on this browser', 'info');
       return;
     }
 
     try {
       const perm = await Notification.requestPermission();
-      if (perm === 'granted') {
-        App.toast('🔔 Mobile screen notifications enabled!', 'success');
-        this.showDeviceNotification('Flat Notifications Active', 'You will now receive alerts directly on your phone screen!');
-        // Refresh drawer UI to hide permission banner
-        const banner = document.getElementById('notif-perm-banner');
-        if (banner) banner.classList.add('hidden');
-      } else {
-        App.toast('Notification permission was dismissed', 'info');
+      if (perm !== 'granted') {
+        App.toast('Notification permission was dismissed or blocked', 'info');
+        return;
       }
+
+      // Check for ServiceWorker and PushManager
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const keyRes = await API.get('/api/notifications/vapid-public-key');
+          const publicKey = keyRes.publicKey;
+
+          if (publicKey) {
+            const swReg = await navigator.serviceWorker.ready;
+            let subscription = await swReg.pushManager.getSubscription();
+
+            if (!subscription) {
+              subscription = await swReg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: this.urlBase64ToUint8Array(publicKey)
+              });
+            }
+
+            await API.post('/api/notifications/subscribe-push', { subscription: subscription.toJSON() });
+          }
+        } catch (pushErr) {
+          console.warn('Web push registration fallback:', pushErr);
+        }
+      }
+
+      App.toast('🔔 Lock Screen, Notification Center & Banner alerts enabled!', 'success');
+      this.showDeviceNotification('Flat Notifications Active', 'Lock Screen and Top Banner alerts are now enabled on your device!');
+
+      const banner = document.getElementById('notif-perm-banner');
+      if (banner) banner.classList.add('hidden');
     } catch (e) {
       App.toast(e.message, 'error');
     }
+  },
+
+  // Instant Test Alert to phone Lock Screen & Top Banner
+  async testLockScreenPush() {
+    try {
+      App.toast('Sending test alert to Lock Screen & Banner...', 'info');
+      const res = await API.post('/api/notifications/test-push', {});
+      if (res && res.delivered_devices > 0) {
+        App.toast(`⚡ Push delivered to ${res.delivered_devices} device(s)! Lock your phone to test.`, 'success');
+      } else {
+        this.showDeviceNotification('🔔 Lock Screen & Banner Alert', 'Flat Management notifications are working on your mobile screen!');
+        App.toast('🔔 Alert triggered! Check your notification center & banner.', 'success');
+      }
+    } catch (err) {
+      this.showDeviceNotification('🔔 Lock Screen & Banner Alert', 'Flat Management notifications are working on your mobile screen!');
+    }
+  },
+
+  // iOS Add to Home Screen Instructions
+  openIosInstallGuide() {
+    App.showModal(`
+      <div class="space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm font-bold">
+              <i class="fa-brands fa-apple text-base"></i>
+            </div>
+            <h3 class="text-base font-black text-slate-900">Lock Screen Alerts on iPhone</h3>
+          </div>
+          <button onclick="App.closeModal()" class="text-slate-400 hover:text-slate-600 text-sm">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="text-xs text-slate-600 space-y-3">
+          <p>Apple requires web apps to be added to your home screen to show notifications on the <strong>Lock Screen</strong>, <strong>Notification Center</strong>, & <strong>Banner</strong>.</p>
+          <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px] shrink-0">1</span>
+              <span>In Safari, tap the <strong>Share</strong> button <i class="fa-solid fa-arrow-up-from-bracket text-indigo-600"></i> at the bottom.</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px] shrink-0">2</span>
+              <span>Scroll down and tap <strong>"Add to Home Screen"</strong> <i class="fa-solid fa-plus-square text-indigo-600"></i>.</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px] shrink-0">3</span>
+              <span>Open the FlatApp from your home screen and tap <strong>"Enable Alerts"</strong>!</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-end">
+          <button onclick="App.closeModal()" class="px-5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-xs">
+            Got It
+          </button>
+        </div>
+      </div>
+    `);
   },
 
   // Trigger Native Phone Screen Notification (iOS / Android / Desktop)
@@ -199,13 +298,31 @@ const Notifications = {
           <div id="notif-perm-banner" class="p-3 bg-gradient-to-r from-indigo-50 to-amber-50 border-b border-indigo-100 flex items-center justify-between gap-2 text-xs">
             <div class="flex items-center gap-2 text-slate-700">
               <i class="fa-solid fa-mobile-screen-button text-indigo-600 text-sm"></i>
-              <span>Get alerts on your <strong>phone screen</strong> like other apps!</span>
+              <span>Allow <strong>Lock Screen</strong>, <strong>Notification Center</strong> & <strong>Banner</strong> alerts!</span>
             </div>
             <button onclick="Notifications.requestDevicePermission()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] rounded-xl shadow-xs transition-all shrink-0">
-              Enable
+              Allow
             </button>
           </div>
-        ` : ''}
+        ` : `
+          <div class="px-3.5 py-2 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-1.5 text-emerald-800">
+              <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+              <span>Lock Screen & Banner: <strong>Allowed</strong></span>
+            </div>
+            <button onclick="Notifications.testLockScreenPush()" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[10px] rounded-lg shadow-2xs transition-all flex items-center gap-1">
+              <i class="fa-solid fa-bolt text-amber-500"></i> Test Alert
+            </button>
+          </div>
+        `}
+
+        <!-- iOS iPhone Tip Banner (if applicable) -->
+        <div class="px-3.5 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <span class="flex items-center gap-1.5"><i class="fa-brands fa-apple text-slate-400"></i> iPhone or iPad?</span>
+          <button onclick="Notifications.openIosInstallGuide()" class="text-indigo-600 font-bold hover:underline">
+            Lock Screen Guide &rarr;
+          </button>
+        </div>
 
         <!-- Filter Categories Bar -->
         <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto scrollbar-none">

@@ -146,4 +146,79 @@ router.delete('/:id', requireAdmin, (req, res) => {
   }
 });
 
+// Get VAPID Public Key for client push subscription
+router.get('/vapid-public-key', (req, res) => {
+  const { VAPID_PUBLIC_KEY } = require('../push');
+  res.json({ publicKey: VAPID_PUBLIC_KEY });
+});
+
+// Save client device Push Subscription (Enables Lock Screen, Notification Center & Top Banner)
+router.post('/subscribe-push', (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { subscription } = req.body;
+    if (!subscription || !subscription.endpoint || !subscription.keys) {
+      return res.status(400).json({ error: 'Valid push subscription object is required' });
+    }
+
+    const userType = user.user_type || 'member';
+    const userId = Number(user.user_id);
+    const endpoint = subscription.endpoint;
+    const p256dh = subscription.keys.p256dh;
+    const auth = subscription.keys.auth;
+    const userAgent = req.headers['user-agent'] || '';
+
+    db.prepare(`
+      INSERT OR REPLACE INTO push_subscriptions (user_type, user_id, endpoint, p256dh, auth, user_agent)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(userType, userId, endpoint, p256dh, auth, userAgent);
+
+    res.json({ success: true, message: 'Device subscribed for Lock Screen and Banner notifications' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Unsubscribe device push
+router.post('/unsubscribe-push', (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    if (endpoint) {
+      db.prepare(`DELETE FROM push_subscriptions WHERE endpoint = ?`).run(endpoint);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Instant Test Push to user's device (Triggers Lock Screen / Top Banner)
+router.post('/test-push', async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { sendPushNotification } = require('../push');
+    const sent = await sendPushNotification(
+      { target_type: user.user_type, target_id: Number(user.user_id) },
+      {
+        title: '🔔 Lock Screen & Banner Alert Active',
+        body: 'Flat Management notifications are now delivering to your lock screen, notification center & banner!',
+        tag: 'flat-test-' + Date.now(),
+        url: '/'
+      }
+    );
+
+    res.json({ success: true, delivered_devices: sent });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

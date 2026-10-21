@@ -239,6 +239,18 @@ function initDatabase() {
       read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(notification_id, user_type, user_id)
     );
+
+    -- Web Push Device Subscriptions for Lock Screen & Banner Alerts
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_type TEXT NOT NULL,                  -- 'admin' or 'member'
+      user_id INTEGER NOT NULL,
+      endpoint TEXT UNIQUE NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Safe schema migrations
@@ -354,6 +366,13 @@ function createNotification({ title, message, category = 'system', target_type =
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     const info = stmt.run(title, message, category, target_type, target_id, actor_name, data ? JSON.stringify(data) : null);
+
+    // Trigger Lock Screen, Notification Center & Top Banner Push
+    try {
+      const { sendPushNotification } = require('./push');
+      sendPushNotification({ target_type, target_id }, { title, message, category, data });
+    } catch (e) {}
+
     return info.lastInsertRowid;
   } catch (err) {
     console.error('Notification creation error:', err.message);

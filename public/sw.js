@@ -115,8 +115,17 @@ self.addEventListener('push', (event) => {
     body: payload.body,
     icon: '/icons/icon.svg',
     badge: '/icons/icon.svg',
-    vibrate: [200, 100, 200],
-    data: payload.url || '/'
+    image: payload.image || undefined,
+    vibrate: [200, 100, 200, 100, 200], // Haptic vibration pattern for mobile screen
+    tag: payload.tag || 'flat-notification',
+    renotify: true, // Wake device and sound alert even if prior notification exists
+    requireInteraction: true, // Retain on Lock Screen and in Notification Center
+    silent: false,
+    data: payload.url || '/',
+    actions: [
+      { action: 'open', title: 'Open App' },
+      { action: 'dismiss', title: 'Dismiss' }
+    ]
   };
 
   event.waitUntil(
