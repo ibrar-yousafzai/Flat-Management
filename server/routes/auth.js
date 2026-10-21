@@ -102,29 +102,55 @@ router.post('/member/login', (req, res) => {
 
 // Verify Current Session / Me
 router.get('/me', (req, res) => {
-  const authHeader = req.headers['authorization'] || req.headers['x-session-token'] || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
 
-  if (!token) return res.status(401).json({ error: 'Not authenticated' });
+  if (req.user.user_type === 'admin') {
+    let admin = null;
+    try {
+      admin = db.prepare(`SELECT * FROM admins WHERE id = ?`).get(req.user.user_id);
+    } catch (e) {}
 
-  const session = db.prepare(`SELECT * FROM sessions WHERE token = ?`).get(token);
-  if (!session) return res.status(401).json({ error: 'Session expired' });
+    const adminData = admin ? {
+      id: admin.id,
+      username: admin.username,
+      name: admin.name,
+      role: admin.role,
+      can_manage_members: admin.can_manage_members,
+      can_manage_rooms: admin.can_manage_rooms,
+      can_manage_bills: admin.can_manage_bills,
+      can_manage_food: admin.can_manage_food,
+      can_manage_payments: admin.can_manage_payments,
+      can_approve_payments: admin.can_approve_payments
+    } : {
+      id: req.user.user_id,
+      username: req.user.username,
+      name: req.user.name,
+      role: req.user.role || 'super_admin',
+      ...(req.user.permissions || {})
+    };
 
-  if (session.user_type === 'admin') {
-    const admin = db.prepare(`SELECT * FROM admins WHERE id = ?`).get(session.user_id);
-    if (!admin) return res.status(401).json({ error: 'User not found' });
-    const { password: _, ...data } = admin;
-    return res.json({ userType: 'admin', user: data, token });
+    return res.json({ userType: 'admin', user: adminData, token: req.user.token });
   } else {
-    const member = db.prepare(`
-      SELECT m.*, r.name as room_name 
-      FROM members m
-      LEFT JOIN rooms r ON m.room_id = r.id
-      WHERE m.id = ?
-    `).get(session.user_id);
-    if (!member) return res.status(401).json({ error: 'Member not found' });
-    const { password: _, ...data } = member;
-    return res.json({ userType: 'member', user: data, token });
+    let member = null;
+    try {
+      member = db.prepare(`
+        SELECT m.*, r.name as room_name 
+        FROM members m
+        LEFT JOIN rooms r ON m.room_id = r.id
+        WHERE m.id = ? OR m.unique_id = ?
+      `).get(req.user.user_id, req.user.username);
+    } catch (e) {}
+
+    const memberData = member ? member : {
+      id: req.user.user_id,
+      unique_id: req.user.username,
+      name: req.user.name,
+      type: 'Inside'
+    };
+
+    return res.json({ userType: 'member', user: memberData, token: req.user.token });
   }
 });
 

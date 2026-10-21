@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const { db } = require('../db');
 
 // Stable session secret across serverless cold starts
-const SESSION_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SESSION_SECRET || 'flat-management-secure-secret-2026';
+const SESSION_SECRET = 'flat-management-secure-key-permanent-2026';
 
 function signToken(payload) {
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url');

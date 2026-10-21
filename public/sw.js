@@ -1,5 +1,5 @@
 // Flat Management System - Progressive Web App Service Worker
-const CACHE_NAME = 'flat-app-v1';
+const CACHE_NAME = 'flat-app-v2';
 
 const STATIC_ASSETS = [
   '/',
@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   '/icons/icon.svg',
   '/js/api.js',
   '/js/offline-store.js',
+  '/js/notifications.js',
   '/js/app.js',
   '/js/views/dashboard.js',
   '/js/views/rooms.js',
@@ -61,44 +62,76 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          if (response && response.status === 200 && !url.pathname.includes('/auth/')) {
+            const responseClone = response.clone();
+            caches.open('flat-api-cache').then((cache) => {
+              cache.put(request, responseClone);
+            });
           }
           return response;
         })
         .catch(() => {
-          return caches.match(request);
+          return caches.match(request).then((cached) => {
+            if (cached) return cached;
+            return new Response(JSON.stringify({ offline: true, error: 'Network unavailable. Showing offline mode.' }), {
+              headers: { 'Content-Type': 'application/json' }
+            });
+          });
         })
     );
     return;
   }
 
-  // For static shell & CDN assets, try cache first, fallback to network
+  // For static assets, serve from cache first, then update cache in background
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Fetch in background to update cache
-        fetch(request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, networkResponse));
-          }
-        }).catch(() => {});
-        return cachedResponse;
-      }
-
-      return fetch(request).then((networkResponse) => {
+      const fetchPromise = fetch(request).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
-          const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
         }
         return networkResponse;
-      }).catch(() => {
-        // If offline and requesting navigation, return index.html
-        if (request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
-      });
+      }).catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
+    })
+  );
+});
+
+// Push Notifications Listener (Phone Lock Screen & Notification Tray)
+self.addEventListener('push', (event) => {
+  let payload = { title: 'Flat Management Notice', body: 'New update in flat system' };
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch (e) {
+      payload = { title: 'Flat Management Notice', body: event.data.text() };
+    }
+  }
+
+  const options = {
+    body: payload.body,
+    icon: '/icons/icon.svg',
+    badge: '/icons/icon.svg',
+    vibrate: [200, 100, 200],
+    data: payload.url || '/'
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(event.notification.data || '/');
     })
   );
 });

@@ -19,12 +19,66 @@ const Notifications = {
   async fetchNotifications() {
     try {
       const res = await API.get('/api/notifications');
+      const prevIds = new Set(this.list.map(n => n.id));
       this.list = res.notifications || [];
       this.unreadCount = Number(res.unread_count || 0);
       this.updateBadge();
+
+      // Check if newly arrived unread notifications should trigger native phone notification
+      const newItems = this.list.filter(n => n.is_read === 0 && !prevIds.has(n.id));
+      if (newItems.length > 0 && prevIds.size > 0) {
+        const top = newItems[0];
+        this.showDeviceNotification(top.title, top.message);
+      }
     } catch (e) {
       // Quiet fail if network offline
     }
+  },
+
+  // Request browser / phone native notification permission
+  async requestDevicePermission() {
+    if (!('Notification' in window)) {
+      App.toast('Native device notifications not supported on this browser', 'info');
+      return;
+    }
+
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        App.toast('🔔 Mobile screen notifications enabled!', 'success');
+        this.showDeviceNotification('Flat Notifications Active', 'You will now receive alerts directly on your phone screen!');
+        // Refresh drawer UI to hide permission banner
+        const banner = document.getElementById('notif-perm-banner');
+        if (banner) banner.classList.add('hidden');
+      } else {
+        App.toast('Notification permission was dismissed', 'info');
+      }
+    } catch (e) {
+      App.toast(e.message, 'error');
+    }
+  },
+
+  // Trigger Native Phone Screen Notification (iOS / Android / Desktop)
+  showDeviceNotification(title, body) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(title, {
+            body,
+            icon: '/icons/icon.svg',
+            badge: '/icons/icon.svg',
+            vibrate: [200, 100, 200]
+          });
+        });
+      } else {
+        new Notification(title, {
+          body,
+          icon: '/icons/icon.svg'
+        });
+      }
+    } catch (e) {}
   },
 
   updateBadge() {
@@ -139,6 +193,19 @@ const Notifications = {
             </button>
           </div>
         </div>
+
+        <!-- Mobile Device Screen Push Notification Permission Banner -->
+        ${'Notification' in window && Notification.permission !== 'granted' ? `
+          <div id="notif-perm-banner" class="p-3 bg-gradient-to-r from-indigo-50 to-amber-50 border-b border-indigo-100 flex items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2 text-slate-700">
+              <i class="fa-solid fa-mobile-screen-button text-indigo-600 text-sm"></i>
+              <span>Get alerts on your <strong>phone screen</strong> like other apps!</span>
+            </div>
+            <button onclick="Notifications.requestDevicePermission()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] rounded-xl shadow-xs transition-all shrink-0">
+              Enable
+            </button>
+          </div>
+        ` : ''}
 
         <!-- Filter Categories Bar -->
         <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
