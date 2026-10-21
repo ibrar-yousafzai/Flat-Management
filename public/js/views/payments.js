@@ -15,66 +15,164 @@ const PaymentsView = {
       const currency = settings.currency_symbol || 'Rs.';
       const allPayments = paymentsData.payments || [];
       const pendingList = allPayments.filter(p => p.status === 'pending');
+      const approvedPayments = allPayments.filter(p => p.status === 'approved');
+      const billsTotalPaid = approvedPayments.filter(p => p.payment_for === 'bills').reduce((s, p) => s + Number(p.amount || 0), 0);
+      const foodTotalPaid = approvedPayments.filter(p => p.payment_for === 'food').reduce((s, p) => s + Number(p.amount || 0), 0);
+      const totalPaidAll = billsTotalPaid + foodTotalPaid;
       const visiblePayments = allPayments.slice(0, this.visibleLimit || 6);
       const visiblePending = pendingList.slice(0, this.visibleLimit || 6);
 
       return `
         <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
-          <!-- Top Breadcrumb & Action Toolbar -->
-          <div class="flex items-center justify-between pb-1">
-            <button onclick="App.goBack()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs transition-all active:scale-95">
-              <i class="fa-solid fa-arrow-left text-slate-600"></i>
-              <span>Back to Dashboard</span>
-            </button>
-            <button onclick="PaymentsView.openRecordPaymentModal(${JSON.stringify(members).replace(/"/g, '&quot;')})" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
-              <i class="fa-solid fa-plus text-xs"></i> <span>Record Payment</span>
-            </button>
-          </div>
-
-          <!-- Section Banner Card -->
-          <div class="bg-gradient-to-r from-emerald-700 via-teal-800 to-slate-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
-            <div class="flex items-center justify-between relative z-10">
-              <div>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30 mb-1">
-                  <i class="fa-solid fa-money-bill-transfer"></i> Approvals & Ledgers
+          <!-- 1. Hero Card: Deep Cobalt Blue Gradient with Circular Status Gauge -->
+          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+            <div class="flex items-center gap-4 sm:gap-6 relative z-10">
+              <!-- Left: Circular Gauge Indicator -->
+              <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 ${pendingList.length > 0 ? 'border-amber-400/50 bg-amber-500/20' : 'border-emerald-400/50 bg-emerald-500/20'} flex flex-col items-center justify-center text-center shrink-0 backdrop-blur-xs shadow-inner">
+                <span class="text-xs sm:text-sm font-black ${pendingList.length > 0 ? 'text-amber-300' : 'text-emerald-300'}">
+                  ${pendingList.length > 0 ? `${pendingList.length} Due` : 'All Clear'}
                 </span>
-                <h1 class="text-lg sm:text-xl font-black tracking-tight">Payments & Receipts</h1>
-                <p class="text-xs text-emerald-100 mt-0.5">Separate verification for Monthly Bills vs Weekly Food Mess</p>
+                <span class="text-[9px] text-blue-200 mt-0.5">Approvals</span>
               </div>
-              <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-xl shrink-0">
-                <i class="fa-solid fa-receipt"></i>
+
+              <!-- Right: Details -->
+              <div class="space-y-1.5 min-w-0">
+                <h2 class="text-base sm:text-lg font-black tracking-tight leading-tight">Payments & Approvals Ledger</h2>
+                <div class="space-y-1 text-xs text-blue-100">
+                  <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check text-emerald-400 w-3.5 text-center"></i>
+                    <span>Rs. ${totalPaidAll.toLocaleString()} Total Verified</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-scale-balanced text-blue-300 w-3.5 text-center"></i>
+                    <span>Separate verification for Monthly Bills & Food Mess</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Filter Toolbar: Bills vs Food and Pending vs All -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 card-shadow">
-            <!-- Tabs -->
-            <div class="flex items-center gap-2">
-              <button onclick="PaymentsView.switchTab('pending')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${this.activeTab === 'pending' ? 'bg-amber-500 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+          <!-- 2. Three Warm Peach Metric Cards in ONE Row (Matching Reference Screenshot) -->
+          <div class="grid grid-cols-3 gap-2">
+            <!-- Card 1: Pending Approvals -->
+            <div class="bg-[#FFF7ED] border border-[#FED7AA] p-3 rounded-2xl text-center shadow-2xs flex flex-col justify-between">
+              <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center text-xs mb-1">
                 <i class="fa-solid fa-clock-rotate-left"></i>
-                <span>Pending Approvals</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] bg-white text-amber-700 font-extrabold">${pendingList.length}</span>
-              </button>
-              <button onclick="PaymentsView.switchTab('all')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${this.activeTab === 'all' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
-                <i class="fa-solid fa-list-check"></i>
-                <span>All Payments (${allPayments.length})</span>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Pending</span>
+                <span class="text-sm font-black text-amber-950 block mt-0.5">${pendingList.length} Claims</span>
+              </div>
+              <button onclick="PaymentsView.switchTab('pending')" class="mt-2 w-full py-1 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95">
+                Review
               </button>
             </div>
 
-            <!-- Ledger Filter (All / Bills / Food) -->
-            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-              <button onclick="PaymentsView.setFilterFor('all')" class="px-3 py-1.5 rounded-lg transition-all ${this.filterFor === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}">
-                All
+            <!-- Card 2: Bills Paid -->
+            <div class="bg-[#FFF7ED] border border-[#FED7AA] p-3 rounded-2xl text-center shadow-2xs flex flex-col justify-between">
+              <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center text-xs mb-1">
+                <i class="fa-solid fa-building"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Bills Paid</span>
+                <span class="text-sm font-black text-amber-950 block mt-0.5">${currency} ${billsTotalPaid.toLocaleString()}</span>
+              </div>
+              <button onclick="PaymentsView.setFilterFor('bills')" class="mt-2 w-full py-1 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95">
+                Bills
               </button>
-              <button onclick="PaymentsView.setFilterFor('bills')" class="px-3 py-1.5 rounded-lg transition-all ${this.filterFor === 'bills' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}">
-                🏢 Monthly Bills
-              </button>
-              <button onclick="PaymentsView.setFilterFor('food')" class="px-3 py-1.5 rounded-lg transition-all ${this.filterFor === 'food' ? 'bg-white text-amber-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}">
-                🍲 Weekly Food Mess
+            </div>
+
+            <!-- Card 3: Food Paid -->
+            <div class="bg-[#FFF7ED] border border-[#FED7AA] p-3 rounded-2xl text-center shadow-2xs flex flex-col justify-between">
+              <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center text-xs mb-1">
+                <i class="fa-solid fa-utensils"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Food Paid</span>
+                <span class="text-sm font-black text-amber-950 block mt-0.5">${currency} ${foodTotalPaid.toLocaleString()}</span>
+              </div>
+              <button onclick="PaymentsView.setFilterFor('food')" class="mt-2 w-full py-1 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95">
+                Food Mess
               </button>
             </div>
           </div>
+
+          <!-- 3. Primary Review Card: PAYMENT ACTIONS & DIRECT RECORD -->
+          <div class="bg-white rounded-3xl p-5 border border-slate-200 card-shadow space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span class="text-[11px] font-black text-blue-700 uppercase tracking-wider">Payment Verification & Approvals</span>
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full ${pendingList.length > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+                ${pendingList.length > 0 ? `${pendingList.length} Action Needed` : 'Up to Date'}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-left">
+              <div>
+                <span class="text-sm sm:text-base font-black text-slate-900 block">${pendingList.length} Claims</span>
+                <span class="text-[10px] text-slate-500 block mt-0.5">Pending Review</span>
+              </div>
+              <div>
+                <span class="text-sm sm:text-base font-black text-slate-900 block">${allPayments.length} items</span>
+                <span class="text-[10px] text-slate-500 block mt-0.5">Recorded Payments</span>
+              </div>
+              <div>
+                <span class="text-sm sm:text-base font-black ${pendingList.length === 0 ? 'text-emerald-600' : 'text-amber-600'} block">
+                  ${pendingList.length === 0 ? 'ALL CLEAR' : 'PENDING'}
+                </span>
+                <span class="text-[10px] text-slate-500 block mt-0.5">Review Status</span>
+              </div>
+            </div>
+
+            <button onclick="PaymentsView.openRecordPaymentModal(${JSON.stringify(members).replace(/"/g, '&quot;')})" class="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer">
+              <i class="fa-solid fa-plus-circle"></i>
+              <span>Direct Record Payment</span>
+            </button>
+          </div>
+
+          <!-- 4. Quick Actions: 4 Circular App Icons in a Neat Row -->
+          <div class="bg-white rounded-3xl p-5 border border-slate-200 card-shadow space-y-3">
+            <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider">Filter & Quick Actions</h3>
+            <div class="grid grid-cols-4 gap-2 pt-1 text-center">
+              <button onclick="PaymentsView.switchTab('pending')" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full ${this.activeTab === 'pending' ? 'bg-amber-500 ring-2 ring-amber-300' : 'bg-slate-100 text-slate-700'} text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-solid fa-clock-rotate-left ${this.activeTab === 'pending' ? 'text-white' : 'text-amber-600'}"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">Pending</span>
+              </button>
+
+              <button onclick="PaymentsView.switchTab('all'); PaymentsView.setFilterFor('bills');" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full ${this.filterFor === 'bills' ? 'bg-blue-600 ring-2 ring-blue-300' : 'bg-slate-100 text-slate-700'} text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-solid fa-building ${this.filterFor === 'bills' ? 'text-white' : 'text-blue-600'}"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">Bills</span>
+              </button>
+
+              <button onclick="PaymentsView.switchTab('all'); PaymentsView.setFilterFor('food');" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full ${this.filterFor === 'food' ? 'bg-amber-600 ring-2 ring-amber-300' : 'bg-slate-100 text-slate-700'} text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-solid fa-utensils ${this.filterFor === 'food' ? 'text-white' : 'text-amber-600'}"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">Food</span>
+              </button>
+
+              <button onclick="PaymentsView.switchTab('all'); PaymentsView.setFilterFor('all');" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full ${this.activeTab === 'all' && this.filterFor === 'all' ? 'bg-emerald-600 ring-2 ring-emerald-300' : 'bg-slate-100 text-slate-700'} text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-solid fa-list-check ${this.activeTab === 'all' && this.filterFor === 'all' ? 'text-white' : 'text-emerald-600'}"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">All List</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 5. Payments List Header -->
+          <div class="space-y-3 pt-1">
+            <div class="flex items-center justify-between px-1">
+              <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider">
+                ${this.activeTab === 'pending' ? 'Pending Verification Queue' : `All Payments (${this.filterFor === 'all' ? 'All' : (this.filterFor === 'bills' ? 'Monthly Bills' : 'Food Mess')})`}
+              </h3>
+              <span class="text-[11px] text-slate-400 font-bold">
+                ${this.activeTab === 'pending' ? `${pendingList.length} Pending` : `${allPayments.length} Total`}
+              </span>
+            </div>
 
           <!-- PENDING APPROVALS QUEUE -->
           ${this.activeTab === 'pending' ? `

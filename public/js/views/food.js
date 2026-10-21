@@ -24,75 +24,153 @@ const FoodView = {
 
       return `
         <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
-          <!-- Top Breadcrumb & Action Toolbar -->
-          <div class="flex items-center justify-between pb-1">
-            <button onclick="App.goBack()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs transition-all active:scale-95">
-              <i class="fa-solid fa-arrow-left text-slate-600"></i>
-              <span>Back to Dashboard</span>
-            </button>
-            <div class="flex items-center gap-2">
-              <button onclick="FoodView.openFoodReminderModal()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
-                <i class="fa-brands fa-whatsapp text-xs"></i> <span>Remind</span>
-              </button>
-              <button onclick="FoodView.openCreateModal()" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
-                <i class="fa-solid fa-plus text-xs"></i> <span>Add Batch</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Section Banner Card -->
-          <div class="bg-gradient-to-r from-amber-600 via-amber-700 to-orange-700 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
-            <div class="flex items-center justify-between relative z-10">
-              <div>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30 mb-1">
-                  <i class="fa-solid fa-utensils"></i> Weekly Mess Ledger
-                </span>
-                <h1 class="text-lg sm:text-xl font-black tracking-tight">Weekly Food & Grocery</h1>
-                <p class="text-xs text-amber-100 mt-0.5">Settle dues week-by-week independently from monthly flat bills</p>
+          <!-- 1. Hero Card: Deep Cobalt Blue Gradient with Circular Status Gauge -->
+          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+            <div class="flex items-center gap-4 sm:gap-6 relative z-10">
+              <!-- Left: Circular Gauge Indicator -->
+              <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-amber-400/50 bg-amber-500/20 flex flex-col items-center justify-center text-center shrink-0 backdrop-blur-xs shadow-inner">
+                <span class="text-xs sm:text-sm font-black text-amber-300">Food Mess</span>
+                <span class="text-[9px] text-blue-200 mt-0.5">${monthDisplay}</span>
               </div>
-              <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-xl shrink-0">
-                <i class="fa-solid fa-bowl-food"></i>
+
+              <!-- Right: Details -->
+              <div class="space-y-1.5 min-w-0">
+                <h2 class="text-base sm:text-lg font-black tracking-tight leading-tight">Weekly Food & Grocery Mess</h2>
+                <div class="space-y-1 text-xs text-blue-100">
+                  <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-week text-amber-300 w-3.5 text-center"></i>
+                    <span>Separate Week-to-Week Ledger</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-users text-blue-300 w-3.5 text-center"></i>
+                    <span>${members.length} Active Participating Members</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- 3-Metric Summary Cards (Matching Dashboard Peach Style) -->
+          <!-- 2. Three Warm Peach Metric Cards in ONE Row (Matching Reference Screenshot) -->
           <div class="grid grid-cols-3 gap-2">
-            <div class="bg-[#FFF7ED] border border-[#FED7AA] p-3 rounded-2xl text-center shadow-2xs">
-              <span class="text-[10px] font-bold text-amber-800 uppercase block">Total Mess</span>
-              <span class="text-sm sm:text-base font-black text-amber-950 block mt-0.5">${currency} ${totalFoodMonth.toLocaleString()}</span>
-              <span class="text-[9px] text-amber-700 block">${monthDisplay}</span>
+            <!-- Card 1: Total Mess -->
+            <div class="bg-[#FFF7ED] border border-[#FED7AA] p-3 rounded-2xl text-center shadow-2xs flex flex-col justify-between">
+              <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center text-xs mb-1">
+                <i class="fa-solid fa-utensils"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Total Mess</span>
+                <span class="text-sm font-black text-amber-950 block mt-0.5">${currency} ${totalFoodMonth.toLocaleString()}</span>
+              </div>
+              <button onclick="FoodView.goToCurrentMonth()" class="mt-2 w-full py-1 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95">
+                Month
+              </button>
             </div>
-            <div class="bg-blue-50/70 border border-blue-200 p-3 rounded-2xl text-center shadow-2xs">
-              <span class="text-[10px] font-bold text-blue-800 uppercase block">Batches</span>
-              <span class="text-sm sm:text-base font-black text-blue-950 block mt-0.5">${entries.length} ${entries.length === 1 ? 'Week' : 'Weeks'}</span>
-              <span class="text-[9px] text-blue-600 block">Recorded</span>
+
+            <!-- Card 2: Batches -->
+            <div class="bg-[#FFF7ED] border border-[#FED7AA] p-3 rounded-2xl text-center shadow-2xs flex flex-col justify-between">
+              <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center text-xs mb-1">
+                <i class="fa-solid fa-calendar-check"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Batches</span>
+                <span class="text-sm font-black text-amber-950 block mt-0.5">${entries.length} Weeks</span>
+              </div>
+              <button onclick="document.getElementById('foodBatchesList')?.scrollIntoView({ behavior: 'smooth' })" class="mt-2 w-full py-1 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95">
+                Batches
+              </button>
             </div>
-            <div class="bg-emerald-50/70 border border-emerald-200 p-3 rounded-2xl text-center shadow-2xs">
-              <span class="text-[10px] font-bold text-emerald-800 uppercase block">Mess Members</span>
-              <span class="text-sm sm:text-base font-black text-emerald-950 block mt-0.5">${members.length} Active</span>
-              <span class="text-[9px] text-emerald-700 block">Participating</span>
+
+            <!-- Card 3: Active Members -->
+            <div class="bg-[#FFF7ED] border border-[#FED7AA] p-3 rounded-2xl text-center shadow-2xs flex flex-col justify-between">
+              <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center text-xs mb-1">
+                <i class="fa-solid fa-users"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">In Mess</span>
+                <span class="text-sm font-black text-amber-950 block mt-0.5">${members.length}</span>
+              </div>
+              <button onclick="FoodView.openFoodReminderModal()" class="mt-2 w-full py-1 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95">
+                Remind
+              </button>
             </div>
           </div>
 
-          <!-- Month Selector Toolbar -->
-          <div class="bg-white p-3 rounded-2xl border border-slate-200 card-shadow flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <button onclick="FoodView.prevMonth()" title="Previous Month" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold transition-all">
-                <i class="fa-solid fa-chevron-left"></i>
-              </button>
-              <input type="month" value="${this.currentMonth}" onchange="FoodView.changeMonth(this.value)" class="text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 outline-none cursor-pointer" />
-              <button onclick="FoodView.nextMonth()" title="Next Month" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold transition-all">
-                <i class="fa-solid fa-chevron-right"></i>
-              </button>
+          <!-- 3. Primary Review Card: WEEKLY MESS SETTLEMENT & REVIEW -->
+          <div class="bg-white rounded-3xl p-5 border border-slate-200 card-shadow space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span class="text-[11px] font-black text-blue-700 uppercase tracking-wider">Weekly Mess Settlement</span>
+              <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                <button onclick="FoodView.prevMonth()" title="Previous Month" class="w-6 h-6 rounded-lg bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-bold">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <input type="month" value="${this.currentMonth}" onchange="FoodView.changeMonth(this.value)" class="text-[11px] font-bold bg-transparent outline-none cursor-pointer" />
+                <button onclick="FoodView.nextMonth()" title="Next Month" class="w-6 h-6 rounded-lg bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-bold">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
             </div>
-            <button onclick="FoodView.goToCurrentMonth()" class="px-3 py-1.5 bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-900 rounded-xl text-xs font-bold transition-all">
-              Current Month
+
+            <div class="grid grid-cols-3 gap-2 text-left">
+              <div>
+                <span class="text-sm sm:text-base font-black text-slate-900 block">${currency} ${totalFoodMonth.toLocaleString()}</span>
+                <span class="text-[10px] text-slate-500 block mt-0.5">Month Expenses</span>
+              </div>
+              <div>
+                <span class="text-sm sm:text-base font-black text-slate-900 block">${entries.length} items</span>
+                <span class="text-[10px] text-slate-500 block mt-0.5">Weekly Batches</span>
+              </div>
+              <div>
+                <span class="text-sm sm:text-base font-black text-emerald-600 block">WEEK-BY-WEEK</span>
+                <span class="text-[10px] text-slate-500 block mt-0.5">Settlement Rule</span>
+              </div>
+            </div>
+
+            <button onclick="FoodView.openCreateModal()" class="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer">
+              <i class="fa-solid fa-plus-circle"></i>
+              <span>Record Weekly Food Batch</span>
             </button>
           </div>
 
-          <!-- Food Entries List -->
-          <div class="space-y-4">
+          <!-- 4. Quick Actions: 4 Circular App Icons in a Neat Row -->
+          <div class="bg-white rounded-3xl p-5 border border-slate-200 card-shadow space-y-3">
+            <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider">Get Help & Quick Actions</h3>
+            <div class="grid grid-cols-4 gap-2 pt-1 text-center">
+              <button onclick="FoodView.openCreateModal()" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-solid fa-plus"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">Add Batch</span>
+              </button>
+
+              <button onclick="FoodView.openFoodReminderModal()" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">Remind</span>
+              </button>
+
+              <button onclick="App.navigate('reports')" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-solid fa-file-pdf"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">Invoices</span>
+              </button>
+
+              <button onclick="FoodView.goToCurrentMonth()" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full bg-purple-600 text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-solid fa-calendar-day"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">Current</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 5. Food Entries List -->
+          <div id="foodBatchesList" class="space-y-3 pt-1">
+            <div class="flex items-center justify-between px-1">
+              <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider">Weekly Batches (${monthDisplay})</h3>
+              <span class="text-[11px] text-slate-400 font-bold">${entries.length} Recorded</span>
+            </div>
             ${visibleEntries.length > 0 ? visibleEntries.map(entry => {
               const customMembersCount = entry.members.filter(m => m.is_custom).length;
               return `
@@ -264,36 +342,34 @@ const FoodView = {
             <input type="text" id="newFoodTitle" value="Weekly Grocery & Food Mess" placeholder="e.g. Weekly Grocery & Food Mess" required class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none font-bold text-slate-800" />
           </div>
 
-          <!-- Dual Linked Calculator Card: Per-Head & Total Pool -->
-          <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 shadow-sm">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-amber-900 uppercase flex items-center gap-1.5">
+          <!-- Compact Smart Split Calculator Card -->
+          <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-3 shadow-2xs">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[11px] font-black text-amber-900 uppercase flex items-center gap-1.5">
                 <i class="fa-solid fa-calculator text-amber-600"></i> Smart Split Calculator
               </span>
-              <span class="text-[11px] text-amber-700 font-medium">Type in either field to sync</span>
+              <span class="text-[10px] text-amber-700 font-bold">Auto-syncs per head</span>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-[11px] font-bold text-amber-900 uppercase mb-1">
-                  Per Head Amount (Rs.)
+                <label class="block text-[10px] font-bold text-amber-900 uppercase mb-0.5">
+                  Per Head (Rs.)
                 </label>
                 <div class="relative">
-                  <span class="absolute left-3 top-2.5 text-xs font-bold text-amber-700">Rs.</span>
-                  <input type="number" id="foodPerHead" placeholder="e.g. 3000" min="0" step="any" oninput="FoodView.handlePerHeadInput()" class="w-full pl-10 pr-3 py-2 text-base font-black text-amber-900 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none shadow-inner" />
+                  <span class="absolute left-2.5 top-2 text-xs font-bold text-amber-700">Rs.</span>
+                  <input type="number" id="foodPerHead" placeholder="e.g. 3000" min="0" step="any" oninput="FoodView.handlePerHeadInput()" class="w-full pl-8 pr-2.5 py-1.5 text-sm font-black text-amber-900 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none shadow-2xs" />
                 </div>
-                <p class="text-[10px] text-amber-700 mt-1">E.g. Enter 3000 to apply to all selected members</p>
               </div>
 
               <div>
-                <label class="block text-[11px] font-bold text-amber-900 uppercase mb-1">
-                  Total Mess Amount (Rs.) *
+                <label class="block text-[10px] font-bold text-amber-900 uppercase mb-0.5">
+                  Total Mess Amount *
                 </label>
                 <div class="relative">
-                  <span class="absolute left-3 top-2.5 text-xs font-bold text-amber-700">Rs.</span>
-                  <input type="number" id="foodTotalAmount" placeholder="e.g. 30000" required min="1" step="any" oninput="FoodView.handleTotalAmountInput()" class="w-full pl-10 pr-3 py-2 text-base font-black text-amber-900 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none shadow-inner" />
+                  <span class="absolute left-2.5 top-2 text-xs font-bold text-amber-700">Rs.</span>
+                  <input type="number" id="foodTotalAmount" placeholder="e.g. 36000" required min="1" step="any" oninput="FoodView.handleTotalAmountInput()" class="w-full pl-8 pr-2.5 py-1.5 text-sm font-black text-amber-900 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none shadow-2xs" />
                 </div>
-                <p class="text-[10px] text-amber-700 mt-1">Total pool auto-updates from member shares</p>
               </div>
             </div>
           </div>

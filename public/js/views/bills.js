@@ -22,126 +22,169 @@ const BillsView = {
       const isConfirmed = billsData.month_status === 'confirmed' || billsData.month_status === 'closed';
       const availableMonths = monthsData.months || ['2024-02', '2024-03', '2024-04', '2024-05', '2024-06', '2024-07', '2024-08', '2024-09', '2024-10'];
 
+      const insideMembers = members.filter(m => m.type === 'Inside').length;
+      const outsideMembers = members.filter(m => m.type === 'Outside').length;
+      const totalBillsAmount = Number(billsData.total_bills_amount || 0);
+
       return `
         <div class="space-y-4 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto pb-12">
-          <!-- Top Breadcrumb & Action Toolbar -->
-          <div class="flex items-center justify-between pb-1">
-            <button onclick="App.goBack()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs transition-all active:scale-95">
-              <i class="fa-solid fa-arrow-left text-slate-600"></i>
-              <span>Back to Dashboard</span>
-            </button>
-            <div class="flex items-center gap-2">
-              <button onclick="BillsView.openCreateBillModal(${JSON.stringify(rooms).replace(/"/g, '&quot;')}, ${JSON.stringify(members).replace(/"/g, '&quot;')})" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
-                <i class="fa-solid fa-plus text-xs"></i> <span>Add Bill</span>
-              </button>
-              <button onclick="BillsView.openBatchWhatsAppModal()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full shadow-2xs transition-all flex items-center gap-1.5 active:scale-95">
-                <i class="fa-brands fa-whatsapp text-xs"></i> <span>WhatsApp</span>
-              </button>
+          <!-- 1. Hero Card: Deep Cobalt Blue Gradient with Circular Status Gauge -->
+          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
+            <div class="flex items-center gap-4 sm:gap-6 relative z-10">
+              <!-- Left: Circular Gauge Indicator -->
+              <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 ${isConfirmed ? 'border-emerald-400/50 bg-emerald-500/20' : 'border-amber-400/50 bg-amber-500/20'} flex flex-col items-center justify-center text-center shrink-0 backdrop-blur-xs shadow-inner">
+                <span class="text-xs sm:text-sm font-black ${isConfirmed ? 'text-emerald-300' : 'text-amber-300'}">
+                  ${billsData.month_status === 'closed' ? 'Closed' : (isConfirmed ? 'Published' : 'Draft')}
+                </span>
+                <span class="text-[9px] text-blue-200 mt-0.5">${this.selectedMonth}</span>
+              </div>
+
+              <!-- Right: Details -->
+              <div class="space-y-1.5 min-w-0">
+                <h2 class="text-base sm:text-lg font-black tracking-tight leading-tight">Monthly Bills & Splits</h2>
+                <div class="space-y-1 text-xs text-blue-100">
+                  <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice-dollar text-blue-300 w-3.5 text-center"></i>
+                    <span>${bills.length} Bills • Auto-Split per Head</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-users text-blue-300 w-3.5 text-center"></i>
+                    <span>${insideMembers} Inside Members • ${outsideMembers} Outside</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Section Banner Card -->
-          <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
-            <div class="flex items-center justify-between relative z-10">
-              <div>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${billsData.month_status === 'closed' ? 'bg-purple-500/30 text-purple-200 border border-purple-400/40' : (isConfirmed ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40' : 'bg-amber-500/30 text-amber-200 border border-amber-400/40')} mb-1">
-                  <i class="fa-solid ${billsData.month_status === 'closed' ? 'fa-lock' : (isConfirmed ? 'fa-circle-check' : 'fa-pen-to-square')}"></i>
-                  ${billsData.month_status === 'closed' ? 'Month Closed & Rolled Over' : (isConfirmed ? 'Confirmed & Published' : 'Draft Mode')}
-                </span>
-                <h1 class="text-lg sm:text-xl font-black tracking-tight">Monthly Bills & Splits</h1>
-                <p class="text-xs text-blue-100 mt-0.5">Manage room rents, utility bills, and automatic per-head share splits</p>
-              </div>
-              <div class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-xl shrink-0">
+          <!-- 2. Three Warm Peach Metric Cards in ONE Row (Matching Reference Screenshot) -->
+          <div class="grid grid-cols-3 gap-2">
+            <!-- Card 1: Total Bills -->
+            <div class="bg-[#FFF7ED] border border-[#FED7AA] p-3 rounded-2xl text-center shadow-2xs flex flex-col justify-between">
+              <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center text-xs mb-1">
                 <i class="fa-solid fa-file-invoice-dollar"></i>
               </div>
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Month Bills</span>
+                <span class="text-sm font-black text-amber-950 block mt-0.5">${currency} ${totalBillsAmount.toLocaleString()}</span>
+              </div>
+              <button onclick="document.getElementById('billsListSection')?.scrollIntoView({ behavior: 'smooth' })" class="mt-2 w-full py-1 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95">
+                Bills
+              </button>
+            </div>
+
+            <!-- Card 2: Bill Items -->
+            <div class="bg-[#FFF7ED] border border-[#FED7AA] p-3 rounded-2xl text-center shadow-2xs flex flex-col justify-between">
+              <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center text-xs mb-1">
+                <i class="fa-solid fa-receipt"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Bill Items</span>
+                <span class="text-sm font-black text-amber-950 block mt-0.5">${bills.length} Items</span>
+              </div>
+              <button onclick="BillsView.openCreateBillModal(${JSON.stringify(rooms).replace(/"/g, '&quot;')}, ${JSON.stringify(members).replace(/"/g, '&quot;')})" class="mt-2 w-full py-1 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95">
+                + Add
+              </button>
+            </div>
+
+            <!-- Card 3: Occupants -->
+            <div class="bg-[#FFF7ED] border border-[#FED7AA] p-3 rounded-2xl text-center shadow-2xs flex flex-col justify-between">
+              <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center text-xs mb-1">
+                <i class="fa-solid fa-users"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase block">Members</span>
+                <span class="text-sm font-black text-amber-950 block mt-0.5">${members.length} In Flat</span>
+              </div>
+              <button onclick="BillsView.openBatchWhatsAppModal()" class="mt-2 w-full py-1 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95">
+                WhatsApp
+              </button>
             </div>
           </div>
 
-          <!-- Month Selector Toolbar -->
-          <div class="bg-white p-3 rounded-2xl border border-slate-200 card-shadow flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold text-slate-500 uppercase">Month:</span>
-              <select onchange="BillsView.changeMonth(this.value)" class="text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 outline-none">
-                ${availableMonths.map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${m}</option>`).join('')}
-              </select>
+          <!-- 3. Primary Review Card: BILLING REVIEW & CONFIRMATION -->
+          <div class="bg-white rounded-3xl p-5 border border-slate-200 card-shadow space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span class="text-[11px] font-black text-blue-700 uppercase tracking-wider">Billing Status & Publish</span>
+              <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                <span class="text-[11px] font-bold text-slate-500 px-1 uppercase">Month:</span>
+                <select onchange="BillsView.changeMonth(this.value)" class="text-[11px] font-bold bg-white px-2 py-0.5 rounded-lg border border-slate-200 outline-none cursor-pointer">
+                  ${availableMonths.map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${m}</option>`).join('')}
+                </select>
+              </div>
             </div>
-            
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <button onclick="BillsView.autoGenerateRent()" class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1">
-                <i class="fa-solid fa-wand-magic-sparkles text-xs"></i> Auto-Fill Rent
-              </button>
-              <button onclick="BillsView.promptBatchEmailModal()" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1">
-                <i class="fa-solid fa-envelope text-xs"></i> Email
-              </button>
-              <button onclick="BillsView.promptDeleteMonth()" class="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-all" title="Delete Month">
-                <i class="fa-regular fa-trash-can text-xs"></i>
-              </button>
-              ${isConfirmed ? `
-                <button onclick="BillsView.closeAndAdvanceMonth()" class="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1">
-                  <i class="fa-solid fa-forward-step text-xs"></i> Rollover
-                </button>
-              ` : ''}
-            </div>
-          </div>
-          </div>
 
-          <!-- DRAFT vs CONFIRMED ACTION BANNER -->
-          ${!isConfirmed ? `
-            <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shrink-0">
-                  <i class="fa-solid fa-clock-rotate-left"></i>
-                </div>
-                <div>
-                  <h4 class="font-bold text-amber-950 text-sm">Monthly Bills Draft for ${this.selectedMonth}</h4>
-                  <p class="text-xs text-amber-800">Add bills one by one. Once you verify all calculations are correct, click Confirm & Publish.</p>
-                </div>
+            <div class="grid grid-cols-3 gap-2 text-left">
+              <div>
+                <span class="text-sm sm:text-base font-black text-slate-900 block">${currency} ${totalBillsAmount.toLocaleString()}</span>
+                <span class="text-[10px] text-slate-500 block mt-0.5">Total Calculated</span>
               </div>
-              <button onclick="BillsView.confirmMonth()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition-all shrink-0 flex items-center gap-1.5">
-                <i class="fa-solid fa-check-double"></i> Confirm & Publish Month Bills
-              </button>
+              <div>
+                <span class="text-sm sm:text-base font-black text-slate-900 block">${matrix.length} items</span>
+                <span class="text-[10px] text-slate-500 block mt-0.5">Member Shares</span>
+              </div>
+              <div>
+                <span class="text-sm sm:text-base font-black ${isConfirmed ? 'text-emerald-600' : 'text-amber-600'} block">
+                  ${isConfirmed ? 'PUBLISHED' : 'DRAFT MODE'}
+                </span>
+                <span class="text-[10px] text-slate-500 block mt-0.5">Billing Status</span>
+              </div>
             </div>
-          ` : `
-            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-base shrink-0">
-                  <i class="fa-solid fa-lock"></i>
-                </div>
-                <div>
-                  <h4 class="font-bold text-emerald-950 text-xs">Finalized & Stored in System</h4>
-                  <p class="text-[11px] text-emerald-800">These bills are officially confirmed and visible to members. Need to make adjustments or dispatch notifications?</p>
-                </div>
-              </div>
+
+            ${!isConfirmed ? `
+              <button onclick="BillsView.confirmMonth()" class="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer">
+                <i class="fa-solid fa-check-double"></i>
+                <span>Confirm & Publish Month Bills</span>
+              </button>
+            ` : `
               <div class="flex items-center gap-2">
-                <button onclick="BillsView.promptBatchEmailModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
-                  <i class="fa-solid fa-envelope"></i> Send Invoices to Members
+                <button onclick="BillsView.closeAndAdvanceMonth()" class="flex-1 py-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer">
+                  <i class="fa-solid fa-forward-step"></i>
+                  <span>Close & Rollover</span>
                 </button>
-                <button onclick="BillsView.reopenMonth()" class="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold rounded-xl shadow-sm transition-all shrink-0 flex items-center gap-1.5">
-                  <i class="fa-solid fa-unlock text-amber-600"></i> Unlock / Re-edit Bills
+                <button onclick="BillsView.reopenMonth()" class="px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs shadow-2xs transition-all flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer" title="Unlock for re-editing">
+                  <i class="fa-solid fa-unlock text-amber-600"></i>
+                  <span>Re-edit</span>
                 </button>
               </div>
-            </div>
-          `}
+            `}
+          </div>
 
-          <!-- Bills Summary Ribbon -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
-              <span class="text-xs text-slate-400 font-semibold uppercase">Total Monthly Bills</span>
-              <p class="text-xl font-extrabold text-slate-800 mt-1">${currency} ${Number(billsData.total_bills_amount || 0).toLocaleString()}</p>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
-              <span class="text-xs text-slate-400 font-semibold uppercase">Number of Bills</span>
-              <p class="text-xl font-extrabold text-indigo-600 mt-1">${bills.length} Bills</p>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
-              <span class="text-xs text-slate-400 font-semibold uppercase">Active Inside Members</span>
-              <p class="text-xl font-extrabold text-emerald-600 mt-1">${members.filter(m => m.type === 'Inside').length}</p>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
-              <span class="text-xs text-slate-400 font-semibold uppercase">Outside Members</span>
-              <p class="text-xl font-extrabold text-purple-600 mt-1">${members.filter(m => m.type === 'Outside').length}</p>
+          <!-- 4. Quick Actions: 4 Circular App Icons in a Neat Row -->
+          <div class="bg-white rounded-3xl p-5 border border-slate-200 card-shadow space-y-3">
+            <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider">Get Help & Quick Actions</h3>
+            <div class="grid grid-cols-4 gap-2 pt-1 text-center">
+              <button onclick="BillsView.openCreateBillModal(${JSON.stringify(rooms).replace(/"/g, '&quot;')}, ${JSON.stringify(members).replace(/"/g, '&quot;')})" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-solid fa-plus"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">Add Bill</span>
+              </button>
+
+              <button onclick="BillsView.autoGenerateRent()" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">Auto Rent</span>
+              </button>
+
+              <button onclick="BillsView.openBatchWhatsAppModal()" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full bg-green-600 text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">WhatsApp</span>
+              </button>
+
+              <button onclick="BillsView.promptBatchEmailModal()" class="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div class="w-12 h-12 rounded-full bg-slate-800 text-white flex items-center justify-center text-base shadow-sm group-hover:scale-105 transition-all">
+                  <i class="fa-solid fa-envelope"></i>
+                </div>
+                <span class="text-[11px] font-bold text-slate-700">Email</span>
+              </button>
             </div>
           </div>
+
+          <!-- 5. Main Split Breakdown & Bill Items List -->
+          <div id="billsListSection" class="space-y-4 pt-1">
 
           <!-- Main Matrix Table: Members (Rows) vs Bills (Columns) -->
           <div class="bg-white rounded-2xl border border-slate-200 card-shadow overflow-hidden">
