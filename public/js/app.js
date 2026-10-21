@@ -97,8 +97,8 @@ const App = {
         <!-- Main Top Navbar -->
         ${this.renderNavbar()}
 
-        <!-- Main Body Content (Consistent Container Matching Screenshot Style) -->
-        <main class="flex-1 w-full max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 md:pb-8">
+        <!-- Main Body Content (Fluid Responsive Container: Clean Single-Column on Mobile, Wide Multi-Column on PC) -->
+        <main class="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 md:pb-10">
           <div id="view-content" class="fade-in">
             <!-- Dynamic View Rendered Here -->
             <div class="p-8 text-center"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-600"></i></div>
@@ -176,45 +176,97 @@ const App = {
     };
     const currentTitle = viewTitles[this.currentView] || 'Flat Management';
 
+    // Desktop Nav Items for Admin
+    const navItems = [
+      { id: 'dashboard', label: 'Dashboard', icon: 'fa-gauge' },
+      { id: 'food', label: 'Food Mess', icon: 'fa-utensils' },
+      { id: 'bills', label: 'Bills', icon: 'fa-receipt' },
+      { id: 'members', label: 'Members', icon: 'fa-users' },
+      { id: 'rooms', label: 'Rooms', icon: 'fa-door-open' },
+      { id: 'payments', label: 'Payments', icon: 'fa-money-bill-transfer' },
+      { id: 'reports', label: 'Reports', icon: 'fa-chart-pie' }
+    ];
+
     return `
       <header class="bg-white border-b border-slate-200 sticky top-0 z-30 card-shadow no-print">
-        <div class="w-full max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto px-4 sm:px-6">
+        <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-14 sm:h-16">
-            ${isHome ? `
-              <!-- Left: Oval User Profile Pill (Matching User Screenshot) -->
-              <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 bg-white text-xs font-bold text-slate-800 shadow-2xs hover:bg-slate-50 cursor-pointer transition-all" onclick="App.openProfileModal()">
-                <i class="fa-regular fa-user-circle text-base text-slate-700"></i>
-                <span class="truncate max-w-[120px] sm:max-w-none font-bold">${userName}</span>
-              </div>
-            ` : `
-              <!-- Left: Prominent Back Button & Section Title -->
-              <div class="flex items-center gap-2.5 cursor-pointer" onclick="App.goBack()">
-                <button onclick="event.stopPropagation(); App.goBack();" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-800 flex items-center justify-center transition-all text-sm shadow-2xs cursor-pointer active:scale-95" title="Back to Dashboard">
-                  <i class="fa-solid fa-arrow-left"></i>
-                </button>
-                <div class="min-w-0">
-                  <h2 class="text-sm font-black text-slate-900 leading-tight truncate">${currentTitle}</h2>
-                  <span class="text-[10px] text-blue-600 font-bold block leading-none mt-0.5">← Back to Dashboard</span>
+            <!-- Left Side: Brand Logo (Desktop) OR Back/User (Mobile) -->
+            <div class="flex items-center gap-3">
+              <!-- Desktop Brand Header -->
+              <div class="hidden md:flex items-center gap-2.5 cursor-pointer select-none" onclick="App.navigate('${isMember ? 'portal' : 'dashboard'}')">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-700 to-blue-600 text-white flex items-center justify-center text-base shadow-sm">
+                  <i class="fa-solid fa-building-user"></i>
+                </div>
+                <div>
+                  <h1 class="text-sm font-black text-slate-900 tracking-tight leading-none">Flat Management</h1>
+                  <span class="text-[10px] text-blue-600 font-bold block mt-0.5">Cloud Sync Active</span>
                 </div>
               </div>
-            `}
 
-            <!-- Right: Search, Notification Bell with Red Badge, Menu Hamburger -->
-            <div class="flex items-center gap-2">
+              <!-- Mobile Header: Back Button or User Pill -->
+              <div class="md:hidden">
+                ${isHome ? `
+                  <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 bg-white text-xs font-bold text-slate-800 shadow-2xs hover:bg-slate-50 cursor-pointer transition-all" onclick="App.openProfileModal()">
+                    <i class="fa-regular fa-user-circle text-base text-slate-700"></i>
+                    <span class="truncate max-w-[120px] font-bold">${userName}</span>
+                  </div>
+                ` : `
+                  <div class="flex items-center gap-2 cursor-pointer" onclick="App.goBack()">
+                    <button onclick="event.stopPropagation(); App.goBack();" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-800 flex items-center justify-center transition-all text-xs shadow-2xs cursor-pointer active:scale-95">
+                      <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <div class="min-w-0">
+                      <h2 class="text-xs font-black text-slate-900 leading-tight truncate">${currentTitle}</h2>
+                      <span class="text-[9px] text-blue-600 font-bold block leading-none">← Back</span>
+                    </div>
+                  </div>
+                `}
+              </div>
+            </div>
+
+            <!-- Center (Desktop Only): Main Navigation Bar -->
+            ${!isMember ? `
+              <nav class="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/60">
+                ${navItems.map(item => `
+                  <button onclick="App.navigate('${item.id}')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${this.currentView === item.id ? 'bg-white text-blue-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}">
+                    <i class="fa-solid ${item.icon} text-[11px]"></i>
+                    <span>${item.label}</span>
+                  </button>
+                `).join('')}
+              </nav>
+            ` : ''}
+
+            <!-- Right Side Tools: AI Assistant, Search, Notifications, User/Menu -->
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <!-- AI Automation Hub Pill (Desktop & Mobile) -->
+              <button onclick="AIAutomation.openHub()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold text-[11px] sm:text-xs shadow-xs transition-all active:scale-95 cursor-pointer" title="AI Smart Automation">
+                <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i>
+                <span class="hidden sm:inline">AI Automation</span>
+              </button>
+
               <!-- Search Icon Button -->
-              <button onclick="App.openSearchModal()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all text-sm shadow-2xs" title="Search">
+              <button onclick="App.openSearchModal()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all text-xs sm:text-sm shadow-2xs cursor-pointer" title="Search">
                 <i class="fa-solid fa-magnifying-glass text-xs"></i>
               </button>
 
               <!-- In-App Notification Bell with Badge -->
-              <button id="navbar-notif-btn" onclick="Notifications.openDrawer()" class="relative w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all text-sm shadow-2xs" title="Notifications & Alerts">
-                <i class="fa-regular fa-bell text-sm"></i>
+              <button id="navbar-notif-btn" onclick="Notifications.openDrawer()" class="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all text-xs sm:text-sm shadow-2xs cursor-pointer" title="Notifications & Alerts">
+                <i class="fa-regular fa-bell text-xs sm:text-sm"></i>
                 <span id="notif-badge-pill" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-600 text-white font-black text-[9px] items-center justify-center border-2 border-white animate-pulse">0</span>
               </button>
 
-              <!-- Hamburger Menu Drawer Button -->
-              <button onclick="App.openMenuDrawer()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all text-sm shadow-2xs" title="More Options">
-                <i class="fa-solid fa-bars text-sm"></i>
+              <!-- Desktop User Pill / Logout -->
+              <div class="hidden md:inline-flex items-center gap-2 pl-2 border-l border-slate-200">
+                <button onclick="App.openProfileModal()" class="px-2.5 py-1 rounded-full border border-slate-200 hover:border-slate-300 bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer">
+                  <i class="fa-regular fa-user-circle text-sm text-slate-600"></i>
+                  <span>${userName}</span>
+                </button>
+              </div>
+
+              <!-- Mobile Hamburger Menu Button -->
+              <button onclick="App.openMenuDrawer()" class="md:hidden w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all text-xs shadow-2xs cursor-pointer" title="More Options">
+                <i class="fa-solid fa-bars text-xs"></i>
               </button>
             </div>
           </div>
@@ -430,19 +482,21 @@ const App = {
     this.render();
   },
 
-  // Modal helper
-  showModal(contentHtml) {
+  // Responsive Modal helper (Native Bottom-Sheet on Mobile, Centered Card on PC)
+  showModal(contentHtml, maxWidthClass = 'max-w-2xl') {
     let modalEl = document.getElementById('global-modal');
     if (!modalEl) {
       modalEl = document.createElement('div');
       modalEl.id = 'global-modal';
-      modalEl.className = 'fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 modal-backdrop';
+      modalEl.className = 'fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs modal-backdrop';
       document.body.appendChild(modalEl);
     }
 
     modalEl.innerHTML = `
-      <div class="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto p-5 sm:p-6 card-shadow relative animate-in fade-in zoom-in-95 duration-150">
-        ${contentHtml}
+      <div class="bg-white rounded-t-3xl sm:rounded-3xl ${maxWidthClass} w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col card-shadow relative animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+        <div class="overflow-y-auto p-4 sm:p-6 flex-1">
+          ${contentHtml}
+        </div>
       </div>
     `;
     modalEl.classList.remove('hidden');

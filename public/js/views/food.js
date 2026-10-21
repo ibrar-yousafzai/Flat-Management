@@ -482,14 +482,14 @@ const FoodView = {
             <input type="text" id="newFoodNotes" placeholder="e.g. Rice, Chicken, Oil, Vegetables, Spices" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none" />
           </div>
 
-          <!-- Footer Buttons -->
-          <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+          <!-- Sticky Footer Action Buttons (ALWAYS visible on screen) -->
+          <div class="sticky bottom-0 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-3 sm:p-4 bg-white/95 backdrop-blur-xs border-t border-slate-200 flex items-center justify-between rounded-b-3xl shadow-xs z-30">
             <span class="text-[11px] text-slate-400">
               <i class="fa-solid fa-lock text-[10px] mr-1"></i>Kept separate from monthly room bills
             </span>
             <div class="flex items-center gap-2">
-              <button type="button" onclick="App.closeModal()" class="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all">Cancel</button>
-              <button type="submit" class="px-5 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 shadow transition-all flex items-center gap-1.5">
+              <button type="button" onclick="App.closeModal()" class="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancel</button>
+              <button type="submit" class="px-5 py-2.5 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 shadow transition-all flex items-center gap-1.5 cursor-pointer active:scale-95">
                 <i class="fa-solid fa-check"></i> Save Weekly Food
               </button>
             </div>
@@ -667,14 +667,14 @@ const FoodView = {
             <input type="text" id="editFoodNotes" value="${entry.notes || ''}" placeholder="e.g. Rice, Chicken, Oil, Vegetables" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none" />
           </div>
 
-          <!-- Footer Buttons -->
-          <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+          <!-- Sticky Footer Action Buttons (ALWAYS visible on screen) -->
+          <div class="sticky bottom-0 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-3 sm:p-4 bg-white/95 backdrop-blur-xs border-t border-slate-200 flex items-center justify-between rounded-b-3xl shadow-xs z-30">
             <span class="text-[11px] text-slate-400">
               <i class="fa-solid fa-lock text-[10px] mr-1"></i>Kept separate from monthly room bills
             </span>
             <div class="flex items-center gap-2">
-              <button type="button" onclick="App.closeModal()" class="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all">Cancel</button>
-              <button type="submit" class="px-5 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 shadow transition-all flex items-center gap-1.5">
+              <button type="button" onclick="App.closeModal()" class="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancel</button>
+              <button type="submit" class="px-5 py-2.5 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 shadow transition-all flex items-center gap-1.5 cursor-pointer active:scale-95">
                 <i class="fa-solid fa-check"></i> Save Changes
               </button>
             </div>
