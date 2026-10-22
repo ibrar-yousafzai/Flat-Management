@@ -198,22 +198,24 @@ const PaymentsView = {
                     ${p.note ? `<p class="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 mt-2 italic">"${p.note}"</p>` : ''}
                   </div>
 
-                  <!-- Amount & Action Buttons -->
-                  <div class="flex items-center gap-3 shrink-0">
-                    <div class="text-right mr-2">
-                      <div class="text-2xl font-extrabold ${p.payment_for === 'food' ? 'text-amber-800' : 'text-emerald-700'}">${currency} ${p.amount.toLocaleString()}</div>
-                      <span class="text-[10px] text-amber-600 font-semibold uppercase tracking-wider">Awaiting Verification</span>
+                  <!-- Amount & Action Buttons (Mobile-first responsive flex) -->
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
+                    <div class="text-left sm:text-right">
+                      <div class="text-xl sm:text-2xl font-black ${p.payment_for === 'food' ? 'text-amber-800' : 'text-emerald-700'}">${currency} ${p.amount.toLocaleString()}</div>
+                      <span class="text-[10px] text-amber-600 font-bold uppercase tracking-wider block">Awaiting Verification</span>
                     </div>
 
-                    <!-- Approve Button -->
-                    <button onclick="PaymentsView.openApproveModal(${p.id}, '${p.member_name}', ${p.amount}, '${p.payment_for}')" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-1.5">
-                      <i class="fa-solid fa-check"></i> Approve
-                    </button>
+                    <div class="flex items-center gap-2">
+                      <!-- Approve Button -->
+                      <button onclick="PaymentsView.openApproveModal(${p.id}, '${p.member_name}', ${p.amount}, '${p.payment_for}')" class="flex-1 sm:flex-none min-h-[44px] px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-check text-xs"></i> Approve
+                      </button>
 
-                    <!-- Reject Button -->
-                    <button onclick="PaymentsView.openRejectModal(${p.id}, '${p.member_name}', ${p.amount})" class="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5">
-                      <i class="fa-solid fa-xmark"></i> Reject
-                    </button>
+                      <!-- Reject Button -->
+                      <button onclick="PaymentsView.openRejectModal(${p.id}, '${p.member_name}', ${p.amount})" class="flex-1 sm:flex-none min-h-[44px] px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-xmark text-xs"></i> Reject
+                      </button>
+                    </div>
                   </div>
                 </div>
               `).join('') : `

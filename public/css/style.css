@@ -39,6 +39,20 @@ body {
   background-color: var(--bg-app);
   color: var(--text-main);
   transition: background-color 0.2s ease, color 0.2s ease;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+html {
+  overflow-x: hidden;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Fast tap response on touchscreen */
+button, a, input, select, textarea {
+  touch-action: manipulation;
 }
 
 /* Card Shadow */
@@ -57,6 +71,60 @@ body {
   color: #C2410C !important;  /* bold warm orange */
   border-radius: 9999px;
   padding: 0.35rem 0.85rem;
+}
+
+/* Minimum 44px Touch Target Utility for Mobile (Apple HIG & Material Design standard) */
+.min-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile Bottom Sheet Modal Transitions */
+@keyframes slideUpSheet {
+  from {
+    transform: translateY(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.mobile-bottom-sheet {
+  animation: slideUpSheet 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Mobile Viewport Optimizations (screens under 640px) */
+@media (max-width: 640px) {
+  /* Prevent iOS Safari auto-zooming into inputs by maintaining 16px font-size */
+  input[type="text"],
+  input[type="number"],
+  input[type="password"],
+  input[type="date"],
+  input[type="month"],
+  input[type="email"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Safe Area content pad on mobile to clear bottom navigation bar */
+  main {
+    padding-bottom: calc(var(--sab) + 5.5rem) !important;
+  }
+
+  /* Modal bottom sheet on small phones */
+  #global-modal > div {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    max-height: 92dvh !important;
+    max-height: calc(100dvh - 2rem) !important;
+    overscroll-behavior: contain;
+  }
 }
 
 /* Dark Mode Modals & Overlays */

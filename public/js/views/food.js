@@ -281,29 +281,29 @@ const FoodView = {
                           `}
                         </div>
 
-                        <div class="flex items-center gap-1 shrink-0">
+                        <div class="flex items-center gap-1.5 shrink-0">
                           ${isFullyPaid ? `
-                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700 transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Paid. Tap to mark as Unpaid">
-                              <i class="fa-solid fa-check text-[9px]"></i> PAID
+                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="min-h-[38px] px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95" title="Paid. Tap to mark as Unpaid">
+                              <i class="fa-solid fa-check text-xs"></i> PAID
                             </button>
                           ` : isPartial ? `
-                            <button onclick="FoodView.openPartialPayModal(${m.id}, '${m.member_name.replace(/'/g, "\\'")}', ${totalAmt}, ${paidAmt}, ${remDue}, '${entry.title.replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg text-[10px] font-black bg-amber-600 hover:bg-amber-700 text-white shadow-2xs transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Add partial payment">
-                              <i class="fa-solid fa-plus text-[9px]"></i> Pay Due
+                            <button onclick="FoodView.openPartialPayModal(${m.id}, '${m.member_name.replace(/'/g, "\\'")}', ${totalAmt}, ${paidAmt}, ${remDue}, '${entry.title.replace(/'/g, "\\'")}')" class="min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-black bg-amber-600 hover:bg-amber-700 text-white shadow-2xs transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Add partial payment">
+                              <i class="fa-solid fa-plus text-xs"></i> Pay Due
                             </button>
-                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="w-6 h-6 rounded-lg bg-white border border-slate-200 hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 flex items-center justify-center text-[10px] transition-all cursor-pointer" title="Mark Fully Paid">
+                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="w-9 h-9 min-w-[36px] rounded-xl bg-white border border-slate-200 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 flex items-center justify-center text-xs transition-all cursor-pointer active:scale-95" title="Mark Fully Paid">
                               <i class="fa-solid fa-check-double"></i>
                             </button>
-                            <button onclick="FoodView.sendSingleMemberWhatsApp('${m.member_name.replace(/'/g, "\\'")}', '${m.whatsapp || ''}', ${remDue}, ${totalAmt}, ${paidAmt}, '${entry.title.replace(/'/g, "\\'")}', '${entry.date}')" class="w-6 h-6 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center text-[10px] transition-all cursor-pointer active:scale-95" title="Send WhatsApp reminder for remaining Rs. ${remDue}">
+                            <button onclick="FoodView.sendSingleMemberWhatsApp('${m.member_name.replace(/'/g, "\\'")}', '${m.whatsapp || ''}', ${remDue}, ${totalAmt}, ${paidAmt}, '${entry.title.replace(/'/g, "\\'")}', '${entry.date}')" class="w-9 h-9 min-w-[36px] rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center text-sm transition-all cursor-pointer active:scale-95" title="Send WhatsApp reminder for remaining Rs. ${remDue}">
                               <i class="fa-brands fa-whatsapp"></i>
                             </button>
                           ` : `
-                            <button onclick="FoodView.openPartialPayModal(${m.id}, '${m.member_name.replace(/'/g, "\\'")}', ${totalAmt}, 0, ${totalAmt}, '${entry.title.replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-amber-50 text-amber-800 border border-amber-300 transition-all flex items-center gap-0.5 cursor-pointer active:scale-95" title="Record partial payment">
-                              <i class="fa-solid fa-coins text-[9px]"></i> Partial
+                            <button onclick="FoodView.openPartialPayModal(${m.id}, '${m.member_name.replace(/'/g, "\\'")}', ${totalAmt}, 0, ${totalAmt}, '${entry.title.replace(/'/g, "\\'")}')" class="min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-amber-50 text-amber-800 border border-amber-300 transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Record partial payment">
+                              <i class="fa-solid fa-coins text-xs"></i> Partial
                             </button>
-                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-600 text-white shadow-2xs hover:bg-rose-700 transition-all flex items-center gap-1 cursor-pointer active:scale-95" title="Mark as Paid">
-                              <i class="fa-solid fa-check text-[9px]"></i> PAY
+                            <button onclick="FoodView.toggleMemberPaid(${m.id})" class="min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-black bg-rose-600 text-white shadow-2xs hover:bg-rose-700 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95" title="Mark as Paid">
+                              <i class="fa-solid fa-check text-xs"></i> PAY
                             </button>
-                            <button onclick="FoodView.sendSingleMemberWhatsApp('${m.member_name.replace(/'/g, "\\'")}', '${m.whatsapp || ''}', ${totalAmt}, ${totalAmt}, 0, '${entry.title.replace(/'/g, "\\'")}', '${entry.date}')" class="w-6 h-6 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center text-[10px] transition-all cursor-pointer active:scale-95" title="Send WhatsApp reminder for Rs. ${totalAmt}">
+                            <button onclick="FoodView.sendSingleMemberWhatsApp('${m.member_name.replace(/'/g, "\\'")}', '${m.whatsapp || ''}', ${totalAmt}, ${totalAmt}, 0, '${entry.title.replace(/'/g, "\\'")}', '${entry.date}')" class="w-9 h-9 min-w-[36px] rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 flex items-center justify-center text-sm transition-all cursor-pointer active:scale-95" title="Send WhatsApp reminder for Rs. ${totalAmt}">
                               <i class="fa-brands fa-whatsapp"></i>
                             </button>
                           `}
@@ -488,25 +488,25 @@ const FoodView = {
               <span class="text-[10px] text-amber-700 font-medium">Edit box for mid-week arrivals</span>
             </div>
 
-            <div class="max-h-44 sm:max-h-52 overflow-y-auto border border-slate-200 rounded-2xl p-1.5 divide-y divide-slate-100 bg-slate-50 text-xs">
+            <div class="max-h-48 sm:max-h-56 overflow-y-auto border border-slate-200 rounded-2xl p-1.5 divide-y divide-slate-100 bg-slate-50 text-xs">
               ${members.map(m => `
-                <div id="memberRow_${m.id}" class="py-1.5 px-2 flex items-center justify-between gap-2 rounded-xl hover:bg-white transition-all">
-                  <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
-                    <input type="checkbox" id="memCheck_${m.id}" name="foodMember" value="${m.id}" checked onchange="FoodView.handleMemberToggle(${m.id})" class="w-3.5 h-3.5 rounded text-amber-600 focus:ring-amber-500" />
+                <div id="memberRow_${m.id}" class="py-2 px-2.5 flex items-center justify-between gap-2 rounded-xl hover:bg-white transition-all min-h-[44px]">
+                  <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0 py-1">
+                    <input type="checkbox" id="memCheck_${m.id}" name="foodMember" value="${m.id}" checked onchange="FoodView.handleMemberToggle(${m.id})" class="w-4 h-4 sm:w-3.5 sm:h-3.5 rounded text-amber-600 focus:ring-amber-500" />
                     <div class="truncate">
-                      <span class="font-bold text-slate-800 text-xs">${m.name}</span>
+                      <span class="font-bold text-slate-800 text-xs sm:text-xs">${m.name}</span>
                       <span class="text-[10px] text-slate-400 font-mono">(${m.unique_id})</span>
                     </div>
                   </label>
 
-                  <div class="flex items-center gap-1 shrink-0">
-                    <span id="customBadge_${m.id}" class="hidden text-[9px] px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300">Mid-Week</span>
-                    <button type="button" id="resetBtn_${m.id}" onclick="FoodView.resetMemberToStandard(${m.id})" title="Reset" class="hidden text-[10px] text-slate-400 hover:text-amber-700 p-0.5">
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <span id="customBadge_${m.id}" class="hidden text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300">Mid-Week</span>
+                    <button type="button" id="resetBtn_${m.id}" onclick="FoodView.resetMemberToStandard(${m.id})" title="Reset" class="hidden text-xs text-slate-400 hover:text-amber-700 p-1 min-touch-target">
                       <i class="fa-solid fa-rotate-left"></i>
                     </button>
-                    <div class="w-24 relative">
-                      <span class="absolute left-2 top-1 text-[10px] font-bold text-slate-400">Rs.</span>
-                      <input type="number" id="memberShare_${m.id}" data-id="${m.id}" data-is-custom="false" placeholder="0" min="0" step="any" oninput="FoodView.handleMemberCustomInput(${m.id})" class="w-full pl-6 pr-1.5 py-0.5 text-xs bg-white border border-slate-300 rounded-lg text-right font-mono font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none" />
+                    <div class="w-28 relative">
+                      <span class="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">Rs.</span>
+                      <input type="number" id="memberShare_${m.id}" data-id="${m.id}" data-is-custom="false" placeholder="0" min="0" step="any" oninput="FoodView.handleMemberCustomInput(${m.id})" class="w-full pl-7 pr-2 py-1.5 text-xs bg-white border border-slate-300 rounded-xl text-right font-mono font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none" />
                     </div>
                   </div>
                 </div>

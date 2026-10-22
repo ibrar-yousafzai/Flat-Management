@@ -392,17 +392,17 @@ const BillsView = {
                     </div>
                   </details>
 
-                  <!-- Mobile Actions -->
+                  <!-- Mobile Actions (Min 44px touch targets) -->
                   <div class="flex items-center gap-2 pt-1 border-t border-slate-100">
                     ${netPayable > 0 ? `
-                      <button onclick="BillsView.quickRecordPay(${row.member.id}, ${netPayable})" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer">
+                      <button onclick="BillsView.quickRecordPay(${row.member.id}, ${netPayable})" class="flex-1 min-h-[44px] py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer">
                         <i class="fa-solid fa-hand-holding-dollar"></i> Pay
                       </button>
                     ` : ''}
-                    <button onclick="BillsView.openWhatsApp(${row.member.id})" class="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+                    <button onclick="BillsView.openWhatsApp(${row.member.id})" class="flex-1 min-h-[44px] py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
                       <i class="fa-brands fa-whatsapp text-emerald-600 text-sm"></i> WhatsApp
                     </button>
-                    <button onclick="BillsView.openInvoice(${row.member.id})" class="flex-1 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+                    <button onclick="BillsView.openInvoice(${row.member.id})" class="flex-1 min-h-[44px] py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
                       <i class="fa-solid fa-file-invoice text-blue-600"></i> PDF Bill
                     </button>
                   </div>

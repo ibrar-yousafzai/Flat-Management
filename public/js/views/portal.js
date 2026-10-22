@@ -74,7 +74,7 @@ const PortalView = {
                 <p class="text-[11px] font-bold text-slate-700">Bills Due</p>
                 <p class="text-xs sm:text-sm font-black text-orange-600 mt-0.5">${currency} ${(b.bills_balance || 0).toLocaleString()}</p>
               </div>
-              <button onclick="PortalView.openSubmitPaymentModal(${m.id}, 'bills')" class="mt-2.5 w-full py-1 bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold rounded-lg shadow-2xs transition-all">
+              <button onclick="PortalView.openSubmitPaymentModal(${m.id}, 'bills')" class="mt-2.5 w-full min-h-[36px] py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold rounded-xl shadow-2xs transition-all active:scale-95 cursor-pointer">
                 Pay Bills
               </button>
             </div>
@@ -88,7 +88,7 @@ const PortalView = {
                 <p class="text-[11px] font-bold text-slate-700">Food Mess</p>
                 <p class="text-xs sm:text-sm font-black text-orange-600 mt-0.5">${currency} ${(b.food_balance || 0).toLocaleString()}</p>
               </div>
-              <button onclick="PortalView.openSubmitPaymentModal(${m.id}, 'food')" class="mt-2.5 w-full py-1 bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold rounded-lg shadow-2xs transition-all">
+              <button onclick="PortalView.openSubmitPaymentModal(${m.id}, 'food')" class="mt-2.5 w-full min-h-[36px] py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold rounded-xl shadow-2xs transition-all active:scale-95 cursor-pointer">
                 Pay Food
               </button>
             </div>
@@ -102,7 +102,7 @@ const PortalView = {
                 <p class="text-[11px] font-bold text-slate-700">Deposit</p>
                 <p class="text-xs sm:text-sm font-black text-orange-600 mt-0.5">${currency} ${(m.security_deposit || 0).toLocaleString()}</p>
               </div>
-              <button onclick="App.navigate('reports')" class="mt-2.5 w-full py-1 bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold rounded-lg shadow-2xs transition-all">
+              <button onclick="App.navigate('reports')" class="mt-2.5 w-full min-h-[36px] py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold rounded-xl shadow-2xs transition-all active:scale-95 cursor-pointer">
                 Statement
               </button>
             </div>
@@ -130,8 +130,8 @@ const PortalView = {
               </div>
             </div>
 
-            <!-- Big Blue Primary Action Button -->
-            <button onclick="PortalView.openSubmitPaymentModal(${m.id})" class="w-full py-3 bg-blue-700 hover:bg-blue-800 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-xs transition-all flex items-center justify-center gap-2">
+            <!-- Big Blue Primary Action Button (Min 48px Touch Target for Mobile) -->
+            <button onclick="PortalView.openSubmitPaymentModal(${m.id})" class="w-full min-h-[48px] py-3.5 bg-blue-700 hover:bg-blue-800 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer">
               <i class="fa-solid fa-credit-card"></i> PAY BILL ONLINE
             </button>
           </div>
@@ -330,9 +330,11 @@ const PortalView = {
             <input type="text" id="claimRef" placeholder="e.g. TID-982341 or 'Handed cash'" class="w-full px-3 py-2 text-xs border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" />
           </div>
 
-          <div class="flex justify-end gap-2 pt-2 border-t">
-            <button type="button" onclick="App.closeModal()" class="px-4 py-2 border rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
-            <button type="submit" class="px-4 py-2 bg-blue-700 text-white rounded-xl text-xs font-bold hover:bg-blue-800 shadow-sm">Submit Claim</button>
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <button type="button" onclick="App.closeModal()" class="flex-1 sm:flex-none min-h-[44px] px-4 py-2.5 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer">Cancel</button>
+            <button type="submit" class="flex-1 sm:flex-none min-h-[44px] px-6 py-2.5 bg-blue-700 text-white rounded-xl text-xs font-black hover:bg-blue-800 shadow-sm transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-check"></i> Submit Claim
+            </button>
           </div>
         </form>
       </div>

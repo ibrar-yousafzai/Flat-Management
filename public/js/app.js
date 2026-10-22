@@ -543,11 +543,20 @@ const App = {
       modalEl = document.createElement('div');
       modalEl.id = 'global-modal';
       modalEl.className = 'fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs modal-backdrop';
+      modalEl.onclick = (e) => {
+        if (e.target === modalEl) App.closeModal();
+      };
       document.body.appendChild(modalEl);
+    } else {
+      modalEl.onclick = (e) => {
+        if (e.target === modalEl) App.closeModal();
+      };
     }
 
     modalEl.innerHTML = `
-      <div class="bg-white rounded-t-3xl sm:rounded-3xl ${maxWidthClass} w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col card-shadow relative animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+      <div class="bg-white rounded-t-3xl sm:rounded-3xl ${maxWidthClass} w-full max-h-[92dvh] sm:max-h-[88vh] flex flex-col card-shadow relative mobile-bottom-sheet overflow-hidden">
+        <!-- Mobile drag indicator pill -->
+        <div class="w-12 h-1 bg-slate-300 rounded-full mx-auto mt-2 mb-1 sm:hidden shrink-0"></div>
         <div class="overflow-y-auto p-4 sm:p-6 flex-1">
           ${contentHtml}
         </div>
