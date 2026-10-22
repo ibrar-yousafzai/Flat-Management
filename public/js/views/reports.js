@@ -59,11 +59,18 @@ const ReportsView = {
 
             <!-- Unified Dropdown Row -->
             <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-2.5 border-t border-slate-100">
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-bold text-slate-500 uppercase">Period:</span>
-                <select onchange="ReportsView.changeMonth(this.value)" class="text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-300 outline-none cursor-pointer">
-                  ${availableMonths.map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${App.formatMonth(m)}</option>`).join('')}
-                </select>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold text-slate-500 uppercase mr-1">Period:</span>
+                <button type="button" onclick="ReportsView.prevMonth()" title="Previous Month" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold transition-all cursor-pointer">
+                  <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                </button>
+                <div class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">
+                  <i class="fa-regular fa-calendar text-blue-600 text-xs"></i>
+                  <input type="month" value="${this.selectedMonth}" onchange="ReportsView.changeMonth(this.value)" class="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer" />
+                </div>
+                <button type="button" onclick="ReportsView.nextMonth()" title="Next Month" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold transition-all cursor-pointer">
+                  <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
               </div>
 
               ${!isMember ? `
@@ -111,8 +118,23 @@ const ReportsView = {
   },
 
   changeMonth(month) {
+    if (!month) return;
     this.selectedMonth = month;
     App.refresh();
+  },
+
+  prevMonth() {
+    let [y, m] = this.selectedMonth.split('-').map(Number);
+    m--;
+    if (m < 1) { m = 12; y--; }
+    this.changeMonth(`${y}-${String(m).padStart(2, '0')}`);
+  },
+
+  nextMonth() {
+    let [y, m] = this.selectedMonth.split('-').map(Number);
+    m++;
+    if (m > 12) { m = 1; y++; }
+    this.changeMonth(`${y}-${String(m).padStart(2, '0')}`);
   },
 
   changeMember(memberId) {

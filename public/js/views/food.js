@@ -95,15 +95,18 @@ const FoodView = {
 
           <!-- 3. Primary Review Card: WEEKLY MESS SETTLEMENT & REVIEW -->
           <div class="bg-white rounded-3xl p-5 border border-slate-200 card-shadow space-y-4">
-            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-2">
               <span class="text-[11px] font-black text-blue-700 uppercase tracking-wider">Weekly Mess Settlement</span>
-              <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-                <button onclick="FoodView.prevMonth()" title="Previous Month" class="w-6 h-6 rounded-lg bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-bold cursor-pointer">
-                  <i class="fa-solid fa-chevron-left"></i>
+              <div class="flex items-center gap-1.5">
+                <button onclick="FoodView.prevMonth()" title="Previous Month" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold transition-all cursor-pointer">
+                  <i class="fa-solid fa-chevron-left text-[10px]"></i>
                 </button>
-                <span class="text-[11px] font-bold text-slate-800 px-2 select-none">${App.formatMonth(this.currentMonth)}</span>
-                <button onclick="FoodView.nextMonth()" title="Next Month" class="w-6 h-6 rounded-lg bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-bold cursor-pointer">
-                  <i class="fa-solid fa-chevron-right"></i>
+                <div class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">
+                  <i class="fa-regular fa-calendar text-amber-600 text-xs"></i>
+                  <input type="month" value="${this.currentMonth}" onchange="FoodView.changeMonth(this.value)" class="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer" />
+                </div>
+                <button onclick="FoodView.nextMonth()" title="Next Month" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold transition-all cursor-pointer">
+                  <i class="fa-solid fa-chevron-right text-[10px]"></i>
                 </button>
               </div>
             </div>

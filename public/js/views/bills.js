@@ -103,13 +103,21 @@ const BillsView = {
 
           <!-- 3. Primary Review Card: BILLING REVIEW & CONFIRMATION -->
           <div class="bg-white rounded-3xl p-5 border border-slate-200 card-shadow space-y-4">
-            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-2">
               <span class="text-[11px] font-black text-blue-700 uppercase tracking-wider">Billing Status & Publish</span>
-              <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-                <span class="text-[11px] font-bold text-slate-500 px-1 uppercase">Month:</span>
-                <select onchange="BillsView.changeMonth(this.value)" class="text-[11px] font-bold bg-white px-2 py-0.5 rounded-lg border border-slate-200 outline-none cursor-pointer">
-                  ${availableMonths.filter(m => !m.startsWith('2026')).map(m => `<option value="${m}" ${this.selectedMonth === m ? 'selected' : ''}>${App.formatMonth ? App.formatMonth(m) : m}</option>`).join('')}
-                </select>
+              
+              <!-- Manual Calendar & Month Picker -->
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="BillsView.prevMonth()" title="Previous Month" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold transition-all cursor-pointer">
+                  <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                </button>
+                <div class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">
+                  <i class="fa-regular fa-calendar text-blue-600 text-xs"></i>
+                  <input type="month" id="billsMonthPicker" value="${this.selectedMonth}" onchange="BillsView.changeMonth(this.value)" class="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer" />
+                </div>
+                <button type="button" onclick="BillsView.nextMonth()" title="Next Month" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold transition-all cursor-pointer">
+                  <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
               </div>
             </div>
 
@@ -515,10 +523,25 @@ const BillsView = {
   },
 
   changeMonth(month) {
+    if (!month) return;
     this.selectedMonth = month;
     this.visibleMembersLimit = 6;
     this.visibleBillsLimit = 6;
     App.refresh();
+  },
+
+  prevMonth() {
+    let [y, m] = this.selectedMonth.split('-').map(Number);
+    m--;
+    if (m < 1) { m = 12; y--; }
+    this.changeMonth(`${y}-${String(m).padStart(2, '0')}`);
+  },
+
+  nextMonth() {
+    let [y, m] = this.selectedMonth.split('-').map(Number);
+    m++;
+    if (m > 12) { m = 1; y++; }
+    this.changeMonth(`${y}-${String(m).padStart(2, '0')}`);
   },
 
   async confirmMonth() {
@@ -823,22 +846,26 @@ const BillsView = {
     App.showModal(`
       <div class="space-y-4">
         <div class="flex items-center justify-between border-b pb-3">
-          <h3 class="text-lg font-bold text-slate-800">Add One-by-One Bill (${this.selectedMonth})</h3>
+          <h3 class="text-lg font-bold text-slate-800">Add One-by-One Bill</h3>
           <button onclick="App.closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <form onsubmit="BillsView.submitCreateBill(event)" class="space-y-3.5">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Bill Title *</label>
-              <input type="text" id="newBillTitle" required placeholder="e.g. WiFi, Cook Salary, Electricity" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Billing Month *</label>
+              <input type="month" id="newBillMonth" value="${this.selectedMonth}" required class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-800 cursor-pointer" />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Total Bill Amount (Rs.) *</label>
-              <input type="number" id="newBillAmount" required min="1" step="any" placeholder="e.g. 15000" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Bill Title *</label>
+              <input type="text" id="newBillTitle" required placeholder="e.g. WiFi, Cook Salary, Electricity" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
             </div>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Total Bill Amount (Rs.) *</label>
+              <input type="number" id="newBillAmount" required min="1" step="any" placeholder="e.g. 15000" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold font-mono" />
+            </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Category</label>
               <select id="newBillCategory" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
@@ -848,15 +875,16 @@ const BillsView = {
                 <option value="other">Other / Custom</option>
               </select>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Split Method *</label>
-              <select id="newBillSplitType" onchange="BillsView.onSplitTypeChange(this.value)" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
-                <option value="everyone" selected>Everyone (All active members)</option>
-                <option value="inside_only">Inside Only (Living in flat)</option>
-                <option value="by_room">By Specific Room</option>
-                <option value="pick_people">Pick Specific People</option>
-              </select>
-            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Split Method *</label>
+            <select id="newBillSplitType" onchange="BillsView.onSplitTypeChange(this.value)" class="w-full px-3 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+              <option value="everyone" selected>Everyone (All active members)</option>
+              <option value="inside_only">Inside Only (Living in flat)</option>
+              <option value="by_room">By Specific Room</option>
+              <option value="pick_people">Pick Specific People</option>
+            </select>
           </div>
 
           <!-- Room Selector (for by_room) -->
@@ -918,9 +946,11 @@ const BillsView = {
       }
     }
 
+    const billMonth = document.getElementById('newBillMonth')?.value || this.selectedMonth;
+
     try {
       await API.post('/api/bills', {
-        month: this.selectedMonth,
+        month: billMonth,
         title,
         total_amount,
         category,
@@ -929,6 +959,7 @@ const BillsView = {
         selected_members,
         notes
       });
+      this.selectedMonth = billMonth;
       App.toast('Bill added! You can add more bills or confirm the month when done.', 'success');
       App.closeModal();
       App.refresh();
