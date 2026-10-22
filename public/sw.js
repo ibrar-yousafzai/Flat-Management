@@ -1,5 +1,5 @@
 // Flat Management System - Progressive Web App Service Worker
-const CACHE_NAME = 'flat-app-v6';
+const CACHE_NAME = 'flat-app-v7';
 
 const STATIC_ASSETS = [
   '/',

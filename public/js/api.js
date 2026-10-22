@@ -92,6 +92,23 @@ const API = {
     }
   },
 
+  async patch(url, data = {}) {
+    if (typeof OfflineStore !== 'undefined' && !OfflineStore.isOnline) {
+      OfflineStore.enqueueAction(url, 'PATCH', data);
+      return { success: true, offline: true, message: 'Saved locally in offline mode' };
+    }
+
+    try {
+      return await this.rawRequest(url, 'PATCH', data);
+    } catch (err) {
+      if (typeof OfflineStore !== 'undefined' && (!navigator.onLine || err.message.includes('Failed to fetch'))) {
+        OfflineStore.enqueueAction(url, 'PATCH', data);
+        return { success: true, offline: true, message: 'Offline: queued for auto-sync' };
+      }
+      throw err;
+    }
+  },
+
   async delete(url, data = {}) {
     if (typeof OfflineStore !== 'undefined' && !OfflineStore.isOnline) {
       OfflineStore.enqueueAction(url, 'DELETE', data);

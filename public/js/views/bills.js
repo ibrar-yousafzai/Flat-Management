@@ -549,6 +549,7 @@ const BillsView = {
     try {
       const res = await API.post('/api/bills/confirm-month', { month: this.selectedMonth, admin_name: App.currentUser?.name || 'Admin' });
       App.toast(res.message, 'success');
+      await App.refresh();
       // Prompt admin immediately to send emails to All or Selected members
       this.promptBatchEmailModal();
     } catch (err) {

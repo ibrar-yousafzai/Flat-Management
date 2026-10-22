@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { db, logAudit, createNotification } = require('../db');
+const {
+  pushBillToSupabase,
+  updateBillInSupabase,
+  deleteBillFromSupabase,
+  syncMonthStatusToSupabase
+} = require('../supabase');
 
 // Helper to get days in a given month (YYYY-MM)
 function getDaysInMonth(yearMonth) {
@@ -217,6 +223,8 @@ router.post('/confirm-month', (req, res) => {
       VALUES (?, 'confirmed', ?, CURRENT_TIMESTAMP)
     `).run(month, admin_name);
 
+    syncMonthStatusToSupabase(month, 'confirmed').catch(e => console.error('Supabase month status error:', e.message));
+
     logAudit('admin', null, admin_name, 'Confirmed Monthly Bills', `Confirmed and published monthly bills for ${month}`);
 
     res.json({ success: true, message: `Bills for ${month} confirmed and published to members!` });
@@ -240,6 +248,8 @@ router.post('/reopen-month', (req, res) => {
       INSERT OR REPLACE INTO month_status (month, status, reopened_by, reopened_at, reopen_reason)
       VALUES (?, 'draft', ?, CURRENT_TIMESTAMP, ?)
     `).run(month, admin_name, cleanReason);
+
+    syncMonthStatusToSupabase(month, 'draft').catch(e => console.error('Supabase month status error:', e.message));
 
     logAudit('admin', null, admin_name, 'Reopened Monthly Bills', `Unlocked bills for ${month}. Reason: ${cleanReason}`);
 
@@ -311,6 +321,9 @@ router.post('/close-and-advance-month', (req, res) => {
     // Initialize new month status as draft
     db.prepare(`INSERT OR IGNORE INTO month_status (month, status) VALUES (?, 'draft')`).run(nextMonth);
 
+    syncMonthStatusToSupabase(month, 'closed').catch(e => console.error('Supabase month close error:', e.message));
+    syncMonthStatusToSupabase(nextMonth, 'draft').catch(e => console.error('Supabase next month draft error:', e.message));
+
     logAudit('admin', null, admin_name, 'Closed Month & Advanced', `Closed ${month} and advanced active month to ${nextMonth}. Carried forward balances for ${carriedCount} members.`);
 
     res.json({
@@ -349,6 +362,14 @@ router.put('/:id/splits', (req, res) => {
 
     // Update bill total amount to match sum of edited splits
     db.prepare(`UPDATE monthly_bills SET total_amount = ? WHERE id = ?`).run(newTotal, id);
+
+    // Sync split updates to Supabase
+    (async () => {
+      const currentSplits = db.prepare('SELECT member_id, amount FROM bill_splits WHERE bill_id = ?').all(id);
+      if (bill.supabase_id) {
+        await updateBillInSupabase(bill.supabase_id, { total_amount: newTotal }, currentSplits);
+      }
+    })().catch(e => console.error('Supabase split update error:', e.message));
 
     logAudit('admin', null, admin_name, 'Edited Bill Splits', `Custom adjusted splits for bill "${bill.title}" (New Total: Rs. ${newTotal})`);
 
@@ -431,6 +452,21 @@ router.post('/auto-generate-rent', (req, res) => {
 
     logAudit('admin', null, actor_name, 'Generated Monthly Rent', `Auto-generated rent for ${month} (Total: Rs. ${totalRent})`);
 
+    // Sync generated rent to Supabase
+    (async () => {
+      const splits = db.prepare('SELECT member_id, amount FROM bill_splits WHERE bill_id = ?').all(billId);
+      const cloudBill = await pushBillToSupabase({
+        month,
+        title: 'Monthly Flat Rent',
+        category: 'rent',
+        total_amount: totalRent,
+        split_type: 'by_room'
+      }, splits);
+      if (cloudBill?.id) {
+        db.prepare('UPDATE monthly_bills SET supabase_id = ? WHERE id = ?').run(cloudBill.id, billId);
+      }
+    })().catch(e => console.error('Supabase auto-rent error:', e.message));
+
     res.json({ success: true, billId, totalRent });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -501,6 +537,21 @@ router.post('/', (req, res) => {
     }
 
     logAudit('admin', null, actor_name, 'Created Bill', `Added bill "${title}" for ${month} (Rs. ${amount}, Split: ${split_type})`);
+
+    // Sync newly created bill to Supabase
+    (async () => {
+      const splits = db.prepare('SELECT member_id, amount FROM bill_splits WHERE bill_id = ?').all(billId);
+      const cloudBill = await pushBillToSupabase({
+        month,
+        title: title.trim(),
+        category,
+        total_amount: amount,
+        split_type
+      }, splits);
+      if (cloudBill?.id) {
+        db.prepare('UPDATE monthly_bills SET supabase_id = ? WHERE id = ?').run(cloudBill.id, billId);
+      }
+    })().catch(e => console.error('Supabase bill create error:', e.message));
 
     createNotification({
       title: `New Bill Added: ${title}`,
@@ -592,6 +643,30 @@ router.put('/:id', (req, res) => {
 
     logAudit('admin', null, actor_name, 'Updated Bill', `Updated bill "${title || existingBill.title}" (${existingBill.month})`);
 
+    // Sync updated bill to Supabase
+    (async () => {
+      const splits = db.prepare('SELECT member_id, amount FROM bill_splits WHERE bill_id = ?').all(id);
+      if (existingBill.supabase_id) {
+        await updateBillInSupabase(existingBill.supabase_id, {
+          title: title ? title.trim() : existingBill.title,
+          category,
+          total_amount: newAmount,
+          split_type: newSplitType
+        }, splits);
+      } else {
+        const cloudBill = await pushBillToSupabase({
+          month: existingBill.month,
+          title: title ? title.trim() : existingBill.title,
+          category,
+          total_amount: newAmount,
+          split_type: newSplitType
+        }, splits);
+        if (cloudBill?.id) {
+          db.prepare('UPDATE monthly_bills SET supabase_id = ? WHERE id = ?').run(cloudBill.id, id);
+        }
+      }
+    })().catch(e => console.error('Supabase bill update error:', e.message));
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -611,6 +686,11 @@ router.delete('/:id', (req, res) => {
     db.prepare(`DELETE FROM bill_splits WHERE bill_id = ?`).run(id);
     db.prepare(`DELETE FROM monthly_bills WHERE id = ?`).run(id);
 
+    // Sync deletion to Supabase
+    if (bill.supabase_id) {
+      deleteBillFromSupabase(bill.supabase_id).catch(e => console.error('Supabase bill delete error:', e.message));
+    }
+
     logAudit('admin', null, req.body.actor_name || 'Admin', 'Deleted Bill', `Deleted bill "${bill.title}" for ${bill.month} (Rs. ${bill.total_amount})`);
 
     res.json({ success: true });
@@ -627,7 +707,7 @@ router.delete('/month/:month', (req, res) => {
     const deleteFood = req.body?.delete_food === true || req.query?.delete_food === 'true';
 
     // Get all bills in this month
-    const bills = db.prepare(`SELECT id FROM monthly_bills WHERE month = ?`).all(month);
+    const bills = db.prepare(`SELECT id, supabase_id FROM monthly_bills WHERE month = ?`).all(month);
     const billIds = bills.map(b => b.id);
 
     const deleteTx = db.transaction(() => {
@@ -640,7 +720,7 @@ router.delete('/month/:month', (req, res) => {
       db.prepare(`DELETE FROM monthly_carry_forward WHERE month = ?`).run(month);
 
       if (deleteFood) {
-        const foodEntries = db.prepare(`SELECT id FROM weekly_food WHERE month = ?`).all(month);
+        const foodEntries = db.prepare(`SELECT id, supabase_id FROM weekly_food WHERE month = ?`).all(month);
         const foodIds = foodEntries.map(f => f.id);
         if (foodIds.length > 0) {
           const fPlaceholders = foodIds.map(() => '?').join(',');
@@ -651,6 +731,12 @@ router.delete('/month/:month', (req, res) => {
     });
 
     deleteTx();
+
+    // Sync deletions to Supabase
+    for (const b of bills) {
+      if (b.supabase_id) deleteBillFromSupabase(b.supabase_id).catch(() => {});
+    }
+    syncMonthStatusToSupabase(month, 'draft').catch(() => {});
 
     logAudit('admin', null, actor_name, 'Deleted Month Data', `Cleared bills (${billIds.length} bills), carry-forward, and status for month ${month}${deleteFood ? ' (including weekly food)' : ''}`);
 

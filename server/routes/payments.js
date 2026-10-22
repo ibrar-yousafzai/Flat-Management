@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { db, logAudit, createNotification } = require('../db');
+const {
+  pushPaymentToSupabase,
+  updatePaymentInSupabase,
+  deletePaymentFromSupabase
+} = require('../supabase');
 
 // Get all payments (filterable by member_id, status, payment_for: 'all' | 'bills' | 'food')
 router.get('/', (req, res) => {
@@ -96,6 +101,24 @@ router.post('/record', (req, res) => {
 
     logAudit('admin', admin_id, admin_name, 'Recorded Payment', `Recorded Rs. ${amount} (${payment_for.toUpperCase()}) for ${member.name} (${member.unique_id}) via ${payment_method}`);
 
+    // Sync recorded payment to Supabase
+    (async () => {
+      const cloudPayment = await pushPaymentToSupabase({
+        member_id,
+        amount,
+        payment_for,
+        payment_method,
+        payment_date,
+        bank_name,
+        reference_no,
+        note,
+        status: 'approved'
+      });
+      if (cloudPayment?.id) {
+        db.prepare('UPDATE payments SET supabase_id = ? WHERE id = ?').run(cloudPayment.id, info.lastInsertRowid);
+      }
+    })().catch(e => console.error('Supabase payment record error:', e.message));
+
     createNotification({
       title: `Payment Received & Credited`,
       message: `Admin recorded payment of Rs. ${Number(amount).toLocaleString()} for ${payment_for === 'food' ? 'Weekly Food Mess' : 'Monthly Bills'}.`,
@@ -155,6 +178,24 @@ router.post('/submit', (req, res) => {
     );
 
     logAudit('member', member_id, member.name, 'Submitted Payment', `Member submitted Rs. ${amount} for ${payment_for.toUpperCase()} via ${payment_method} for approval`);
+
+    // Sync claimed payment to Supabase
+    (async () => {
+      const cloudPayment = await pushPaymentToSupabase({
+        member_id,
+        amount,
+        payment_for,
+        payment_method,
+        payment_date,
+        bank_name,
+        reference_no,
+        note,
+        status: 'pending'
+      });
+      if (cloudPayment?.id) {
+        db.prepare('UPDATE payments SET supabase_id = ? WHERE id = ?').run(cloudPayment.id, info.lastInsertRowid);
+      }
+    })().catch(e => console.error('Supabase payment submit error:', e.message));
 
     createNotification({
       title: `New Payment Claim Submitted`,
@@ -222,6 +263,19 @@ router.put('/:id', (req, res) => {
 
     logAudit('admin', null, admin_name, 'Edited Payment', `Updated payment #${id} (Rs. ${amount || payment.amount}, ${payment_for || payment.payment_for})`);
 
+    // Sync updated payment to Supabase
+    (async () => {
+      if (payment.supabase_id) {
+        await updatePaymentInSupabase(payment.supabase_id, {
+          amount,
+          note,
+          bank_name,
+          reference_no,
+          status
+        });
+      }
+    })().catch(e => console.error('Supabase payment edit error:', e.message));
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -255,6 +309,28 @@ router.post('/:id/approve', (req, res) => {
     `).run(admin_comment.trim(), admin_id, id);
 
     logAudit('admin', admin_id, admin_name, 'Approved Payment', `Approved payment #${id} of Rs. ${payment.amount} for ${payment.member_name} (${payment.unique_id}). Comment: ${admin_comment}`);
+
+    // Sync approved payment to Supabase
+    (async () => {
+      if (payment.supabase_id) {
+        await updatePaymentInSupabase(payment.supabase_id, { status: 'approved' });
+      } else {
+        const cloudPayment = await pushPaymentToSupabase({
+          member_id: payment.member_id,
+          amount: payment.amount,
+          payment_for: payment.payment_for,
+          payment_method: payment.payment_method,
+          payment_date: payment.payment_date,
+          bank_name: payment.bank_name,
+          reference_no: payment.reference_no,
+          note: payment.note,
+          status: 'approved'
+        });
+        if (cloudPayment?.id) {
+          db.prepare('UPDATE payments SET supabase_id = ? WHERE id = ?').run(cloudPayment.id, id);
+        }
+      }
+    })().catch(e => console.error('Supabase payment approve error:', e.message));
 
     createNotification({
       title: `Payment Approved & Credited`,
@@ -304,6 +380,13 @@ router.post('/:id/reject', (req, res) => {
 
     logAudit('admin', admin_id, admin_name, 'Rejected Payment', `Rejected payment #${id} of Rs. ${payment.amount} for ${payment.member_name}. Reason: ${admin_comment}`);
 
+    // Sync rejection to Supabase
+    (async () => {
+      if (payment.supabase_id) {
+        await updatePaymentInSupabase(payment.supabase_id, { status: 'pending' });
+      }
+    })().catch(e => console.error('Supabase payment reject error:', e.message));
+
     createNotification({
       title: `Payment Claim Rejected`,
       message: `Your payment claim of Rs. ${Number(payment.amount).toLocaleString()} was rejected: "${admin_comment.trim()}".`,
@@ -332,6 +415,11 @@ router.delete('/:id', (req, res) => {
     }
 
     db.prepare(`DELETE FROM payments WHERE id = ?`).run(id);
+
+    // Sync deletion to Supabase
+    if (payment.supabase_id) {
+      deletePaymentFromSupabase(payment.supabase_id).catch(e => console.error('Supabase payment delete error:', e.message));
+    }
 
     logAudit(
       'admin',

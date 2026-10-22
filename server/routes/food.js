@@ -1,6 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { db, logAudit, createNotification } = require('../db');
+const {
+  pushBillToSupabase,
+  updateBillInSupabase,
+  deleteBillFromSupabase,
+  pushPaymentToSupabase,
+  deletePaymentFromSupabase
+} = require('../supabase');
+
+try { db.exec('ALTER TABLE food_splits ADD COLUMN supabase_payment_id TEXT'); } catch (e) {}
 
 // Get all weekly food entries (optionally filtered by month)
 router.get('/', (req, res) => {
@@ -133,6 +142,22 @@ router.post('/', (req, res) => {
 
     logAudit('food_manager', null, actor_name, 'Added Food Expense', `Recorded weekly food "${title}" on ${date} (Rs. ${amount}, ${customMemberSet.size} custom mid-week shares)`);
 
+    // Sync weekly food to Supabase
+    (async () => {
+      const splits = db.prepare('SELECT member_id, amount FROM food_splits WHERE food_id = ?').all(foodId);
+      const cloudBill = await pushBillToSupabase({
+        month,
+        bill_date: date,
+        title: title.trim(),
+        category: 'food',
+        total_amount: amount,
+        split_type: 'everyone'
+      }, splits);
+      if (cloudBill?.id) {
+        db.prepare('UPDATE weekly_food SET supabase_id = ? WHERE id = ?').run(cloudBill.id, foodId);
+      }
+    })().catch(e => console.error('Supabase food create error:', e.message));
+
     createNotification({
       title: `Weekly Mess Grocery: ${title}`,
       message: `Rs. ${amount.toLocaleString()} mess grocery recorded for ${date}. Share: Rs. ${standardPerPerson.toLocaleString()} per member.`,
@@ -217,6 +242,30 @@ router.put('/:id', (req, res) => {
 
     logAudit('admin', null, actor_name, 'Updated Food Expense', `Updated food entry #${id} (Rs. ${newAmount})`);
 
+    // Sync updated food expense to Supabase
+    (async () => {
+      const splits = db.prepare('SELECT member_id, amount FROM food_splits WHERE food_id = ?').all(id);
+      if (current.supabase_id) {
+        await updateBillInSupabase(current.supabase_id, {
+          title: title ? title.trim() : current.title,
+          category: 'food',
+          total_amount: newAmount
+        }, splits);
+      } else {
+        const cloudBill = await pushBillToSupabase({
+          month: newMonth,
+          bill_date: newDate,
+          title: title ? title.trim() : current.title,
+          category: 'food',
+          total_amount: newAmount,
+          split_type: 'everyone'
+        }, splits);
+        if (cloudBill?.id) {
+          db.prepare('UPDATE weekly_food SET supabase_id = ? WHERE id = ?').run(cloudBill.id, id);
+        }
+      }
+    })().catch(e => console.error('Supabase food update error:', e.message));
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -234,6 +283,11 @@ router.delete('/:id', (req, res) => {
 
     db.prepare(`DELETE FROM food_splits WHERE food_id = ?`).run(id);
     db.prepare(`DELETE FROM weekly_food WHERE id = ?`).run(id);
+
+    // Sync deletion to Supabase
+    if (current.supabase_id) {
+      deleteBillFromSupabase(current.supabase_id).catch(e => console.error('Supabase food delete error:', e.message));
+    }
 
     const actorName = req.body?.actor_name || req.query?.actor_name || 'Admin';
     logAudit('admin', null, actorName, 'Deleted Food Expense', `Deleted food entry "${current.title}" (${current.date})`);
@@ -270,6 +324,26 @@ router.patch('/splits/:id/toggle-paid', (req, res) => {
       SET is_paid = ?, paid_amount = ?, paid_at = ?
       WHERE id = ?
     `).run(newPaid, newPaidAmount, paidAt, id);
+
+    // Sync food payment to Supabase
+    (async () => {
+      if (newPaid === 1) {
+        const p = await pushPaymentToSupabase({
+          member_id: split.member_id,
+          amount: split.amount,
+          payment_for: 'food',
+          payment_method: 'cash',
+          payment_date: new Date().toISOString().slice(0, 10),
+          note: `[FOOD] Weekly food mess: ${split.food_title}`
+        });
+        if (p?.id) {
+          db.prepare('UPDATE food_splits SET supabase_payment_id = ? WHERE id = ?').run(p.id, id);
+        }
+      } else if (split.supabase_payment_id) {
+        await deletePaymentFromSupabase(split.supabase_payment_id);
+        db.prepare('UPDATE food_splits SET supabase_payment_id = NULL WHERE id = ?').run(id);
+      }
+    })().catch(e => console.error('Supabase food toggle pay error:', e.message));
 
     const actorName = req.body?.actor_name || req.user?.name || 'Admin';
     logAudit('admin', split.member_id, actorName, newPaid === 1 ? 'Marked Food Paid' : 'Marked Food Unpaid', `${split.member_name} marked ${newPaid === 1 ? 'PAID (Full)' : 'UNPAID'} for "${split.food_title}" (Rs. ${split.amount})`);
@@ -323,6 +397,21 @@ router.post('/splits/:id/record-payment', (req, res) => {
       WHERE id = ?
     `).run(newTotalPaid, isFullyPaid, paidAt, id);
 
+    // Sync partial food payment to Supabase
+    (async () => {
+      const p = await pushPaymentToSupabase({
+        member_id: split.member_id,
+        amount: received,
+        payment_for: 'food',
+        payment_method: 'cash',
+        payment_date: new Date().toISOString().slice(0, 10),
+        note: `[FOOD] Weekly food partial: ${split.food_title}`
+      });
+      if (p?.id) {
+        db.prepare('UPDATE food_splits SET supabase_payment_id = ? WHERE id = ?').run(p.id, id);
+      }
+    })().catch(e => console.error('Supabase food partial pay error:', e.message));
+
     const remainingDue = Math.max(0, split.amount - newTotalPaid);
 
     logAudit('admin', split.member_id, actor_name, 'Recorded Food Partial Payment', `Received Rs. ${received} from ${split.member_name} for "${split.food_title}" (Paid: Rs. ${newTotalPaid}/${split.amount}, Due: Rs. ${remainingDue})`);
@@ -352,11 +441,33 @@ router.post('/:id/mark-all-paid', (req, res) => {
     }
 
     const now = new Date().toISOString();
+    const unpaidSplits = db.prepare(`SELECT * FROM food_splits WHERE food_id = ? AND is_paid != 1`).all(id);
+
     db.prepare(`
       UPDATE food_splits
       SET is_paid = 1, paid_amount = amount, paid_at = ?
       WHERE food_id = ? AND is_paid != 1
     `).run(now, id);
+
+    // Sync all to Supabase
+    (async () => {
+      for (const s of unpaidSplits) {
+        const remaining = s.amount - (s.paid_amount || 0);
+        if (remaining > 0) {
+          const p = await pushPaymentToSupabase({
+            member_id: s.member_id,
+            amount: remaining,
+            payment_for: 'food',
+            payment_method: 'cash',
+            payment_date: new Date().toISOString().slice(0, 10),
+            note: `[FOOD] Weekly food mess: ${current.title}`
+          });
+          if (p?.id) {
+            db.prepare('UPDATE food_splits SET supabase_payment_id = ? WHERE id = ?').run(p.id, s.id);
+          }
+        }
+      }
+    })().catch(e => console.error('Supabase mark-all-paid error:', e.message));
 
     const actorName = req.body?.actor_name || req.user?.name || 'Admin';
     logAudit('admin', null, actorName, 'Marked All Food Paid', `Marked all members as PAID for "${current.title}"`);

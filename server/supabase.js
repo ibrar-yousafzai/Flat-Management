@@ -30,6 +30,7 @@ function initSupabaseSchema() {
   try { db.exec('ALTER TABLE rooms ADD COLUMN supabase_id TEXT'); } catch (e) {}
   try { db.exec('ALTER TABLE monthly_bills ADD COLUMN supabase_id TEXT'); } catch (e) {}
   try { db.exec('ALTER TABLE payments ADD COLUMN supabase_id TEXT'); } catch (e) {}
+  try { db.exec('ALTER TABLE weekly_food ADD COLUMN supabase_id TEXT'); } catch (e) {}
 }
 
 initSupabaseSchema();
@@ -125,41 +126,73 @@ async function syncFromSupabase() {
     for (const mo of (months || [])) {
       const monthStr = `${mo.year}-${String(mo.month).padStart(2, '0')}`;
       monthIdMap[mo.id] = monthStr;
-      const existingStatus = db.prepare('SELECT month FROM month_status WHERE month = ?').get(monthStr);
+      const localStatus = mo.status === 'published' ? 'confirmed' : 'draft';
+      const existingStatus = db.prepare('SELECT month, status FROM month_status WHERE month = ?').get(monthStr);
       if (!existingStatus) {
-        db.prepare('INSERT INTO month_status (month, status, confirmed_by) VALUES (?, ?, ?)').run(monthStr, mo.status || 'draft', 'Supabase Cloud');
+        db.prepare('INSERT INTO month_status (month, status, confirmed_by) VALUES (?, ?, ?)').run(monthStr, localStatus, 'Supabase Cloud');
+      } else if (existingStatus.status !== localStatus) {
+        db.prepare('UPDATE month_status SET status = ? WHERE month = ?').run(localStatus, monthStr);
       }
     }
 
-    // 4. Sync Bills & Shares
+    // 4. Sync Bills & Shares (Separating Monthly Bills and Weekly Food Mess)
     for (const b of (bills || [])) {
       const monthStr = monthIdMap[b.month_id] || '2026-10';
-      let existingBill = db.prepare('SELECT id FROM monthly_bills WHERE supabase_id = ?').get(b.id);
-      let localBillId;
-      if (existingBill) {
-        db.prepare(`
-          UPDATE monthly_bills SET
-            month = ?, title = ?, category = ?, total_amount = ?, split_type = ?
-          WHERE id = ?
-        `).run(monthStr, b.title, b.kind || 'utility', b.amount, b.split_mode || 'everyone', existingBill.id);
-        localBillId = existingBill.id;
-      } else {
-        const ins = db.prepare(`
-          INSERT INTO monthly_bills (month, title, category, total_amount, split_type, supabase_id)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `).run(monthStr, b.title, b.kind || 'utility', b.amount, b.split_mode || 'everyone', b.id);
-        localBillId = ins.lastInsertRowid;
-      }
-
-      // Sync bill splits
       const shares = (billShares || []).filter(s => s.bill_id === b.id);
-      if (shares.length > 0) {
-        db.prepare('DELETE FROM bill_splits WHERE bill_id = ?').run(localBillId);
-        const insSplit = db.prepare('INSERT INTO bill_splits (bill_id, member_id, amount) VALUES (?, ?, ?)');
-        for (const sh of shares) {
-          const localMemId = memberMap[sh.member_id];
-          if (localMemId) {
-            insSplit.run(localBillId, localMemId, sh.amount);
+
+      if (b.kind === 'food') {
+        // Sync to weekly_food and food_splits
+        let existingFood = db.prepare('SELECT id FROM weekly_food WHERE supabase_id = ?').get(b.id);
+        let localFoodId;
+        if (existingFood) {
+          db.prepare('UPDATE weekly_food SET date = ?, month = ?, title = ?, total_amount = ? WHERE id = ?')
+            .run(b.bill_date || `${monthStr}-01`, monthStr, b.title, b.amount, existingFood.id);
+          localFoodId = existingFood.id;
+        } else {
+          const ins = db.prepare('INSERT INTO weekly_food (date, week_label, month, title, total_amount, supabase_id) VALUES (?, ?, ?, ?, ?, ?)')
+            .run(b.bill_date || `${monthStr}-01`, `Week of ${b.bill_date || monthStr}`, monthStr, b.title, b.amount, b.id);
+          localFoodId = ins.lastInsertRowid;
+        }
+
+        if (shares.length > 0) {
+          db.prepare('DELETE FROM food_splits WHERE food_id = ?').run(localFoodId);
+          const insSplit = db.prepare('INSERT INTO food_splits (food_id, member_id, amount) VALUES (?, ?, ?)');
+          for (const sh of shares) {
+            const localMemId = memberMap[sh.member_id];
+            if (localMemId) insSplit.run(localFoodId, localMemId, sh.amount);
+          }
+        }
+      } else {
+        // Sync to monthly_bills and bill_splits
+        let existingBill = db.prepare('SELECT id FROM monthly_bills WHERE supabase_id = ?').get(b.id);
+        let localBillId;
+        let splitMode = 'everyone';
+        if (b.split_mode === 'inside_only') splitMode = 'inside_only';
+        else if (b.split_mode === 'by_room') splitMode = 'by_room';
+
+        if (existingBill) {
+          db.prepare(`
+            UPDATE monthly_bills SET
+              month = ?, title = ?, category = ?, total_amount = ?, split_type = ?
+            WHERE id = ?
+          `).run(monthStr, b.title, b.kind || 'utility', b.amount, splitMode, existingBill.id);
+          localBillId = existingBill.id;
+        } else {
+          const ins = db.prepare(`
+            INSERT INTO monthly_bills (month, title, category, total_amount, split_type, supabase_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run(monthStr, b.title, b.kind || 'utility', b.amount, splitMode, b.id);
+          localBillId = ins.lastInsertRowid;
+        }
+
+        if (shares.length > 0) {
+          db.prepare('DELETE FROM bill_splits WHERE bill_id = ?').run(localBillId);
+          const insSplit = db.prepare('INSERT INTO bill_splits (bill_id, member_id, amount) VALUES (?, ?, ?)');
+          for (const sh of shares) {
+            const localMemId = memberMap[sh.member_id];
+            if (localMemId) {
+              insSplit.run(localBillId, localMemId, sh.amount);
+            }
           }
         }
       }
@@ -171,13 +204,16 @@ async function syncFromSupabase() {
       const localMemId = memberMap[p.member_id];
       if (!localMemId) continue;
 
+      const isFood = (p.note && p.note.includes('[FOOD]')) ? 'food' : 'bills';
+
       if (!existingPayment) {
         db.prepare(`
-          INSERT INTO payments (member_id, amount, payment_method, payment_date, bank_name, reference_number, notes, status, supabase_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO payments (member_id, amount, payment_for, payment_method, payment_date, bank_name, reference_no, note, status, supabase_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           localMemId,
           p.amount,
+          isFood,
           p.method || 'online',
           p.paid_on || new Date().toISOString().slice(0, 10),
           p.bank_name || '',
@@ -186,11 +222,27 @@ async function syncFromSupabase() {
           p.status || 'approved',
           p.id
         );
+      } else {
+        db.prepare(`
+          UPDATE payments SET
+            amount = ?, status = ?, payment_for = ?, payment_method = ?, payment_date = ?, bank_name = ?, reference_no = ?, note = ?
+          WHERE id = ?
+        `).run(
+          p.amount,
+          p.status || 'approved',
+          isFood,
+          p.method || 'online',
+          p.paid_on || new Date().toISOString().slice(0, 10),
+          p.bank_name || '',
+          p.reference || '',
+          p.note || '',
+          existingPayment.id
+        );
       }
     }
 
-    console.log(`✅ Supabase Cloud sync complete! Loaded: ${Object.keys(members || []).length} members, ${Object.keys(rooms || []).length} rooms, ${Object.keys(bills || []).length} bills.`);
-    return { success: true, memberCount: members.length, roomCount: rooms.length, billCount: bills.length };
+    console.log(`✅ Supabase Cloud sync complete! Loaded: ${Object.keys(members || []).length} members, ${Object.keys(rooms || []).length} rooms, ${Object.keys(bills || []).length} bills, ${Object.keys(payments || []).length} payments.`);
+    return { success: true, memberCount: members.length, roomCount: rooms.length, billCount: bills.length, paymentCount: payments.length };
   } catch (err) {
     console.error('⚠️ Supabase Cloud sync warning:', err.message);
     return { success: false, error: err.message };
@@ -247,7 +299,7 @@ async function deleteMemberFromSupabase(supabaseId) {
 async function pushBillToSupabase(bill, splits = []) {
   if (!supabase) return null;
   try {
-    const [year, month] = (bill.month || '2026-10').split('-').map(Number);
+    const [year, month] = (bill.month || new Date().toISOString().slice(0, 7)).split('-').map(Number);
     let { data: monthRow } = await supabase.from('months').select('id').eq('year', year).eq('month', month).maybeSingle();
 
     if (!monthRow) {
@@ -259,23 +311,41 @@ async function pushBillToSupabase(bill, splits = []) {
       monthRow = newMonth;
     }
 
+    const validKinds = ['rent', 'utility', 'food', 'salary', 'maintenance', 'other'];
+    let kind = (bill.category || 'utility').toLowerCase();
+    if (!validKinds.includes(kind)) kind = 'other';
+
+    let splitMode = 'equal_all';
+    if (bill.split_type === 'inside_only') splitMode = 'inside_only';
+    else if (bill.split_type === 'by_room') splitMode = 'by_room';
+
     const { data: billRow, error } = await supabase.from('bills').insert({
-      month_id: monthRow.id,
-      kind: bill.category || 'utility',
+      month_id: monthRow?.id,
+      kind,
       title: bill.title,
       amount: Number(bill.total_amount),
-      bill_date: bill.bill_date || `${bill.month}-01`,
-      split_mode: bill.split_type || 'equal_all'
+      bill_date: bill.bill_date || `${bill.month || '2026-10'}-01`,
+      split_mode: splitMode
     }).select().single();
 
     if (error) throw error;
 
     if (billRow?.id && splits.length > 0) {
-      const shareInserts = splits.filter(s => s.supabase_member_id).map(s => ({
-        bill_id: billRow.id,
-        member_id: s.supabase_member_id,
-        amount: Number(s.amount)
-      }));
+      const shareInserts = [];
+      for (const s of splits) {
+        let sMemId = s.supabase_member_id;
+        if (!sMemId && s.member_id) {
+          const m = db.prepare('SELECT supabase_id FROM members WHERE id = ?').get(s.member_id);
+          sMemId = m?.supabase_id;
+        }
+        if (sMemId) {
+          shareInserts.push({
+            bill_id: billRow.id,
+            member_id: sMemId,
+            amount: Number(s.amount)
+          });
+        }
+      }
 
       if (shareInserts.length > 0) {
         await supabase.from('bill_shares').insert(shareInserts);
@@ -286,6 +356,60 @@ async function pushBillToSupabase(bill, splits = []) {
   } catch (err) {
     console.error('Error pushing bill to Supabase:', err.message);
     return null;
+  }
+}
+
+// Update Bill & Splits in Supabase Cloud
+async function updateBillInSupabase(supabaseId, bill, splits = []) {
+  if (!supabase || !supabaseId) return null;
+  try {
+    const validKinds = ['rent', 'utility', 'food', 'salary', 'maintenance', 'other'];
+    let kind = bill.category ? bill.category.toLowerCase() : undefined;
+    if (kind && !validKinds.includes(kind)) kind = 'other';
+
+    let splitMode;
+    if (bill.split_type) {
+      if (bill.split_type === 'inside_only') splitMode = 'inside_only';
+      else if (bill.split_type === 'by_room') splitMode = 'by_room';
+      else splitMode = 'equal_all';
+    }
+
+    const updatePayload = {};
+    if (bill.title) updatePayload.title = bill.title;
+    if (bill.total_amount !== undefined) updatePayload.amount = Number(bill.total_amount);
+    if (kind) updatePayload.kind = kind;
+    if (splitMode) updatePayload.split_mode = splitMode;
+
+    if (Object.keys(updatePayload).length > 0) {
+      await supabase.from('bills').update(updatePayload).eq('id', supabaseId);
+    }
+
+    if (splits && splits.length > 0) {
+      await supabase.from('bill_shares').delete().eq('bill_id', supabaseId);
+      const shareInserts = [];
+      for (const s of splits) {
+        let sMemId = s.supabase_member_id;
+        if (!sMemId && s.member_id) {
+          const m = db.prepare('SELECT supabase_id FROM members WHERE id = ?').get(s.member_id);
+          sMemId = m?.supabase_id;
+        }
+        if (sMemId) {
+          shareInserts.push({
+            bill_id: supabaseId,
+            member_id: sMemId,
+            amount: Number(s.amount)
+          });
+        }
+      }
+      if (shareInserts.length > 0) {
+        await supabase.from('bill_shares').insert(shareInserts);
+      }
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Error updating bill in Supabase:', err.message);
+    return false;
   }
 }
 
@@ -304,15 +428,36 @@ async function deleteBillFromSupabase(supabaseId) {
 async function pushPaymentToSupabase(payment) {
   if (!supabase) return null;
   try {
+    let sMemId = payment.supabase_member_id;
+    if (!sMemId && payment.member_id) {
+      const m = db.prepare('SELECT supabase_id FROM members WHERE id = ?').get(payment.member_id);
+      sMemId = m?.supabase_id;
+    }
+    if (!sMemId) {
+      console.warn('Cannot push payment to Supabase: member has no supabase_id');
+      return null;
+    }
+
+    let method = (payment.payment_method || 'online').toLowerCase();
+    if (method !== 'cash') method = 'online';
+
+    let status = 'approved';
+    if (payment.status === 'pending' || payment.status === 'rejected') status = 'pending';
+
+    let noteText = payment.note || payment.notes || '';
+    if (payment.payment_for === 'food' && !noteText.includes('[FOOD]')) {
+      noteText = `[FOOD] ${noteText}`.trim();
+    }
+
     const { data, error } = await supabase.from('payments').insert({
-      member_id: payment.supabase_member_id,
+      member_id: sMemId,
       amount: Number(payment.amount),
-      method: payment.payment_method || 'online',
+      method,
       paid_on: payment.payment_date || new Date().toISOString().slice(0, 10),
       bank_name: payment.bank_name || null,
-      reference: payment.reference_number || null,
-      note: payment.notes || null,
-      status: payment.status || 'approved'
+      reference: payment.reference_no || payment.reference || null,
+      note: noteText || null,
+      status
     }).select().single();
 
     if (error) throw error;
@@ -320,6 +465,59 @@ async function pushPaymentToSupabase(payment) {
   } catch (err) {
     console.error('Error pushing payment to Supabase:', err.message);
     return null;
+  }
+}
+
+// Update Payment Status in Supabase Cloud
+async function updatePaymentInSupabase(supabaseId, updates = {}) {
+  if (!supabase || !supabaseId) return null;
+  try {
+    const payload = {};
+    if (updates.status) {
+      payload.status = (updates.status === 'pending' || updates.status === 'rejected') ? 'pending' : 'approved';
+    }
+    if (updates.amount !== undefined) payload.amount = Number(updates.amount);
+    if (updates.note !== undefined) payload.note = updates.note;
+    if (updates.bank_name !== undefined) payload.bank_name = updates.bank_name;
+    if (updates.reference_no !== undefined) payload.reference = updates.reference_no;
+
+    const { data, error } = await supabase.from('payments').update(payload).eq('id', supabaseId).select();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error updating payment in Supabase:', err.message);
+    return null;
+  }
+}
+
+// Delete Payment from Supabase Cloud
+async function deletePaymentFromSupabase(supabaseId) {
+  if (!supabase || !supabaseId) return;
+  try {
+    await supabase.from('payments').delete().eq('id', supabaseId);
+  } catch (err) {
+    console.error('Error deleting payment from Supabase:', err.message);
+  }
+}
+
+// Sync Month Status to Supabase Cloud
+async function syncMonthStatusToSupabase(monthStr, status = 'draft') {
+  if (!supabase || !monthStr) return null;
+  try {
+    const [year, month] = monthStr.split('-').map(Number);
+    // Supabase check constraint only allows 'draft' or 'published'
+    const validStatus = (status === 'confirmed' || status === 'closed' || status === 'published') ? 'published' : 'draft';
+    
+    const { data: existing } = await supabase.from('months').select('id').eq('year', year).eq('month', month).maybeSingle();
+    if (existing) {
+      await supabase.from('months').update({ status: validStatus }).eq('id', existing.id);
+    } else {
+      await supabase.from('months').insert({ year, month, status: validStatus });
+    }
+    return true;
+  } catch (err) {
+    console.error('Error syncing month status to Supabase:', err.message);
+    return false;
   }
 }
 
@@ -332,6 +530,10 @@ module.exports = {
   pushMemberToSupabase,
   deleteMemberFromSupabase,
   pushBillToSupabase,
+  updateBillInSupabase,
   deleteBillFromSupabase,
-  pushPaymentToSupabase
+  pushPaymentToSupabase,
+  updatePaymentInSupabase,
+  deletePaymentFromSupabase,
+  syncMonthStatusToSupabase
 };
