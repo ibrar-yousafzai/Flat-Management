@@ -6,10 +6,15 @@ const {
   updatePaymentInSupabase,
   deletePaymentFromSupabase
 } = require('../supabase');
+const { requirePermission, requireAdmin } = require('../middleware/auth');
 
 // Get all payments (filterable by member_id, status, payment_for: 'all' | 'bills' | 'food')
 router.get('/', (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     const { member_id, status, payment_for } = req.query;
     let query = `
       SELECT p.*, m.name as member_name, m.unique_id, m.whatsapp, m.email,
@@ -21,7 +26,11 @@ router.get('/', (req, res) => {
     `;
     const params = [];
 
-    if (member_id) {
+    // Privacy isolation: Members can ONLY see their own payment records
+    if (req.user.user_type === 'member') {
+      query += ` AND p.member_id = ?`;
+      params.push(req.user.user_id);
+    } else if (member_id) {
       query += ` AND p.member_id = ?`;
       params.push(member_id);
     }
@@ -39,8 +48,13 @@ router.get('/', (req, res) => {
     query += ` ORDER BY CASE WHEN p.status = 'pending' THEN 0 ELSE 1 END, p.payment_date DESC, p.id DESC`;
     const payments = db.prepare(query).all(...params);
 
-    const pendingCount = db.prepare(`SELECT count(*) as count FROM payments WHERE status = 'pending'`).get().count;
-    const foodPendingCount = db.prepare(`SELECT count(*) as count FROM payments WHERE status = 'pending' AND payment_for = 'food'`).get().count;
+    const pendingCount = req.user.user_type === 'admin' 
+      ? db.prepare(`SELECT count(*) as count FROM payments WHERE status = 'pending'`).get().count
+      : payments.filter(p => p.status === 'pending').length;
+
+    const foodPendingCount = req.user.user_type === 'admin'
+      ? db.prepare(`SELECT count(*) as count FROM payments WHERE status = 'pending' AND payment_for = 'food'`).get().count
+      : payments.filter(p => p.status === 'pending' && p.payment_for === 'food').length;
 
     res.json({
       payments,
@@ -53,7 +67,7 @@ router.get('/', (req, res) => {
 });
 
 // Admin records a payment directly
-router.post('/record', (req, res) => {
+router.post('/record', requirePermission('can_manage_payments'), (req, res) => {
   try {
     const {
       member_id,
@@ -138,7 +152,11 @@ router.post('/record', (req, res) => {
 // Member submits a payment for admin approval
 router.post('/submit', (req, res) => {
   try {
-    const {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    let {
       member_id,
       amount,
       payment_for = 'bills', // 'bills' (Rent/Utilities) or 'food' (Weekly Food mess)
@@ -149,6 +167,11 @@ router.post('/submit', (req, res) => {
       note = '',
       receipt_url = ''
     } = req.body;
+
+    // Strict identity lock: A member can NEVER submit payment on behalf of another member
+    if (req.user.user_type === 'member') {
+      member_id = req.user.user_id;
+    }
 
     if (!member_id || !amount || Number(amount) <= 0) {
       return res.status(400).json({ error: 'Valid payment amount is required' });
@@ -217,7 +240,7 @@ router.post('/submit', (req, res) => {
 });
 
 // Edit an existing payment record
-router.put('/:id', (req, res) => {
+router.put('/:id', requirePermission('can_manage_payments'), (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -283,7 +306,7 @@ router.put('/:id', (req, res) => {
 });
 
 // Admin approves a pending payment
-router.post('/:id/approve', (req, res) => {
+router.post('/:id/approve', requirePermission('can_approve_payments'), (req, res) => {
   try {
     const { id } = req.params;
     const { admin_id = 1, admin_name = 'Admin', admin_comment = 'Verified and approved' } = req.body;
@@ -349,7 +372,7 @@ router.post('/:id/approve', (req, res) => {
 });
 
 // Admin rejects a pending payment with required comment
-router.post('/:id/reject', (req, res) => {
+router.post('/:id/reject', requirePermission('can_approve_payments'), (req, res) => {
   try {
     const { id } = req.params;
     const { admin_id = 1, admin_name = 'Admin', admin_comment } = req.body;
@@ -404,7 +427,7 @@ router.post('/:id/reject', (req, res) => {
 });
 
 // Delete a payment
-router.delete('/:id', (req, res) => {
+router.delete('/:id', requirePermission('can_manage_payments'), (req, res) => {
   try {
     const { id } = req.params;
     const { admin_name = 'Admin', reason = '' } = req.body;

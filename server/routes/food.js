@@ -11,6 +11,32 @@ const {
 
 try { db.exec('ALTER TABLE food_splits ADD COLUMN supabase_payment_id TEXT'); } catch (e) {}
 
+// Helper to divide an amount equally with remainder penny/cent distribution
+function calculateEqualSplits(totalAmount, count) {
+  if (count <= 0) return [];
+  const totalCents = Math.round(Number(totalAmount) * 100);
+  const baseCents = Math.floor(totalCents / count);
+  let remainder = totalCents - (baseCents * count);
+  const shares = [];
+  for (let i = 0; i < count; i++) {
+    const centShare = baseCents + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder--;
+    shares.push(centShare / 100);
+  }
+  return shares;
+}
+
+// Permission Guard
+function canManageFood(req, res, next) {
+  if (!req.user || req.user.user_type !== 'admin') {
+    return res.status(403).json({ error: 'Access denied: Admin credentials required' });
+  }
+  if (req.user.role === 'super_admin') return next();
+  const perms = req.user.permissions || {};
+  if (perms.can_manage_food || perms.can_manage_bills) return next();
+  return res.status(403).json({ error: "Permission Denied: Requires 'can_manage_food' or 'can_manage_bills' rights." });
+}
+
 // Get all weekly food entries (optionally filtered by month)
 router.get('/', (req, res) => {
   try {
@@ -79,7 +105,7 @@ router.get('/', (req, res) => {
 });
 
 // Create weekly food entry with mid-week custom assignment support
-router.post('/', (req, res) => {
+router.post('/', canManageFood, (req, res) => {
   try {
     const {
       date = new Date().toISOString().slice(0, 10),
@@ -128,15 +154,17 @@ router.post('/', (req, res) => {
 
     const remainingMembers = member_ids.filter(id => !customMemberSet.has(Number(id)));
     const remainingAmount = Math.max(0, amount - totalCustomAmount);
-    const standardPerPerson = remainingMembers.length > 0 ? Math.round((remainingAmount / remainingMembers.length) * 100) / 100 : 0;
+    const standardShares = calculateEqualSplits(remainingAmount, remainingMembers.length);
+    const standardPerPerson = standardShares[0] || 0;
 
+    let sIdx = 0;
     for (const memId of member_ids) {
       const numId = Number(memId);
       if (customMemberSet.has(numId)) {
         const customAmt = Number(custom_shares[numId]);
         insertSplit.run(foodId, numId, customAmt, 1, 'Mid-week / custom assigned share');
       } else {
-        insertSplit.run(foodId, numId, standardPerPerson, 0, null);
+        insertSplit.run(foodId, numId, standardShares[sIdx++] || 0, 0, null);
       }
     }
 
@@ -174,7 +202,7 @@ router.post('/', (req, res) => {
 });
 
 // Update weekly food entry
-router.put('/:id', (req, res) => {
+router.put('/:id', canManageFood, (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -227,15 +255,16 @@ router.put('/:id', (req, res) => {
 
       const remainingMembers = member_ids.filter(mId => !customMemberSet.has(Number(mId)));
       const remainingAmount = Math.max(0, newAmount - totalCustomAmount);
-      const standardPerPerson = remainingMembers.length > 0 ? Math.round((remainingAmount / remainingMembers.length) * 100) / 100 : 0;
+      const standardShares = calculateEqualSplits(remainingAmount, remainingMembers.length);
 
+      let sIdx = 0;
       for (const memId of member_ids) {
         const numId = Number(memId);
         if (customMemberSet.has(numId)) {
           const customAmt = Number(custom_shares[numId]);
           insertSplit.run(id, numId, customAmt, 1, 'Mid-week / custom assigned share');
         } else {
-          insertSplit.run(id, numId, standardPerPerson, 0, null);
+          insertSplit.run(id, numId, standardShares[sIdx++] || 0, 0, null);
         }
       }
     }
@@ -273,7 +302,7 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete weekly food entry
-router.delete('/:id', (req, res) => {
+router.delete('/:id', canManageFood, (req, res) => {
   try {
     const { id } = req.params;
     const current = db.prepare(`SELECT * FROM weekly_food WHERE id = ?`).get(id);
@@ -299,7 +328,7 @@ router.delete('/:id', (req, res) => {
 });
 
 // Toggle member paid status for a specific weekly food split (Full toggle)
-router.patch('/splits/:id/toggle-paid', (req, res) => {
+router.patch('/splits/:id/toggle-paid', canManageFood, (req, res) => {
   try {
     const { id } = req.params;
     const split = db.prepare(`
@@ -364,7 +393,7 @@ router.patch('/splits/:id/toggle-paid', (req, res) => {
 });
 
 // Record partial payment or custom payment installment for weekly food split
-router.post('/splits/:id/record-payment', (req, res) => {
+router.post('/splits/:id/record-payment', canManageFood, (req, res) => {
   try {
     const { id } = req.params;
     const { amount_received, actor_name = 'Admin' } = req.body;
@@ -432,7 +461,7 @@ router.post('/splits/:id/record-payment', (req, res) => {
 });
 
 // Mark all members as paid for a weekly food batch
-router.post('/:id/mark-all-paid', (req, res) => {
+router.post('/:id/mark-all-paid', canManageFood, (req, res) => {
   try {
     const { id } = req.params;
     const current = db.prepare(`SELECT * FROM weekly_food WHERE id = ?`).get(id);

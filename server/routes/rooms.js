@@ -2,6 +2,17 @@ const express = require('express');
 const router = express.Router();
 const { db, logAudit, createNotification } = require('../db');
 
+// Permission Guard
+function canManageRooms(req, res, next) {
+  if (!req.user || req.user.user_type !== 'admin') {
+    return res.status(403).json({ error: 'Access denied: Admin credentials required' });
+  }
+  if (req.user.role === 'super_admin') return next();
+  const perms = req.user.permissions || {};
+  if (perms.can_manage_rooms || perms.can_manage_members) return next();
+  return res.status(403).json({ error: "Permission Denied: Requires 'can_manage_rooms' or 'can_manage_members' rights." });
+}
+
 // Get all rooms with current occupants and per-person rent
 router.get('/', (req, res) => {
   try {
@@ -33,7 +44,7 @@ router.get('/', (req, res) => {
 });
 
 // Create new room
-router.post('/', (req, res) => {
+router.post('/', canManageRooms, (req, res) => {
   try {
     const { name, base_rent = 0, description = '', actor_name = 'Admin' } = req.body;
     if (!name) {
@@ -55,7 +66,7 @@ router.post('/', (req, res) => {
 
 // Update room (rent or details)
 // Future-proofing: Editing rent or details only affects future calculations. Past bill_splits already store fixed values.
-router.put('/:id', (req, res) => {
+router.put('/:id', canManageRooms, (req, res) => {
   try {
     const { id } = req.params;
     const { name, base_rent, description, effective_month, actor_name = 'Admin' } = req.body;
@@ -106,7 +117,7 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete room
-router.delete('/:id', (req, res) => {
+router.delete('/:id', canManageRooms, (req, res) => {
   try {
     const { id } = req.params;
     const room = db.prepare(`SELECT * FROM rooms WHERE id = ?`).get(id);

@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { db, logAudit } = require('../db');
+const { requireSuperAdmin } = require('../middleware/auth');
+
+// All admin management actions strictly require Super Admin authorization
+router.use(requireSuperAdmin);
 
 // Get all admins
 router.get('/', (req, res) => {

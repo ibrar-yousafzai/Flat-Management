@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
+const { requireAdmin } = require('../middleware/auth');
 
-// Get audit logs
-router.get('/', (req, res) => {
+// Get audit logs (Admins only)
+router.get('/', requireAdmin, (req, res) => {
   try {
     const { limit = 100, actor_type } = req.query;
     let query = `SELECT * FROM audit_logs WHERE 1=1`;

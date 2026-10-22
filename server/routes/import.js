@@ -5,6 +5,10 @@ const path = require('path');
 const fs = require('fs');
 const xlsx = require('xlsx');
 const { db, logAudit } = require('../db');
+const { requireAdmin } = require('../middleware/auth');
+
+// Require Admin authorization for all Excel data imports
+router.use(requireAdmin);
 
 // Use memoryStorage for cloud/serverless compatibility (e.g. Vercel read-only filesystem)
 const upload = multer({

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { db, logAudit } = require('../db');
 const { pushMemberToSupabase, deleteMemberFromSupabase } = require('../supabase');
-const { requireMemberSelf, requireAdmin } = require('../middleware/auth');
+const { requireMemberSelf, requireAdmin, requirePermission } = require('../middleware/auth');
 
 // Helper to calculate a member's separated balances (Monthly Bills vs Weekly Food)
 function getMemberBalance(memberId) {
@@ -104,6 +104,9 @@ function generateUniqueId() {
 // Get members (If logged in as member, strictly scoped to self only)
 router.get('/', (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
     const isMember = req.user?.user_type === 'member';
     const { status, type } = req.query;
     let query = `
@@ -213,7 +216,7 @@ router.get('/:id', requireMemberSelf('id'), (req, res) => {
 });
 
 // Create new member
-router.post('/', (req, res) => {
+router.post('/', requirePermission('can_manage_members'), (req, res) => {
   try {
     const {
       name,
@@ -298,7 +301,7 @@ router.post('/', (req, res) => {
 });
 
 // Update member
-router.put('/:id', (req, res) => {
+router.put('/:id', requirePermission('can_manage_members'), (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -420,7 +423,7 @@ router.get('/:id/settlement-statement', requireAdmin, (req, res) => {
 });
 
 // Execute and Confirm Leaving Settlement
-router.post('/:id/execute-settlement', requireAdmin, (req, res) => {
+router.post('/:id/execute-settlement', requirePermission('can_manage_members'), (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -489,7 +492,7 @@ router.post('/:id/execute-settlement', requireAdmin, (req, res) => {
 });
 
 // Archive member (Move to Former)
-router.post('/:id/archive', (req, res) => {
+router.post('/:id/archive', requirePermission('can_manage_members'), (req, res) => {
   try {
     const { id } = req.params;
     const { leave_date = new Date().toISOString().slice(0, 10), actor_name = 'Admin' } = req.body;
@@ -517,7 +520,7 @@ router.post('/:id/archive', (req, res) => {
 });
 
 // Reactivate former member
-router.post('/:id/reactivate', (req, res) => {
+router.post('/:id/reactivate', requirePermission('can_manage_members'), (req, res) => {
   try {
     const { id } = req.params;
     const { room_id = null, type = 'Inside', actor_name = 'Admin' } = req.body;
@@ -540,7 +543,7 @@ router.post('/:id/reactivate', (req, res) => {
 });
 
 // Permanently delete member
-router.delete('/:id', (req, res) => {
+router.delete('/:id', requirePermission('can_manage_members'), (req, res) => {
   try {
     const { id } = req.params;
     const actor_name = req.body?.actor_name || req.query?.actor_name || 'Admin';

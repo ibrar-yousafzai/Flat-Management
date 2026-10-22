@@ -99,6 +99,25 @@ function requireSuperAdmin(req, res, next) {
   next();
 }
 
+// Guard: Require Specific Admin Permission (super_admin bypasses)
+function requirePermission(perm) {
+  return (req, res, next) => {
+    if (!req.user || req.user.user_type !== 'admin') {
+      return res.status(403).json({ error: 'Access denied: Admin credentials required' });
+    }
+    if (req.user.role === 'super_admin') {
+      return next();
+    }
+    const perms = req.user.permissions || {};
+    if (!perms[perm] && perms[perm] !== 1 && perms[perm] !== true) {
+      return res.status(403).json({
+        error: `Permission Denied: You do not have '${perm}' rights. Contact Super Admin.`
+      });
+    }
+    next();
+  };
+}
+
 // Guard: Strict Member Privacy & Isolation
 function requireMemberSelf(paramName = 'memberId') {
   return (req, res, next) => {
@@ -137,5 +156,6 @@ module.exports = {
   authMiddleware,
   requireAdmin,
   requireSuperAdmin,
+  requirePermission,
   requireMemberSelf
 };

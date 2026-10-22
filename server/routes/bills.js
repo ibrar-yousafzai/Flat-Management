@@ -7,6 +7,33 @@ const {
   deleteBillFromSupabase,
   syncMonthStatusToSupabase
 } = require('../supabase');
+const { requirePermission, requireAdmin } = require('../middleware/auth');
+
+// Helper to get effective room rent for a given month considering historical overrides
+function getEffectiveRoomRent(roomId, month, currentBaseRent) {
+  try {
+    const hist = db.prepare(`SELECT rent FROM room_history WHERE room_id = ? AND month = ?`).get(roomId, month);
+    if (hist && hist.rent !== undefined && hist.rent !== null) {
+      return Number(hist.rent);
+    }
+  } catch (e) {}
+  return Number(currentBaseRent);
+}
+
+// Helper to divide an amount equally with remainder penny/cent distribution (no lost paise)
+function calculateEqualSplits(totalAmount, count) {
+  if (count <= 0) return [];
+  const totalCents = Math.round(Number(totalAmount) * 100);
+  const baseCents = Math.floor(totalCents / count);
+  let remainder = totalCents - (baseCents * count);
+  const shares = [];
+  for (let i = 0; i < count; i++) {
+    const centShare = baseCents + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder--;
+    shares.push(centShare / 100);
+  }
+  return shares;
+}
 
 // Helper to get days in a given month (YYYY-MM)
 function getDaysInMonth(yearMonth) {
@@ -213,7 +240,7 @@ router.get('/', (req, res) => {
 });
 
 // Confirm & publish month's bills (Finalize draft so members see it)
-router.post('/confirm-month', (req, res) => {
+router.post('/confirm-month', requirePermission('can_manage_bills'), (req, res) => {
   try {
     const { month, admin_name = 'Admin' } = req.body;
     if (!month) return res.status(400).json({ error: 'Month is required' });
@@ -234,7 +261,7 @@ router.post('/confirm-month', (req, res) => {
 });
 
 // Reopen / Unlock a previously finalized month (Requires recorded reason)
-router.post('/reopen-month', (req, res) => {
+router.post('/reopen-month', requirePermission('can_manage_bills'), (req, res) => {
   try {
     const { month, admin_name = 'Admin', reason = '' } = req.body;
     if (!month) return res.status(400).json({ error: 'Month is required' });
@@ -263,7 +290,7 @@ router.post('/reopen-month', (req, res) => {
 });
 
 // Close current month and advance to next month, carrying forward all remaining balances
-router.post('/close-and-advance-month', (req, res) => {
+router.post('/close-and-advance-month', requirePermission('can_manage_bills'), (req, res) => {
   try {
     const { month, admin_name = 'Admin' } = req.body;
     if (!month) return res.status(400).json({ error: 'Month is required' });
@@ -338,7 +365,7 @@ router.post('/close-and-advance-month', (req, res) => {
 });
 
 // Edit specific individual splits for a bill directly
-router.put('/:id/splits', (req, res) => {
+router.put('/:id/splits', requirePermission('can_manage_bills'), (req, res) => {
   try {
     const { id } = req.params;
     const { member_splits = {}, admin_name = 'Admin' } = req.body; // { "memberId": 5000 }
@@ -380,7 +407,7 @@ router.put('/:id/splits', (req, res) => {
 });
 
 // Edit or override a member's carried forward balance directly
-router.put('/carry-forward/:id', (req, res) => {
+router.put('/carry-forward/:id', requirePermission('can_manage_bills'), (req, res) => {
   try {
     const { id } = req.params;
     const { amount, notes, admin_name = 'Admin' } = req.body;
@@ -400,7 +427,7 @@ router.put('/carry-forward/:id', (req, res) => {
 });
 
 // Auto-generate or populate Rent Bills from active Rooms for a given month
-router.post('/auto-generate-rent', (req, res) => {
+router.post('/auto-generate-rent', requirePermission('can_manage_bills'), (req, res) => {
   try {
     const { month, actor_name = 'Admin' } = req.body;
     if (!month) {
@@ -427,7 +454,9 @@ router.post('/auto-generate-rent', (req, res) => {
     }
 
     let totalRent = 0;
-    for (const r of rooms) totalRent += Number(r.base_rent);
+    for (const r of rooms) {
+      totalRent += getEffectiveRoomRent(r.id, month, r.base_rent);
+    }
 
     const billRes = db.prepare(`
       INSERT INTO monthly_bills (month, title, category, total_amount, split_type, room_id, notes)
@@ -437,14 +466,16 @@ router.post('/auto-generate-rent', (req, res) => {
     const billId = billRes.lastInsertRowid;
     const insertSplit = db.prepare(`INSERT INTO bill_splits (bill_id, member_id, amount) VALUES (?, ?, ?)`);
 
-    // Split rent room by room equally among room occupants
+    // Split rent room by room equally among room occupants without losing remainder
     for (const room of rooms) {
+      const roomRent = getEffectiveRoomRent(room.id, month, room.base_rent);
       const roomOccupants = insideMembers.filter(m => m.room_id === room.id);
       if (roomOccupants.length > 0) {
-        const baseShare = room.base_rent / roomOccupants.length;
-        for (const occ of roomOccupants) {
+        const baseShares = calculateEqualSplits(roomRent, roomOccupants.length);
+        for (let i = 0; i < roomOccupants.length; i++) {
+          const occ = roomOccupants[i];
           const factor = calculateProration(occ.join_date, occ.leave_date, month, occ.midmonth_rule);
-          const finalShare = Math.round(baseShare * factor * 100) / 100;
+          const finalShare = Math.round(baseShares[i] * factor * 100) / 100;
           insertSplit.run(billId, occ.id, finalShare);
         }
       }
@@ -474,7 +505,7 @@ router.post('/auto-generate-rent', (req, res) => {
 });
 
 // Add custom or utility bill (Electricity, Cook, Wifi, etc.)
-router.post('/', (req, res) => {
+router.post('/', requirePermission('can_manage_bills'), (req, res) => {
   try {
     const {
       month,
@@ -531,10 +562,12 @@ router.post('/', (req, res) => {
     const billId = billRes.lastInsertRowid;
     const insertSplit = db.prepare(`INSERT INTO bill_splits (bill_id, member_id, amount) VALUES (?, ?, ?)`);
 
-    const splitShare = Math.round((amount / eligibleMembers.length) * 100) / 100;
-    for (const mem of eligibleMembers) {
-      insertSplit.run(billId, mem.id, splitShare);
+    const splitShares = calculateEqualSplits(amount, eligibleMembers.length);
+    for (let i = 0; i < eligibleMembers.length; i++) {
+      insertSplit.run(billId, eligibleMembers[i].id, splitShares[i]);
     }
+
+    const splitShare = splitShares[0] || 0;
 
     logAudit('admin', null, actor_name, 'Created Bill', `Added bill "${title}" for ${month} (Rs. ${amount}, Split: ${split_type})`);
 
@@ -569,7 +602,7 @@ router.post('/', (req, res) => {
 });
 
 // Update an existing bill
-router.put('/:id', (req, res) => {
+router.put('/:id', requirePermission('can_manage_bills'), (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -635,9 +668,9 @@ router.put('/:id', (req, res) => {
     if (eligibleMembers.length > 0) {
       db.prepare(`DELETE FROM bill_splits WHERE bill_id = ?`).run(id);
       const insertSplit = db.prepare(`INSERT INTO bill_splits (bill_id, member_id, amount) VALUES (?, ?, ?)`);
-      const splitShare = Math.round((newAmount / eligibleMembers.length) * 100) / 100;
-      for (const mem of eligibleMembers) {
-        insertSplit.run(id, mem.id, splitShare);
+      const splitShares = calculateEqualSplits(newAmount, eligibleMembers.length);
+      for (let i = 0; i < eligibleMembers.length; i++) {
+        insertSplit.run(id, eligibleMembers[i].id, splitShares[i]);
       }
     }
 
@@ -674,7 +707,7 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete bill
-router.delete('/:id', (req, res) => {
+router.delete('/:id', requirePermission('can_manage_bills'), (req, res) => {
   try {
     const { id } = req.params;
     const bill = db.prepare(`SELECT * FROM monthly_bills WHERE id = ?`).get(id);
@@ -700,7 +733,7 @@ router.delete('/:id', (req, res) => {
 });
 
 // Delete all bills and data for an entire month
-router.delete('/month/:month', (req, res) => {
+router.delete('/month/:month', requirePermission('can_manage_bills'), (req, res) => {
   try {
     const { month } = req.params;
     const actor_name = req.body?.actor_name || req.query?.actor_name || 'Admin';
