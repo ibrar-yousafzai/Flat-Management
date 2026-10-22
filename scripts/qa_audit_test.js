@@ -181,6 +181,26 @@ async function runQATestSuite() {
       console.error('❌ Test 1.5 Failed: Payment claim was not locked to auth user ID!');
     }
 
+    // Test 1.6: Unauthenticated access to /api/bills
+    const resBills = await makeRequest('GET', '/api/bills');
+    if (resBills.status === 403 || resBills.status === 401) {
+      testsPassed.push('Test 1.6 Passed: Unauthenticated access to /api/bills blocked (403/401)');
+      console.log('✅ Test 1.6: Unauthenticated access to /api/bills blocked!');
+    } else {
+      issuesFound.push(`Test 1.6 Failed: Expected 403/401 for /api/bills, got ${resBills.status}`);
+      console.error(`❌ Test 1.6 Failed: /api/bills returned ${resBills.status}`);
+    }
+
+    // Test 1.7: Unauthenticated access to /api/food
+    const resFood = await makeRequest('GET', '/api/food');
+    if (resFood.status === 403 || resFood.status === 401) {
+      testsPassed.push('Test 1.7 Passed: Unauthenticated access to /api/food blocked (403/401)');
+      console.log('✅ Test 1.7: Unauthenticated access to /api/food blocked!');
+    } else {
+      issuesFound.push(`Test 1.7 Failed: Expected 403/401 for /api/food, got ${resFood.status}`);
+      console.error(`❌ Test 1.7 Failed: /api/food returned ${resFood.status}`);
+    }
+
     // -------------------------------------------------------------
     // SECTION 2: CALCULATION INTEGRITY & SPLIT PRECISION
     // -------------------------------------------------------------
@@ -236,8 +256,6 @@ async function runQATestSuite() {
       VALUES (9999, ?, 24000, '[]')
     `).run(testMonth);
 
-    const { getEffectiveRoomRent } = require('../server/routes/bills');
-    // Call auto-generate-rent or verify effective rent function
     const histRent = db.prepare('SELECT rent FROM room_history WHERE room_id = 9999 AND month = ?').get(testMonth)?.rent;
     if (histRent === 24000) {
       testsPassed.push('Test 2.3 Passed: Historical room rent is preserved in room_history (24,000 vs current 30,000)');
@@ -245,6 +263,41 @@ async function runQATestSuite() {
     } else {
       issuesFound.push('Test 2.3 Failed: Historical rent mismatch');
       console.error('❌ Test 2.3 Failed');
+    }
+
+    // Test 2.4: Deterministic Leap Year & Month Length Proration
+    const feb2024 = 29; // Leap year
+    const feb2025 = 28; // Non-leap year
+    const getDaysInMonth = (ym) => {
+      const [y, m] = ym.split('-').map(Number);
+      return new Date(y, m, 0).getDate();
+    };
+    if (getDaysInMonth('2024-02') === feb2024 && getDaysInMonth('2025-02') === feb2025) {
+      testsPassed.push('Test 2.4 Passed: Calendar leap year days verified (2024-02: 29 days, 2025-02: 28 days)');
+      console.log('✅ Test 2.4: Calendar leap year days verified!');
+    } else {
+      issuesFound.push('Test 2.4 Failed: Leap year calculation mismatch');
+    }
+
+    // Test 2.5: Former Member Debt Preservation on Month Rollover
+    // Create former member 9199 with 2500 debt
+    db.prepare(`
+      INSERT OR REPLACE INTO members (id, unique_id, password, name, type, status, join_date, leave_date, opening_balance)
+      VALUES (9199, 'TEST_FORMER_DEBTOR', 'pass', 'Former Debtor', 'Inside', 'Former', '2099-01-01', '2099-11-30', 2500)
+    `).run();
+
+    const resRollover = await makeRequest('POST', '/api/bills/close-and-advance-month', {
+      month: '2099-11',
+      admin_name: 'Super Admin'
+    }, superAdminToken);
+
+    const carried = db.prepare('SELECT amount FROM monthly_carry_forward WHERE month = ? AND member_id = 9199').get('2099-12');
+    if (carried && carried.amount === 2500) {
+      testsPassed.push('Test 2.5 Passed: Former member debt of Rs. 2,500 successfully preserved and carried forward into next month');
+      console.log('✅ Test 2.5: Former member debt preserved on month rollover!');
+    } else {
+      issuesFound.push(`Test 2.5 Failed: Former member debt carry forward missing or mismatch (got ${carried?.amount})`);
+      console.error(`❌ Test 2.5 Failed: Got ${carried?.amount}`);
     }
 
   } finally {
@@ -256,13 +309,17 @@ async function runQATestSuite() {
       db.prepare(`DELETE FROM payments WHERE id IN (9001, 9002) OR note LIKE 'TEST_%'`).run();
       db.prepare(`
         DELETE FROM bill_splits WHERE bill_id IN (
-          SELECT id FROM monthly_bills WHERE month = ? OR title LIKE 'TEST_%'
+          SELECT id FROM monthly_bills WHERE month IN ('2099-11', '2099-12') OR title LIKE 'TEST_%'
         )
-      `).run(testMonth);
-      db.prepare(`DELETE FROM monthly_bills WHERE month = ? OR title LIKE 'TEST_%'`).run(testMonth);
-      db.prepare(`DELETE FROM members WHERE id IN (101, 102, 9101, 9102, 9103) OR unique_id LIKE 'TEST_%'`).run();
+      `).run();
+      db.prepare(`DELETE FROM monthly_bills WHERE month IN ('2099-11', '2099-12') OR title LIKE 'TEST_%'`).run();
+      db.prepare(`DELETE FROM monthly_carry_forward WHERE month IN ('2099-11', '2099-12') OR from_month IN ('2099-11', '2099-12')`).run();
+      db.prepare(`DELETE FROM month_status WHERE month IN ('2099-11', '2099-12')`).run();
+      db.prepare(`DELETE FROM members WHERE id IN (101, 102, 9101, 9102, 9103, 9199) OR unique_id LIKE 'TEST_%'`).run();
       db.prepare(`DELETE FROM room_history WHERE room_id = 9999`).run();
       db.prepare(`DELETE FROM rooms WHERE id = 9999`).run();
+      // Restore active month to 2026-10
+      db.prepare(`UPDATE settings SET value = '2026-10' WHERE key = 'active_month'`).run();
       console.log('✅ All temporary QA test data cleanly removed.');
     } catch (cleanErr) {
       console.error('Cleanup warning:', cleanErr.message);

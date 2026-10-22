@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db, logAudit } = require('../db');
-const { pushMemberToSupabase, deleteMemberFromSupabase } = require('../supabase');
+const { pushMemberToSupabase, deleteMemberFromSupabase, pushPaymentToSupabase } = require('../supabase');
 const { requireMemberSelf, requireAdmin, requirePermission } = require('../middleware/auth');
 
 // Helper to calculate a member's separated balances (Monthly Bills vs Weekly Food)
@@ -445,10 +445,26 @@ router.post('/:id/execute-settlement', requirePermission('can_manage_members'), 
     if (action === 'offset_and_refund' && balance.bills_balance > 0) {
       const offsetAmount = Math.min(deposit, balance.bills_balance);
       if (offsetAmount > 0) {
-        db.prepare(`
+        const payRes = db.prepare(`
           INSERT INTO payments (member_id, amount, payment_for, payment_method, payment_date, note, status, submitted_by_type)
           VALUES (?, ?, 'bills', 'adjustment', ?, 'Security deposit adjusted against unpaid room bills upon departure', 'approved', 'admin')
         `).run(id, offsetAmount, leave_date);
+
+        // Sync offset payment to Supabase Cloud
+        (async () => {
+          const p = await pushPaymentToSupabase({
+            member_id: id,
+            amount: offsetAmount,
+            payment_for: 'bills',
+            payment_method: 'cash',
+            payment_date: leave_date,
+            note: 'Security deposit adjusted against unpaid room bills upon departure',
+            status: 'approved'
+          });
+          if (p?.id) {
+            db.prepare('UPDATE payments SET supabase_id = ? WHERE id = ?').run(p.id, payRes.lastInsertRowid);
+          }
+        })().catch(e => console.error('Supabase settlement payment error:', e.message));
       }
     }
 

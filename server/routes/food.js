@@ -8,6 +8,7 @@ const {
   pushPaymentToSupabase,
   deletePaymentFromSupabase
 } = require('../supabase');
+const { requireAdmin } = require('../middleware/auth');
 
 try { db.exec('ALTER TABLE food_splits ADD COLUMN supabase_payment_id TEXT'); } catch (e) {}
 
@@ -37,8 +38,8 @@ function canManageFood(req, res, next) {
   return res.status(403).json({ error: "Permission Denied: Requires 'can_manage_food' or 'can_manage_bills' rights." });
 }
 
-// Get all weekly food entries (optionally filtered by month)
-router.get('/', (req, res) => {
+// Get all weekly food entries (optionally filtered by month) - Admin Only
+router.get('/', requireAdmin, (req, res) => {
   try {
     const { month } = req.query;
     let query = `SELECT * FROM weekly_food WHERE 1=1`;

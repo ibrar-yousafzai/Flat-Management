@@ -41,16 +41,28 @@ function getDaysInMonth(yearMonth) {
   return new Date(year, month, 0).getDate();
 }
 
+// Helper to safely parse YYYY-MM-DD into a deterministic UTC Date
+function parseUTCDate(dateStr) {
+  if (!dateStr) return null;
+  const parts = dateStr.slice(0, 10).split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return null;
+  return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+}
+
 // Helper to compute mid-month proration factor (0.0 to 1.0)
 function calculateProration(joinDateStr, leaveDateStr, yearMonth, rule = 'days') {
   if (rule === 'full') return 1.0;
 
   const totalDays = getDaysInMonth(yearMonth);
-  const monthStart = new Date(`${yearMonth}-01`);
-  const monthEnd = new Date(`${yearMonth}-${totalDays}`);
+  const [year, month] = yearMonth.split('-').map(Number);
+  const monthStart = new Date(Date.UTC(year, month - 1, 1));
+  const monthEnd = new Date(Date.UTC(year, month - 1, totalDays));
 
-  const joinDate = joinDateStr ? new Date(joinDateStr) : monthStart;
-  const leaveDate = leaveDateStr ? new Date(leaveDateStr) : monthEnd;
+  const parsedJoin = parseUTCDate(joinDateStr);
+  const parsedLeave = parseUTCDate(leaveDateStr);
+
+  const joinDate = parsedJoin || monthStart;
+  const leaveDate = parsedLeave || monthEnd;
 
   const effectiveStart = joinDate > monthStart ? joinDate : monthStart;
   const effectiveEnd = leaveDate < monthEnd ? leaveDate : monthEnd;
@@ -59,7 +71,7 @@ function calculateProration(joinDateStr, leaveDateStr, yearMonth, rule = 'days')
     return 0.0;
   }
 
-  const activeDays = Math.round((effectiveEnd - effectiveStart) / (1000 * 60 * 60 * 24)) + 1;
+  const activeDays = Math.round((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   return Math.min(1.0, Math.max(0.0, activeDays / totalDays));
 }
 
@@ -123,8 +135,8 @@ function checkMonthNotLocked(month) {
   }
 }
 
-// Get bills and full matrix for a given month (e.g., '2024-10')
-router.get('/', (req, res) => {
+// Get bills and full matrix for a given month (e.g., '2024-10') - Admin Only
+router.get('/', requireAdmin, (req, res) => {
   try {
     const activeSetting = db.prepare(`SELECT value FROM settings WHERE key = 'active_month'`).get();
     const defaultActive = activeSetting ? activeSetting.value : new Date().toISOString().slice(0, 7);
@@ -311,8 +323,14 @@ router.post('/close-and-advance-month', requirePermission('can_manage_bills'), (
       VALUES (?, 'closed', ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP)
     `).run(month, admin_name, admin_name);
 
-    // Calculate ending balance for each active member in this month
-    const members = db.prepare(`SELECT id, name, unique_id FROM members WHERE status = 'Active'`).all();
+    // Calculate ending balance for each active member OR former member with open debt
+    const members = db.prepare(`
+      SELECT id, name, unique_id, status FROM members 
+      WHERE status = 'Active' 
+         OR id IN (SELECT member_id FROM bill_splits)
+         OR id IN (SELECT member_id FROM payments)
+         OR opening_balance != 0
+    `).all();
     const insertCarry = db.prepare(`
       INSERT OR REPLACE INTO monthly_carry_forward (month, from_month, member_id, amount, notes)
       VALUES (?, ?, ?, ?, ?)
@@ -339,8 +357,12 @@ router.post('/close-and-advance-month', requirePermission('can_manage_bills'), (
       `).get(m.id, month).total;
 
       const endingBillsBalance = Math.round((prior + thisMonthBills - thisMonthPaid) * 100) / 100;
-      insertCarry.run(nextMonth, month, m.id, endingBillsBalance, `Carried forward from ${month} closing balance`);
-      if (endingBillsBalance !== 0) carriedCount++;
+      
+      // Preserve balance: carry forward if active or has non-zero arrears
+      if (endingBillsBalance !== 0 || m.status === 'Active') {
+        insertCarry.run(nextMonth, month, m.id, endingBillsBalance, `Carried forward from ${month} closing balance`);
+        if (endingBillsBalance !== 0) carriedCount++;
+      }
     }
 
     // Set new month as active in settings
