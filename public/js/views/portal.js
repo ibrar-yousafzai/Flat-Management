@@ -19,10 +19,12 @@ const PortalView = {
       // Compute Total Combined Balance
       const totalCombinedDue = Math.max(0, (b.bills_balance || 0) + (b.food_balance || 0));
 
-      // Due Date computation
-      const currentMonth = '2024-10';
+      // Real-time online Date computation
+      const currentMonth = settings.active_month || App.getDefaultMonth();
       const dueDay = parseInt(settings.monthly_bills_due_day || '10', 10);
-      const dueDate = `${String(dueDay).padStart(2, '0')} Oct 2024`;
+      const now = new Date();
+      const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const dueDate = `${String(dueDay).padStart(2, '0')} ${monthNamesShort[now.getMonth()]} ${now.getFullYear()}`;
       const isPaid = totalCombinedDue <= 0;
 
       return `
@@ -35,7 +37,7 @@ const PortalView = {
                 <span class="text-xs sm:text-sm font-black ${isPaid ? 'text-emerald-300' : 'text-amber-300'}">
                   ${isPaid ? 'Cleared ✓' : 'Pending'}
                 </span>
-                <span class="text-[9px] text-blue-200 mt-0.5">Oct 2024</span>
+                <span class="text-[9px] text-blue-200 mt-0.5">${monthNamesShort[now.getMonth()]} ${now.getFullYear()}</span>
               </div>
 
               <!-- Right: Flat & Account Details -->
@@ -48,7 +50,7 @@ const PortalView = {
                   </div>
                   <div class="flex items-center gap-2">
                     <i class="fa-solid fa-calendar-check text-blue-300 w-3.5 text-center"></i>
-                    <span>Active Period: October 2024</span>
+                    <span>Active Period: ${App.formatMonth(currentMonth)}</span>
                   </div>
                   ${m.security_deposit > 0 ? `
                     <div class="flex items-center gap-2 text-emerald-300">

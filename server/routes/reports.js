@@ -9,8 +9,7 @@ const { requireMemberSelf, requireAdmin } = require('../middleware/auth');
 router.get('/member-invoice/:memberId', requireMemberSelf('memberId'), (req, res) => {
   try {
     const { memberId } = req.params;
-    let { month = '2024-10' } = req.query;
-    if (month.startsWith('2026')) month = '2024-10';
+    let { month = new Date().toISOString().slice(0, 7) } = req.query;
 
     const member = db.prepare(`
       SELECT m.*, r.name as room_name, r.base_rent as room_base_rent
@@ -408,7 +407,6 @@ router.post('/batch-send-emails', requireAdmin, async (req, res) => {
 router.get('/month-consolidated/:month', requireAdmin, (req, res) => {
   try {
     let { month } = req.params;
-    if (month.startsWith('2026')) month = '2024-10';
     const settingsRows = db.prepare(`SELECT * FROM settings`).all();
     const settings = {};
     for (const s of settingsRows) settings[s.key] = s.value;

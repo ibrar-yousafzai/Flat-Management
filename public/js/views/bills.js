@@ -1,6 +1,6 @@
 // Monthly Bills & Matrix Split View
 const BillsView = {
-  selectedMonth: '2024-10',
+  selectedMonth: new Date().toISOString().slice(0, 7),
   visibleMembersLimit: 6,
   visibleBillsLimit: 6,
 
@@ -20,7 +20,7 @@ const BillsView = {
       const visibleMatrix = matrix.slice(0, this.visibleMembersLimit || 6);
       const visibleBills = bills.slice(0, this.visibleBillsLimit || 6);
       const isConfirmed = billsData.month_status === 'confirmed' || billsData.month_status === 'closed';
-      const availableMonths = monthsData.months || ['2024-02', '2024-03', '2024-04', '2024-05', '2024-06', '2024-07', '2024-08', '2024-09', '2024-10'];
+      const availableMonths = (monthsData && monthsData.months && monthsData.months.length > 0) ? monthsData.months : [this.selectedMonth];
 
       const insideMembers = members.filter(m => m.type === 'Inside').length;
       const outsideMembers = members.filter(m => m.type === 'Outside').length;
@@ -36,7 +36,7 @@ const BillsView = {
                 <span class="text-xs sm:text-sm font-black ${isConfirmed ? 'text-emerald-300' : 'text-amber-300'}">
                   ${billsData.month_status === 'closed' ? 'Closed' : (isConfirmed ? 'Published' : 'Draft')}
                 </span>
-                <span class="text-[9px] text-blue-200 mt-0.5">Oct 2024</span>
+                <span class="text-[9px] text-blue-200 mt-0.5">${App.formatMonth(this.selectedMonth)}</span>
               </div>
 
               <!-- Right: Details -->

@@ -271,81 +271,125 @@ const App = {
 
   renderLoginView() {
     return `
-      <div class="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-        <div class="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 card-shadow space-y-6 border border-slate-100">
-          <!-- Logo & Header -->
-          <div class="text-center space-y-2">
-            <div class="w-14 h-14 bg-gradient-to-tr from-blue-700 to-blue-600 text-white rounded-2xl flex items-center justify-center text-2xl mx-auto shadow-md shadow-blue-500/20">
-              <i class="fa-solid fa-building-user"></i>
+      <div class="min-h-screen bg-slate-950 flex flex-col justify-between p-4 sm:p-6 relative overflow-hidden select-none">
+        <!-- Ambient Glowing Background Circles (Banking App Style) -->
+        <div class="absolute -top-32 -left-32 w-80 h-80 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-32 -right-32 w-80 h-80 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <!-- Top Space Filler -->
+        <div></div>
+
+        <!-- Main Standard Login Card (Bank & Social App UI) -->
+        <div class="w-full max-w-sm mx-auto relative z-10">
+          <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-2xl shadow-slate-950/40 border border-slate-100 space-y-6">
+            
+            <!-- App Brand & Title -->
+            <div class="text-center space-y-2">
+              <div class="w-16 h-16 bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center text-2xl mx-auto shadow-lg shadow-blue-600/30">
+                <i class="fa-solid fa-building-shield"></i>
+              </div>
+              <h1 class="text-2xl font-black text-slate-900 tracking-tight">Flat Portal</h1>
+              <p class="text-xs text-slate-500 font-medium">Secure sign in for members and administrators</p>
             </div>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Flat Management</h1>
-            <p class="text-xs text-slate-500">Sign in to your administration dashboard or member portal</p>
+
+            <!-- Sleek Segmented Switcher (Bank App Tabs) -->
+            <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl text-xs font-bold gap-1">
+              <button id="tabMember" type="button" onclick="App.switchLoginTab('member')" class="py-2.5 rounded-xl bg-white text-emerald-700 shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-user"></i> Member
+              </button>
+              <button id="tabAdmin" type="button" onclick="App.switchLoginTab('admin')" class="py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-user-shield"></i> Admin
+              </button>
+            </div>
+
+            <!-- MEMBER LOGIN FORM (Default) -->
+            <form id="memberLoginForm" onsubmit="App.handleMemberLogin(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Member Name or ID</label>
+                <div class="relative">
+                  <i class="fa-solid fa-id-card absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+                  <input type="text" id="memberIdInput" required placeholder="Name, Member ID or Phone" autocomplete="username" class="w-full pl-10 pr-4 py-3 text-sm bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-100 focus:border-emerald-600 outline-none transition-all font-bold text-slate-800" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Password</label>
+                <div class="relative">
+                  <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+                  <input type="password" id="memberPassInput" required placeholder="Enter password" autocomplete="current-password" class="w-full pl-10 pr-11 py-3 text-sm bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-100 focus:border-emerald-600 outline-none transition-all font-medium text-slate-800" />
+                  <button type="button" onclick="App.togglePasswordVisibility('memberPassInput')" class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 text-sm cursor-pointer" title="Toggle password visibility">
+                    <i class="fa-regular fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Options Row -->
+              <div class="flex items-center justify-between text-xs pt-0.5">
+                <label class="flex items-center gap-2 cursor-pointer text-slate-600">
+                  <input type="checkbox" checked class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300" />
+                  <span class="font-medium">Remember me</span>
+                </label>
+                <span class="text-slate-400 font-medium">Secure Session</span>
+              </div>
+
+              <!-- Primary Action Button -->
+              <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-600/25 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2">
+                <span>Sign In to Member Portal</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </form>
+
+            <!-- ADMIN LOGIN FORM -->
+            <form id="adminLoginForm" onsubmit="App.handleAdminLogin(event)" class="space-y-4 hidden">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Admin Username</label>
+                <div class="relative">
+                  <i class="fa-solid fa-user absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+                  <input type="text" id="adminUser" required placeholder="Enter admin username" autocomplete="username" class="w-full pl-10 pr-4 py-3 text-sm bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all font-bold text-slate-800" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Password</label>
+                <div class="relative">
+                  <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+                  <input type="password" id="adminPass" required placeholder="Enter admin password" autocomplete="current-password" class="w-full pl-10 pr-11 py-3 text-sm bg-slate-50/80 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all font-medium text-slate-800" />
+                  <button type="button" onclick="App.togglePasswordVisibility('adminPass')" class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 text-sm cursor-pointer" title="Toggle password visibility">
+                    <i class="fa-regular fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Options Row -->
+              <div class="flex items-center justify-between text-xs pt-0.5">
+                <label class="flex items-center gap-2 cursor-pointer text-slate-600">
+                  <input type="checkbox" checked class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300" />
+                  <span class="font-medium">Stay signed in</span>
+                </label>
+                <span class="text-slate-400 font-medium">Administrator</span>
+              </div>
+
+              <!-- Primary Action Button -->
+              <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 text-white font-black text-sm rounded-xl shadow-lg shadow-blue-700/25 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2">
+                <span>Sign In as Admin</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </form>
+
+            <!-- Standard Bank App Security Badge -->
+            <div class="pt-2 border-t border-slate-100 text-center">
+              <div class="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+                <i class="fa-solid fa-shield-halved text-emerald-600 text-xs"></i>
+                <span>256-Bit SSL Encrypted &bull; Official Flat Portal</span>
+              </div>
+            </div>
+
           </div>
+        </div>
 
-          <!-- Login Type Tabs -->
-          <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-2xl text-xs font-bold">
-            <button id="tabAdmin" type="button" onclick="App.switchLoginTab('admin')" class="py-2.5 rounded-xl bg-white text-blue-700 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-              <i class="fa-solid fa-user-shield"></i> Admin Login
-            </button>
-            <button id="tabMember" type="button" onclick="App.switchLoginTab('member')" class="py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-              <i class="fa-solid fa-user"></i> Member Portal
-            </button>
-          </div>
-
-          <!-- ADMIN LOGIN FORM -->
-          <form id="adminLoginForm" onsubmit="App.handleAdminLogin(event)" class="space-y-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Admin Username *</label>
-              <div class="relative">
-                <i class="fa-solid fa-user absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="text" id="adminUser" required placeholder="Enter username" autocomplete="username" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-600 outline-none font-medium text-slate-800" />
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password *</label>
-              <div class="relative">
-                <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="password" id="adminPass" required placeholder="Enter password" autocomplete="current-password" class="w-full pl-9 pr-10 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-blue-600 outline-none font-medium text-slate-800" />
-                <button type="button" onclick="App.togglePasswordVisibility('adminPass')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer">
-                  <i class="fa-regular fa-eye"></i>
-                </button>
-              </div>
-            </div>
-
-            <button type="submit" class="w-full py-3 bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2">
-              <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In as Admin
-            </button>
-          </form>
-
-          <!-- MEMBER LOGIN FORM -->
-          <form id="memberLoginForm" onsubmit="App.handleMemberLogin(event)" class="space-y-4 hidden">
-            <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="block text-xs font-semibold text-slate-600 uppercase">Member Name or ID *</label>
-                <span class="text-[10px] text-emerald-600 font-bold">Name, ID or Phone</span>
-              </div>
-              <div class="relative">
-                <i class="fa-solid fa-id-card absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="text" id="memberIdInput" required placeholder="Enter member name, ID or phone" autocomplete="username" class="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none font-bold text-slate-800" />
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password *</label>
-              <div class="relative">
-                <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                <input type="password" id="memberPassInput" required placeholder="Enter your password" autocomplete="current-password" class="w-full pl-9 pr-10 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none font-medium text-slate-800" />
-                <button type="button" onclick="App.togglePasswordVisibility('memberPassInput')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer">
-                  <i class="fa-regular fa-eye"></i>
-                </button>
-              </div>
-            </div>
-
-            <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2">
-              <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In to Member Portal
-            </button>
-          </form>
+        <!-- Bottom Copyright Footer -->
+        <div class="text-center text-xs text-slate-500 font-medium relative z-10 py-2">
+          <span>Flat Management System &bull; All Rights Reserved</span>
         </div>
       </div>
     `;
@@ -360,12 +404,12 @@ const App = {
     if (tab === 'admin') {
       adminForm.classList.remove('hidden');
       memberForm.classList.add('hidden');
-      tabAdmin.className = 'py-2.5 rounded-xl bg-white text-blue-700 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+      tabAdmin.className = 'py-2.5 rounded-xl bg-white text-blue-700 shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer';
       tabMember.className = 'py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5 cursor-pointer';
     } else {
       adminForm.classList.add('hidden');
       memberForm.classList.remove('hidden');
-      tabMember.className = 'py-2.5 rounded-xl bg-white text-emerald-700 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+      tabMember.className = 'py-2.5 rounded-xl bg-white text-emerald-700 shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer';
       tabAdmin.className = 'py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center gap-1.5 cursor-pointer';
     }
   },
@@ -448,26 +492,32 @@ const App = {
   },
 
   getDefaultMonth() {
-    return '2024-10';
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
   },
 
   formatMonth(monthStr) {
-    if (!monthStr) return 'October 2024';
-    let [y, m] = String(monthStr).split('-');
-    if (y === '2026') y = '2024';
+    if (!monthStr) {
+      return new Date().toLocaleDateString('en-PK', { month: 'long', year: 'numeric' });
+    }
+    const [y, m] = String(monthStr).split('-');
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const idx = parseInt(m || '10', 10) - 1;
-    const name = monthNames[idx] || 'October';
-    return `${name} ${y || '2024'}`;
+    const idx = parseInt(m || '1', 10) - 1;
+    const name = monthNames[idx] || 'Month';
+    return `${name} ${y}`;
   },
 
   formatDisplayDate(dateStr) {
-    if (!dateStr) return '22 Oct 2024';
-    const clean = String(dateStr).replace('2026-', '2024-');
-    const d = new Date(clean);
-    if (isNaN(d.getTime())) return '22 Oct 2024';
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${d.getDate()} ${monthNames[d.getMonth()]} 2024`;
+    if (!dateStr) {
+      return new Date().toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) {
+      return String(dateStr);
+    }
+    return d.toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' });
   },
 
   togglePasswordVisibility(inputId) {

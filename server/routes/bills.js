@@ -36,13 +36,12 @@ router.get('/months-list', (req, res) => {
     const billMonths = db.prepare(`SELECT DISTINCT month FROM monthly_bills`).all().map(r => r.month);
     const foodMonths = db.prepare(`SELECT DISTINCT month FROM weekly_food`).all().map(r => r.month);
     const statusMonths = db.prepare(`SELECT DISTINCT month FROM month_status`).all().map(r => r.month);
+    const currentRealTimeMonth = new Date().toISOString().slice(0, 7);
     const activeSetting = db.prepare(`SELECT value FROM settings WHERE key = 'active_month'`).get();
-    let activeMonth = activeSetting ? activeSetting.value : '2024-10';
-    if (activeMonth.startsWith('2026')) activeMonth = '2024-10';
+    let activeMonth = (activeSetting && activeSetting.value) ? activeSetting.value : currentRealTimeMonth;
 
-    const defaultMonths = ['2024-05', '2024-06', '2024-07', '2024-08', '2024-09', '2024-10', '2024-11', '2024-12'];
-    const allMonths = Array.from(new Set([...billMonths, ...foodMonths, ...statusMonths, activeMonth, ...defaultMonths]))
-      .filter(m => m && !m.startsWith('2026'))
+    const allMonths = Array.from(new Set([...billMonths, ...foodMonths, ...statusMonths, activeMonth, currentRealTimeMonth]))
+      .filter(Boolean)
       .sort();
 
     res.json({

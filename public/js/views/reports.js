@@ -1,6 +1,6 @@
 // Reports & WhatsApp Invoice View
 const ReportsView = {
-  selectedMonth: '2024-10',
+  selectedMonth: new Date().toISOString().slice(0, 7),
   selectedMemberId: 'all',
   memberStatementMode: 'month', // 'month' or 'full'
   visibleLimit: 6,
@@ -21,7 +21,7 @@ const ReportsView = {
       ]);
 
       const currency = settings.currency_symbol || 'Rs.';
-      const availableMonths = (monthsData.months || ['2024-10']).filter(m => !m.startsWith('2026'));
+      const availableMonths = (monthsData && monthsData.months && monthsData.months.length > 0) ? monthsData.months : [this.selectedMonth];
 
       return `
         <div class="space-y-4 max-w-7xl mx-auto pb-12">

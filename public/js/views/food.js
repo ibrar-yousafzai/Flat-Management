@@ -1,6 +1,6 @@
 // Weekly Food View - Week-to-Week Mess & Grocery Ledger
 const FoodView = {
-  currentMonth: '2024-10',
+  currentMonth: new Date().toISOString().slice(0, 7),
   activeMembersCache: [],
   visibleLimit: 6,
 
@@ -17,7 +17,7 @@ const FoodView = {
       const totalFoodMonth = entries.reduce((acc, e) => acc + Number(e.total_amount || 0), 0);
       const visibleEntries = entries.slice(0, this.visibleLimit || 6);
 
-      // Format month for display (e.g. October 2024)
+      // Real-time online month display
       const monthDisplay = App.formatMonth(this.currentMonth);
 
       return `
@@ -28,7 +28,7 @@ const FoodView = {
               <!-- Left: Circular Gauge Indicator -->
               <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-amber-400/50 bg-amber-500/20 flex flex-col items-center justify-center text-center shrink-0 backdrop-blur-xs shadow-inner">
                 <span class="text-xs sm:text-sm font-black text-amber-300">Food Mess</span>
-                <span class="text-[9px] text-blue-200 mt-0.5">Oct 2024</span>
+                <span class="text-[9px] text-blue-200 mt-0.5">${monthDisplay}</span>
               </div>
 
               <!-- Right: Details -->
@@ -381,22 +381,20 @@ const FoodView = {
 
   prevMonth() {
     let [y, m] = this.currentMonth.split('-').map(Number);
-    if (y >= 2025) y = 2024;
     const d = new Date(y, m - 2, 1);
-    const newMonth = `${d.getFullYear() === 2026 ? 2024 : d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const newMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     this.changeMonth(newMonth);
   },
 
   nextMonth() {
     let [y, m] = this.currentMonth.split('-').map(Number);
-    if (y >= 2025) y = 2024;
     const d = new Date(y, m, 1);
-    const newMonth = `${d.getFullYear() === 2026 ? 2024 : d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const newMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     this.changeMonth(newMonth);
   },
 
   goToCurrentMonth() {
-    this.changeMonth('2024-10');
+    this.changeMonth(new Date().toISOString().slice(0, 7));
   },
 
   // Create Modal with Per-Head Calculator and Mid-Week Manual Partial Overrides
@@ -404,7 +402,7 @@ const FoodView = {
     const members = membersList || this.activeMembersCache || (await API.get('/api/members?status=Active'));
     this.activeMembersCache = members;
 
-    const today = '2024-10-22';
+    const today = new Date().toISOString().slice(0, 10);
 
     App.showModal(`
       <div class="space-y-3.5 max-w-xl mx-auto">

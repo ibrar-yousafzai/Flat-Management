@@ -311,7 +311,7 @@ function initDatabase() {
   // Default settings
   const defaultSettings = [
     ['flat_name', 'Flat Management System'],
-    ['active_month', '2024-10'],
+    ['active_month', new Date().toISOString().slice(0, 7)],
     ['bank_name', 'Meezan Bank'],
     ['account_title', 'Flat Manager Account'],
     ['account_number', '0101-0105892341'],
